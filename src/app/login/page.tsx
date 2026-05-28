@@ -11,6 +11,8 @@ import { supabase } from "@/lib/supabase";
 const fieldClass =
   "mt-2 h-14 w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 text-white outline-none transition-all placeholder:text-white/20 focus:ring-2 focus:ring-amber-400/30 [color-scheme:dark]";
 
+const PROFILE_COMPLETE_PATH = "/profile/complete";
+
 export default function LoginPage() {
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
@@ -29,7 +31,7 @@ export default function LoginPage() {
     }
 
     if (!authLoading && user) {
-      router.replace("/");
+      router.replace(PROFILE_COMPLETE_PATH);
     }
   }, [authLoading, user, router]);
 
@@ -65,7 +67,7 @@ export default function LoginPage() {
         }
       }
 
-      router.replace("/");
+      router.replace(PROFILE_COMPLETE_PATH);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Giriş işlemi başarısız oldu.";

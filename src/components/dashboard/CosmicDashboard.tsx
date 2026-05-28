@@ -9,6 +9,7 @@ import RelationshipCard from "./RelationshipCard";
 import SessionCounter from "./SessionCounter";
 import ReferralPanel from "./ReferralPanel";
 import CosmicJournal from "./CosmicJournal";
+import DashboardHeader from "./DashboardHeader";
 import AITarotPanel from "./AITarotPanel";
 import NatalChartPanel from "../natal-chart/NatalChartPanel";
 import { DASHBOARD_MODULES, type DashboardModule } from "./modules/config";
@@ -92,23 +93,7 @@ export default function CosmicDashboard({ user }: CosmicDashboardProps) {
       />
 
       <div className="relative mx-auto max-w-2xl">
-        <motion.header
-          initial={{ opacity: 0, y: -16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="mb-10 text-center sm:mb-12"
-        >
-          <p className="text-[10px] font-medium uppercase tracking-[0.35em] text-amber-400/60">
-            ASTROTAG
-          </p>
-          <h1 className="mt-2 bg-gradient-to-b from-white to-amber-200/80 bg-clip-text text-3xl font-bold tracking-tight text-transparent sm:text-4xl">
-            Kozmik Dashboard
-          </h1>
-          <p className="mt-3 text-sm text-white/40">
-            Hoş geldin,{" "}
-            <span className="font-medium text-amber-200/80">{user.name}</span>
-          </p>
-        </motion.header>
+        <DashboardHeader userName={user.name} />
 
         <SessionCounter />
 

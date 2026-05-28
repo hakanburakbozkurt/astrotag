@@ -8,7 +8,7 @@ export default function ProfileRedirectPage() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace("/dashboard");
+    router.replace("/profile/complete");
   }, [router]);
 
   return null;

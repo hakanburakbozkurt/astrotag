@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import RegistrationModal from "@/components/RegistrationModal";
 import { useUserProfile } from "@/lib/auth";
 import { isDevAuthBypassActive } from "@/lib/dev-mode";
 import { LOGIN_PATH } from "@/lib/supabase-actions";
@@ -41,32 +40,23 @@ export default function Home() {
 
     if (profileStatus === "ready" && userData) {
       router.replace("/dashboard");
+      return;
     }
+
+    router.replace("/profile/complete");
   }, [isLoading, profileStatus, user, userData, router]);
 
-  if (!isMounted) {
-    return null;
-  }
-
-  if (isLoading) {
+  if (!isMounted || isLoading) {
     return (
-      <main className="relative flex min-h-screen items-center justify-center">
+      <main className="relative flex min-h-dvh items-center justify-center">
         <p className="text-sm text-white/45">Kozmik bağlantı kuruluyor...</p>
       </main>
     );
   }
 
-  if (isDevAuthBypassActive() || !user || userData) {
-    return (
-      <main className="relative flex min-h-screen items-center justify-center">
-        <p className="text-sm text-white/45">Yönlendiriliyor...</p>
-      </main>
-    );
-  }
-
   return (
-    <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden">
-      <RegistrationModal onComplete={() => router.push("/dashboard")} />
+    <main className="relative flex min-h-dvh items-center justify-center">
+      <p className="text-sm text-white/45">Yönlendiriliyor...</p>
     </main>
   );
 }

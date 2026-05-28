@@ -54,7 +54,7 @@ export default function DashboardPage() {
             Doğum haritası bilgileriniz henüz tamamlanmamış.
           </p>
           <Link
-            href="/"
+            href="/profile/complete"
             className="mt-6 rounded-xl border border-amber-400/30 px-5 py-2.5 text-sm text-amber-100"
           >
             Profili Tamamla

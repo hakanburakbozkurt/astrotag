@@ -19,7 +19,7 @@ import {
 } from "@/lib/supabase-actions";
 
 const fieldClass =
-  "mt-2 h-12 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-amber-400/30 [color-scheme:dark]";
+  "mt-2 h-12 w-full min-w-0 max-w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-amber-400/30 [color-scheme:dark]";
 
 export default function PartnerSettingsPage() {
   useRequireAuth();
@@ -106,7 +106,7 @@ export default function PartnerSettingsPage() {
     <main className="relative min-h-dvh">
       <Starfield />
 
-      <div className="relative mx-auto max-w-xl px-4 py-10 sm:px-6 sm:py-14">
+      <div className="relative mx-auto w-full max-w-xl overflow-x-hidden px-4 py-10 sm:px-6 sm:py-14">
         <Link
           href="/dashboard"
           className="text-xs uppercase tracking-[0.25em] text-amber-400/70"
@@ -117,7 +117,7 @@ export default function PartnerSettingsPage() {
         <motion.section
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mt-6 rounded-[28px] border border-white/10 bg-[#0f172a]/80 p-6 backdrop-blur-2xl"
+          className="mt-6 w-full min-w-0 rounded-[28px] border border-white/10 bg-[#0f172a]/80 p-5 backdrop-blur-2xl sm:p-6"
         >
           <p className="text-[10px] uppercase tracking-[0.3em] text-amber-400/70">
             Partner Ayarları
@@ -132,8 +132,11 @@ export default function PartnerSettingsPage() {
           {isFetching ? (
             <p className="mt-6 text-sm text-white/45">Partner bilgileri yükleniyor...</p>
           ) : (
-            <form onSubmit={(event) => void handleSubmit(event)} className="mt-6 space-y-4">
-              <label className="block">
+            <form
+              onSubmit={(event) => void handleSubmit(event)}
+              className="mt-6 flex w-full min-w-0 flex-col gap-5"
+            >
+              <label className="block w-full min-w-0">
                 <span className="text-[10px] uppercase tracking-[0.2em] text-white/60">
                   Partner Adı
                 </span>
@@ -147,7 +150,7 @@ export default function PartnerSettingsPage() {
                 />
               </label>
 
-              <label className="block">
+              <label className="block w-full min-w-0">
                 <span className="text-[10px] uppercase tracking-[0.2em] text-white/60">
                   Doğum Tarihi
                 </span>
@@ -163,7 +166,7 @@ export default function PartnerSettingsPage() {
                 />
               </label>
 
-              <label className="block">
+              <label className="block w-full min-w-0">
                 <span className="text-[10px] uppercase tracking-[0.2em] text-white/60">
                   Doğum Saati
                 </span>
@@ -179,7 +182,7 @@ export default function PartnerSettingsPage() {
                 />
               </label>
 
-              <label className="block">
+              <label className="block w-full min-w-0">
                 <span className="text-[10px] uppercase tracking-[0.2em] text-white/60">
                   Doğum Yeri
                 </span>
