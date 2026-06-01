@@ -1,6 +1,7 @@
 "use server";
 
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getNfcSessionProfileId } from "@/lib/nfc/session.server";
+import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import type { TarotReadingCard } from "@/lib/ai/tarot-pipeline-schemas";
 import {
   type CosmicJournalFilter,
@@ -19,17 +20,7 @@ export type {
 const COSMIC_READINGS_TABLE = "cosmic_readings";
 
 async function getServerAuthUserId(): Promise<string | null> {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-
-  if (error || !user?.id) {
-    return null;
-  }
-
-  return user.id;
+  return getNfcSessionProfileId();
 }
 
 function parseCardsJson(value: unknown): TarotReadingCard[] | null {
@@ -99,7 +90,7 @@ export async function getCosmicJournalReadings(
     return [];
   }
 
-  const supabase = await createServerSupabaseClient();
+  const supabase = createSupabaseServiceClient();
   let query = supabase
     .from(COSMIC_READINGS_TABLE)
     .select("id, type, question, reading_result, cards_json, created_at")

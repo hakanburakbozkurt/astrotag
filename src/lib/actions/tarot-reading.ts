@@ -19,7 +19,8 @@ import {
   formatUserDataForPrompt,
   getServerUserProfile,
 } from "@/lib/tarot/tarot-profile-server";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getNfcSessionProfileId } from "@/lib/nfc/session.server";
+import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import type { UserData } from "@/types/user";
 
 export type { TarotReadingCard } from "@/lib/ai/tarot-pipeline-schemas";
@@ -45,17 +46,7 @@ function logInterpretError(error: unknown, context: string): void {
 }
 
 async function getServerAuthUserId(): Promise<string | null> {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-
-  if (error || !user?.id) {
-    return null;
-  }
-
-  return user.id;
+  return getNfcSessionProfileId();
 }
 
 async function resolveUserProfileForReading(
@@ -80,7 +71,7 @@ async function getCachedReading(
   userId: string,
   cardIds: string[]
 ): Promise<string | null> {
-  const supabase = await createServerSupabaseClient();
+  const supabase = createSupabaseServiceClient();
   const signature = buildCardSignature(cardIds);
   const since = new Date(
     Date.now() - TAROT_CACHE_HOURS * 60 * 60 * 1000
@@ -110,7 +101,7 @@ async function saveReadingHistory(input: {
   cardIds: string[];
   reading: string;
 }): Promise<void> {
-  const supabase = await createServerSupabaseClient();
+  const supabase = createSupabaseServiceClient();
   const signature = buildCardSignature(input.cardIds);
 
   const { error } = await supabase.from(TAROT_HISTORY_TABLE).insert({

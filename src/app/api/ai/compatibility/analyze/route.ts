@@ -6,22 +6,8 @@ import {
 } from "@/lib/ai/synastry";
 import { buildCosmicAnalysisContext } from "@/lib/astrology/cosmic-context";
 import { logSynastryToArchive } from "@/lib/cosmic-journal/log-reading";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getNfcSessionProfileId } from "@/lib/nfc/session.server";
 import type { UserData } from "@/types/user";
-
-async function getAuthUserId(): Promise<string | null> {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-
-  if (error || !user?.id) {
-    return null;
-  }
-
-  return user.id;
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -41,10 +27,10 @@ export async function POST(request: NextRequest) {
     const context = await buildCosmicAnalysisContext(userData);
     const result = await requestSynastryAnalysis(question, userData, context);
 
-    const userId = await getAuthUserId();
-    if (userId) {
+    const profileId = await getNfcSessionProfileId();
+    if (profileId) {
       await logSynastryToArchive({
-        userId,
+        userId: profileId,
         question: question.trim(),
         analysis: result.analysis,
         partnerName: partnerName || context.synastry?.partnerName || "Partner",

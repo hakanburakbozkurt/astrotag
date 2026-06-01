@@ -3,7 +3,8 @@
 import { useCallback, useState } from "react";
 import type { UserData } from "@/types/user";
 import { fetchNatalInterpretation } from "@/lib/ai/natal-interpretation-client";
-import { consumeCosmicEnergy, SupabaseActionError } from "@/lib/supabase-actions";
+import { consumeCosmicEnergy } from "@/lib/supabase-actions";
+import { SupabaseActionError } from "@/lib/supabase-action-error";
 
 type InterpretationStatus = "idle" | "loading" | "ready" | "error";
 

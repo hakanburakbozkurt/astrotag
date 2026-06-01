@@ -5,9 +5,9 @@ import { motion } from "framer-motion";
 import {
   applyReferralCode,
   getReferralInfo,
-  SupabaseActionError,
   type ReferralInfo,
 } from "@/lib/supabase-actions";
+import { SupabaseActionError } from "@/lib/supabase-action-error";
 
 const tapButtonClass =
   "min-h-11 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm font-medium text-amber-100 transition hover:bg-amber-400/20 disabled:cursor-not-allowed disabled:opacity-60";

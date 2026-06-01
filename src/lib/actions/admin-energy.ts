@@ -1,7 +1,7 @@
 "use server";
 
 import { MAX_COSMIC_ENERGY } from "@/lib/constants/cosmic";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getNfcSessionProfileId } from "@/lib/nfc/session.server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 
 const PROFILE_TABLE = "profiles";
@@ -32,14 +32,9 @@ async function requireAdminUser(): Promise<
   | { ok: true; userId: string }
   | { ok: false; error: string; code: ResetAllUsersEnergyErrorCode }
 > {
-  const supabase = await createServerSupabaseClient();
+  const profileId = await getNfcSessionProfileId();
 
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user?.id) {
+  if (!profileId) {
     return {
       ok: false,
       code: "UNAUTHORIZED",
@@ -47,115 +42,87 @@ async function requireAdminUser(): Promise<
     };
   }
 
+  const supabase = createSupabaseServiceClient();
   const { data: profile, error: profileError } = await supabase
     .from(PROFILE_TABLE)
     .select("role")
-    .eq("id", user.id)
+    .eq("id", profileId)
     .maybeSingle();
 
-  if (profileError) {
+  if (profileError || !profile) {
     return {
       ok: false,
-      code: "DATABASE_ERROR",
-      error: "Admin yetkisi doğrulanamadı.",
+      code: "UNAUTHORIZED",
+      error: "Profil doğrulanamadı.",
     };
   }
 
-  if (profile?.role !== ADMIN_ROLE) {
+  if (profile.role !== ADMIN_ROLE) {
     return {
       ok: false,
       code: "FORBIDDEN",
-      error: "Bu işlem yalnızca admin kullanıcılar tarafından çalıştırılabilir.",
+      error: "Bu işlem yalnızca admin kullanıcılar içindir.",
     };
   }
 
-  return { ok: true, userId: user.id };
+  return { ok: true, userId: profileId };
 }
 
-/**
- * Tüm kullanıcıların cosmic_energy değerini 100'e eşitler.
- * Yalnızca profiles.role = 'admin' olan oturumlar çalıştırabilir.
- * Zaten 100 olan kayıtlar güncellenmez.
- */
-export async function resetAllUsersEnergy(): Promise<ResetAllUsersEnergyResult> {
+export async function resetAllUsersCosmicEnergy(): Promise<ResetAllUsersEnergyResult> {
+  const admin = await requireAdminUser();
+  if (!admin.ok) {
+    return { success: false, error: admin.error, code: admin.code };
+  }
+
   try {
-    const adminCheck = await requireAdminUser();
-
-    if (!adminCheck.ok) {
-      return {
-        success: false,
-        error: adminCheck.error,
-        code: adminCheck.code,
-      };
-    }
-
-    let serviceClient;
-
-    try {
-      serviceClient = createSupabaseServiceClient();
-    } catch {
-      return {
-        success: false,
-        code: "CONFIG_ERROR",
-        error: "Sunucu yapılandırması eksik. Service role anahtarı tanımlı değil.",
-      };
-    }
-
-    const { count: alreadyAtMaxCount, error: alreadyFullError } =
-      await serviceClient
-        .from(PROFILE_TABLE)
-        .select("id", { count: "exact", head: true })
-        .eq("cosmic_energy", MAX_COSMIC_ENERGY);
-
-    const { count: totalProfiles, error: totalError } = await serviceClient
+    const supabase = createSupabaseServiceClient();
+    const { data: profiles, error: readError } = await supabase
       .from(PROFILE_TABLE)
-      .select("id", { count: "exact", head: true });
+      .select("id, cosmic_energy");
 
-    const { data: updatedRows, error: updateError } = await serviceClient
-      .from(PROFILE_TABLE)
-      .update({ cosmic_energy: MAX_COSMIC_ENERGY })
-      .neq("cosmic_energy", MAX_COSMIC_ENERGY)
-      .select("id");
-
-    if (alreadyFullError || totalError || updateError) {
-      const message =
-        updateError?.message ??
-        alreadyFullError?.message ??
-        totalError?.message ??
-        "Enerji güncellemesi başarısız oldu.";
-
+    if (readError) {
       return {
         success: false,
         code: "DATABASE_ERROR",
-        error: message,
+        error: readError.message,
       };
     }
 
-    const updatedCount = updatedRows?.length ?? 0;
-    const skippedCount = alreadyAtMaxCount ?? 0;
-    const total = totalProfiles ?? updatedCount + skippedCount;
+    const rows = profiles ?? [];
+    const targetEnergy = MAX_COSMIC_ENERGY;
+    const toUpdate = rows.filter((row) => (row.cosmic_energy ?? 0) !== targetEnergy);
+
+    if (toUpdate.length > 0) {
+      const { error: updateError } = await supabase
+        .from(PROFILE_TABLE)
+        .update({ cosmic_energy: targetEnergy })
+        .in(
+          "id",
+          toUpdate.map((row) => row.id)
+        );
+
+      if (updateError) {
+        return {
+          success: false,
+          code: "DATABASE_ERROR",
+          error: updateError.message,
+        };
+      }
+    }
 
     return {
       success: true,
-      targetEnergy: MAX_COSMIC_ENERGY,
-      updatedCount,
-      alreadyAtMaxCount: skippedCount,
-      totalProfiles: total,
-      message:
-        updatedCount === 0
-          ? `Tüm kullanıcılar zaten ${MAX_COSMIC_ENERGY} enerjiye sahip. Güncelleme yapılmadı.`
-          : `${updatedCount} kullanıcının enerjisi ${MAX_COSMIC_ENERGY}'e yükseltildi. ${skippedCount} kullanıcı zaten doluydu.`,
+      targetEnergy,
+      updatedCount: toUpdate.length,
+      alreadyAtMaxCount: rows.length - toUpdate.length,
+      totalProfiles: rows.length,
+      message: `${toUpdate.length} kullanıcının enerjisi ${targetEnergy} olarak güncellendi.`,
     };
   } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : "Enerji sıfırlama işlemi beklenmedik bir hata ile sonuçlandı.";
-
     return {
       success: false,
       code: "DATABASE_ERROR",
-      error: message,
+      error: error instanceof Error ? error.message : "Bilinmeyen hata",
     };
   }
 }

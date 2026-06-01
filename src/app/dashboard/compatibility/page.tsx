@@ -16,7 +16,8 @@ import {
 import { hasPartnerFormData, partnerFormFromUserData } from "@/lib/partner-profile";
 import type { SynastryScoreResponse } from "@/lib/ai/synastry";
 import SynastryShareButton from "@/components/compatibility/SynastryShareButton";
-import { consumeCosmicEnergy, SupabaseActionError } from "@/lib/supabase-actions";
+import { consumeCosmicEnergy } from "@/lib/supabase-actions";
+import { SupabaseActionError } from "@/lib/supabase-action-error";
 
 const SCORE_CACHE_PREFIX = "compatibility_score_";
 

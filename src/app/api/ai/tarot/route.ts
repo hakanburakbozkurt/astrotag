@@ -12,26 +12,12 @@ import {
 } from "@/lib/ai/tarot-pipeline";
 import { TAROT_SPREAD_SIZE } from "@/lib/constants/cosmic";
 import { getCardById } from "@/data/deck";
+import { getNfcSessionProfileId } from "@/lib/nfc/session.server";
 import {
   formatPartnerDataForPrompt,
   formatUserDataForPrompt,
 } from "@/lib/tarot/tarot-profile-server";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { UserData } from "@/types/user";
-
-async function getAuthUserId(): Promise<string | null> {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-
-  if (error || !user?.id) {
-    return null;
-  }
-
-  return user.id;
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -75,13 +61,13 @@ export async function POST(request: NextRequest) {
       partnerData: formatPartnerDataForPrompt(userData),
     };
 
-    const userId = await getAuthUserId();
+    const profileId = await getNfcSessionProfileId();
     const reading = await runTarotReadingPipeline({
       question,
       cards: cardsWithPositions,
       profile: profileContext,
       userProfile: userData,
-      logContext: userId ? { userId } : undefined,
+      logContext: profileId ? { userId: profileId } : undefined,
     });
 
     if (reading === TAROT_READING_FALLBACK_MESSAGE) {

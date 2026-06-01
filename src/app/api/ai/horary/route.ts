@@ -4,22 +4,8 @@ import {
   HoraryReadingError,
   requestHoraryReading,
 } from "@/lib/ai/horary";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getNfcSessionProfileId } from "@/lib/nfc/session.server";
 import type { UserData } from "@/types/user";
-
-async function getAuthUserId(): Promise<string | null> {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-
-  if (error || !user?.id) {
-    return null;
-  }
-
-  return user.id;
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,9 +23,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const userId = await getAuthUserId();
+    const profileId = await getNfcSessionProfileId();
     const result = await requestHoraryReading(question, userData, {
-      logContext: userId ? { userId } : undefined,
+      logContext: profileId ? { userId: profileId } : undefined,
     });
 
     return NextResponse.json(result);

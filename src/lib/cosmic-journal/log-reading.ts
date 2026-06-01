@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import type { CosmicReadingType, SynastryReadingMeta } from "@/lib/cosmic-journal/types";
 
 const COSMIC_READINGS_TABLE = "cosmic_readings";
@@ -26,7 +26,7 @@ export async function logCosmicReadingToArchive(input: {
   }
 
   try {
-    const supabase = await createServerSupabaseClient();
+    const supabase = createSupabaseServiceClient();
     const { error } = await supabase.from(COSMIC_READINGS_TABLE).insert({
       user_id: input.userId,
       type: input.type,

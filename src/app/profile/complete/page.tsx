@@ -5,12 +5,21 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Starfield from "@/components/Starfield";
 import ProfileCompleteForm from "@/components/profile/ProfileCompleteForm";
-import { useRequireAuth, useUserProfile } from "@/lib/auth";
+import { checkNfcSessionAction } from "@/lib/actions/nfc-auth";
+import { LOGIN_PATH } from "@/lib/nfc/constants";
+import { useUserProfile } from "@/lib/auth";
 
 export default function ProfileCompletePage() {
-  useRequireAuth();
   const router = useRouter();
-  const { profileStatus, isLoading, userData } = useUserProfile();
+  const { profileStatus, isLoading, userData, isAuthenticated } = useUserProfile();
+
+  useEffect(() => {
+    void checkNfcSessionAction().then((session) => {
+      if (!session.authenticated) {
+        router.replace(LOGIN_PATH);
+      }
+    });
+  }, [router]);
 
   useEffect(() => {
     if (!isLoading && profileStatus === "ready" && userData) {
@@ -18,7 +27,7 @@ export default function ProfileCompletePage() {
     }
   }, [isLoading, profileStatus, userData, router]);
 
-  if (isLoading || (profileStatus === "ready" && userData)) {
+  if (isLoading || !isAuthenticated || (profileStatus === "ready" && userData)) {
     return (
       <main className="relative min-h-dvh">
         <Starfield />
@@ -48,8 +57,7 @@ export default function ProfileCompletePage() {
               AstroTag
             </h1>
             <p className="mt-3 text-sm leading-relaxed text-white/45">
-              Kozmik danışmanlık için doğum bilgilerinizi girin. Bu adım
-              tarot, horary ve synastry analizleriniz için gereklidir.
+              Kozmik danışmanlık için doğum bilgilerinizi girin.
             </p>
           </div>
 

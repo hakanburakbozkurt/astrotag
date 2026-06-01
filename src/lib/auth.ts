@@ -1,84 +1,47 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { User } from "@supabase/supabase-js";
-import { supabase } from "@/lib/supabase";
 import {
-  DEV_MOCK_PROFILE,
-  getDevTestUserId,
-  isDevAuthBypassActive,
-} from "@/lib/dev-mode";
-import { getUserProfile, LOGIN_PATH } from "@/lib/supabase-actions";
+  checkNfcSessionAction,
+} from "@/lib/actions/nfc-auth";
+import { getUserProfile } from "@/lib/supabase-actions";
+import { LOGIN_PATH } from "@/lib/nfc/constants";
 import type { UserData } from "@/types/user";
 
 export { LOGIN_PATH };
 
 export type ProfileStatus = "loading" | "ready" | "empty" | "error";
 
-function createDevMockUser(): User {
-  return {
-    id: getDevTestUserId(),
-    aud: "authenticated",
-    role: "authenticated",
-    email: "dev@test.local",
-    email_confirmed_at: new Date().toISOString(),
-    phone: "",
-    confirmed_at: new Date().toISOString(),
-    last_sign_in_at: new Date().toISOString(),
-    app_metadata: { provider: "dev", providers: ["dev"] },
-    user_metadata: {},
-    identities: [],
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    is_anonymous: false,
-  };
-}
-
 export function useAuth() {
-  const [devBypass] = useState(() => isDevAuthBypassActive());
-  const [user, setUser] = useState<User | null>(() =>
-    devBypass ? createDevMockUser() : null
-  );
-  const [isLoading, setIsLoading] = useState(() => !devBypass);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [profileId, setProfileId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (devBypass) {
-      return;
-    }
-
     let isMounted = true;
 
-    const loadUser = async () => {
-      const { data, error } = await supabase.auth.getUser();
-      if (!isMounted) return;
+    void checkNfcSessionAction().then((session) => {
+      if (!isMounted) {
+        return;
+      }
 
-      setUser(error ? null : (data.user ?? null));
-      setIsLoading(false);
-    };
-
-    void loadUser();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!isMounted) return;
-      setUser(session?.user ?? null);
+      setIsAuthenticated(session.authenticated);
+      setProfileId(session.profileId);
       setIsLoading(false);
     });
 
     return () => {
       isMounted = false;
-      subscription.unsubscribe();
     };
-  }, [devBypass]);
+  }, []);
 
   return {
-    user,
+    user: isAuthenticated ? { id: profileId } : null,
     isLoading,
-    isAuthenticated: devBypass || !!user,
-    isDevBypass: devBypass,
-    userId: user?.id ?? null,
+    isAuthenticated,
+    isDevBypass: false,
+    userId: profileId,
   };
 }
 
@@ -87,62 +50,41 @@ export function useRequireAuth(redirectTo: string = LOGIN_PATH) {
   const auth = useAuth();
 
   useEffect(() => {
-    if (auth.isDevBypass) {
-      return;
-    }
-
-    if (!auth.isLoading && !auth.user) {
+    if (!auth.isLoading && !auth.isAuthenticated) {
       router.replace(redirectTo);
     }
-  }, [auth.isDevBypass, auth.isLoading, auth.user, router, redirectTo]);
+  }, [auth.isAuthenticated, auth.isLoading, router, redirectTo]);
 
   return auth;
 }
 
 export function useUserProfile() {
   const auth = useAuth();
-  const [userData, setUserData] = useState<UserData | null>(() =>
-    auth.isDevBypass ? DEV_MOCK_PROFILE : null
-  );
-  const [profileStatus, setProfileStatus] = useState<ProfileStatus>(() =>
-    auth.isDevBypass ? "ready" : "loading"
-  );
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [profileStatus, setProfileStatus] = useState<ProfileStatus>("loading");
   const [error, setError] = useState<string | null>(null);
-  const fetchAttemptedRef = useRef(auth.isDevBypass);
 
   useEffect(() => {
-    if (auth.isDevBypass) {
-      setUserData(DEV_MOCK_PROFILE);
-      setProfileStatus("ready");
-      setError(null);
-      fetchAttemptedRef.current = true;
-      return;
-    }
-
     if (auth.isLoading) {
       return;
     }
 
-    if (!auth.userId) {
+    if (!auth.isAuthenticated) {
       setUserData(null);
       setProfileStatus("empty");
       setError(null);
       return;
     }
 
-    if (fetchAttemptedRef.current) {
-      return;
-    }
-
-    fetchAttemptedRef.current = true;
+    let isMounted = true;
     setProfileStatus("loading");
     setError(null);
 
-    let isMounted = true;
-
     getUserProfile()
       .then((profile) => {
-        if (!isMounted) return;
+        if (!isMounted) {
+          return;
+        }
 
         if (profile) {
           setUserData(profile);
@@ -154,7 +96,9 @@ export function useUserProfile() {
         setProfileStatus("empty");
       })
       .catch((err: unknown) => {
-        if (!isMounted) return;
+        if (!isMounted) {
+          return;
+        }
 
         setUserData(null);
         setProfileStatus("error");
@@ -164,7 +108,7 @@ export function useUserProfile() {
     return () => {
       isMounted = false;
     };
-  }, [auth.isDevBypass, auth.isLoading, auth.userId]);
+  }, [auth.isAuthenticated, auth.isLoading, auth.userId]);
 
   const isLoading = profileStatus === "loading" || auth.isLoading;
 
@@ -174,17 +118,10 @@ export function useUserProfile() {
     profileStatus,
     isLoading,
     isAuthenticated: auth.isAuthenticated,
-    isDevBypass: auth.isDevBypass,
+    isDevBypass: false,
     error,
     refreshProfile: async () => {
-      if (auth.isDevBypass) {
-        setUserData(DEV_MOCK_PROFILE);
-        setProfileStatus("ready");
-        setError(null);
-        return DEV_MOCK_PROFILE;
-      }
-
-      if (!auth.userId) {
+      if (!auth.isAuthenticated) {
         setUserData(null);
         setProfileStatus("empty");
         return null;

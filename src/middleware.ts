@@ -1,35 +1,47 @@
-import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import {
+  LOGIN_PATH,
+  NFC_SESSION_COOKIE,
+  PUBLIC_PATHS,
+} from "@/lib/nfc/constants";
+
+function isProtectedPath(pathname: string): boolean {
+  if (PUBLIC_PATHS.has(pathname)) {
+    return false;
+  }
+
+  if (pathname.startsWith("/login")) {
+    return false;
+  }
+
+  if (pathname.startsWith("/api/debug-log")) {
+    return false;
+  }
+
+  return (
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/profile") ||
+    pathname.startsWith("/api/ai")
+  );
+}
 
 export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request });
+  const { pathname } = request.nextUrl;
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => {
-            request.cookies.set(name, value);
-          });
+  if (!isProtectedPath(pathname)) {
+    return NextResponse.next();
+  }
 
-          supabaseResponse = NextResponse.next({ request });
+  const sessionCookie = request.cookies.get(NFC_SESSION_COOKIE)?.value?.trim();
 
-          cookiesToSet.forEach(({ name, value, options }) => {
-            supabaseResponse.cookies.set(name, value, options);
-          });
-        },
-      },
-    }
-  );
+  if (!sessionCookie) {
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = LOGIN_PATH;
+    loginUrl.searchParams.set("next", pathname);
+    return NextResponse.redirect(loginUrl);
+  }
 
-  await supabase.auth.getUser();
-
-  return supabaseResponse;
+  return NextResponse.next();
 }
 
 export const config = {

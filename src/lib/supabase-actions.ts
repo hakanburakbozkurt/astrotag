@@ -1,8 +1,14 @@
-import { supabase } from "@/lib/supabase";
+"use server";
+
+import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import {
-  getDevTestUserId,
-  isDevAuthBypassActive,
-} from "@/lib/dev-mode";
+  getNfcSessionProfileId,
+} from "@/lib/nfc/session.server";
+import {
+  SupabaseActionError,
+  redirectToLogin,
+  formatCountdown,
+} from "@/lib/supabase-action-error";
 import type {
   HoraryQuestion,
   HoraryQuestionInsert,
@@ -38,15 +44,6 @@ import {
   normalizeReferralCode,
 } from "@/lib/referral";
 
-export const LOGIN_PATH = "/login";
-
-export class SupabaseActionError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "SupabaseActionError";
-  }
-}
-
 const SESSIONS_TABLE = "sessions";
 const HORARY_QUESTIONS_TABLE = "horary_questions";
 const PROFILE_TABLE = "profiles";
@@ -61,42 +58,23 @@ export interface ReferralInfo {
   hasUsedReferral: boolean;
 }
 
-export function redirectToLogin(): void {
-  if (typeof window !== "undefined") {
-    window.location.href = LOGIN_PATH;
-  }
-}
-
 export async function getAuthUserId(): Promise<string | null> {
-  if (isDevAuthBypassActive()) {
-    return getDevTestUserId();
-  }
-
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-
-  if (error || !user?.id) {
-    return null;
-  }
-
-  return user.id;
+  return getNfcSessionProfileId();
 }
 
 export async function requireAuthUserId(): Promise<string> {
-  if (isDevAuthBypassActive()) {
-    return getDevTestUserId();
-  }
+  const profileId = await getNfcSessionProfileId();
 
-  const userId = await getAuthUserId();
-
-  if (!userId) {
+  if (!profileId) {
     redirectToLogin();
     throw new SupabaseActionError("Oturum bulunamadı. Giriş sayfasına yönlendiriliyorsunuz.");
   }
 
-  return userId;
+  return profileId;
+}
+
+function getServiceClient() {
+  return createSupabaseServiceClient();
 }
 
 function mapSupabaseError(error: { message: string } | null, fallback: string): never {
@@ -106,7 +84,7 @@ function mapSupabaseError(error: { message: string } | null, fallback: string): 
 export async function getUserProfile(): Promise<UserData | null> {
   try {
     const userId = await requireAuthUserId();
-
+    const supabase = getServiceClient();
     const { data, error } = await supabase
       .from(PROFILE_TABLE)
       .select(
@@ -119,7 +97,7 @@ export async function getUserProfile(): Promise<UserData | null> {
       mapSupabaseError(error, "Profil alınamadı.");
     }
 
-    if (!data) {
+    if (!data?.name?.trim()) {
       return null;
     }
 
@@ -149,6 +127,7 @@ export async function getUserProfile(): Promise<UserData | null> {
 export async function getActiveSession(): Promise<Session | null> {
   try {
     const userId = await requireAuthUserId();
+    const supabase = getServiceClient();
     const now = new Date().toISOString();
 
     const { data, error } = await supabase
@@ -179,6 +158,7 @@ export async function createSession(
 ): Promise<Session> {
   try {
     const userId = await requireAuthUserId();
+    const supabase = getServiceClient();
     const expiresAt = new Date(
       Date.now() + durationHours * 60 * 60 * 1000
     ).toISOString();
@@ -216,6 +196,7 @@ export async function getCosmicEnergy(): Promise<number> {
 export async function getEnergyChargeState(): Promise<EnergyChargeState> {
   try {
     const userId = await requireAuthUserId();
+    const supabase = getServiceClient();
     const { data, error } = await supabase
       .from(PROFILE_TABLE)
       .select("cosmic_energy, energy_bonus, last_energy_charge")
@@ -241,6 +222,7 @@ export async function getEnergyChargeState(): Promise<EnergyChargeState> {
 }
 
 async function ensureReferralCode(userId: string): Promise<string> {
+  const supabase = getServiceClient();
   const { data, error } = await supabase
     .from(PROFILE_TABLE)
     .select("referral_code")
@@ -274,6 +256,7 @@ async function ensureReferralCode(userId: string): Promise<string> {
 export async function getReferralInfo(): Promise<ReferralInfo> {
   try {
     const userId = await requireAuthUserId();
+    const supabase = getServiceClient();
     const referralCode = await ensureReferralCode(userId);
 
     const [{ data: profile, error: profileError }, { data: referralUse, error: referralError }] =
@@ -320,6 +303,7 @@ export async function getReferralInfo(): Promise<ReferralInfo> {
 export async function applyReferralCode(rawCode: string): Promise<ReferralInfo> {
   try {
     const userId = await requireAuthUserId();
+    const supabase = getServiceClient();
     const normalized = normalizeReferralCode(rawCode);
 
     if (!isValidReferralCodeFormat(normalized)) {
@@ -416,6 +400,7 @@ export async function chargeCosmicEnergy(): Promise<{
 }> {
   try {
     const userId = await requireAuthUserId();
+    const supabase = getServiceClient();
     const currentState = await getEnergyChargeState();
 
     if (currentState.isFull) {
@@ -468,6 +453,7 @@ export async function consumeCosmicEnergy(
 ): Promise<number> {
   try {
     const userId = await requireAuthUserId();
+    const supabase = getServiceClient();
 
     const { data, error: readError } = await supabase
       .from(PROFILE_TABLE)
@@ -535,6 +521,7 @@ export async function getCachedTarotReading(
   cacheHours = 24
 ): Promise<string | null> {
   try {
+    const supabase = getServiceClient();
     const signature = buildCardSignature(cardIds);
     const since = new Date(Date.now() - cacheHours * 60 * 60 * 1000).toISOString();
 
@@ -569,6 +556,7 @@ export async function saveTarotHistory(input: {
   reading: string;
 }): Promise<void> {
   try {
+    const supabase = getServiceClient();
     const signature = buildCardSignature(input.cardIds);
 
     const { error } = await supabase.from(TAROT_HISTORY_TABLE).insert({
@@ -594,7 +582,7 @@ export async function saveTarotHistory(input: {
 export async function getPartnerProfile(): Promise<PartnerFormValues> {
   try {
     const userId = await requireAuthUserId();
-
+    const supabase = getServiceClient();
     const { data, error } = await supabase
       .from(PROFILE_TABLE)
       .select(
@@ -622,6 +610,7 @@ export async function updatePartnerProfile(
 ): Promise<UserData> {
   try {
     const userId = await requireAuthUserId();
+    const supabase = getServiceClient();
 
     const { error } = await supabase
       .from(PROFILE_TABLE)
@@ -669,6 +658,7 @@ export async function updateHoraryAnswer(
       throw new SupabaseActionError("Cevap güncellenemedi.");
     }
 
+    const supabase = getServiceClient();
     const { data, error } = await supabase
       .from(HORARY_QUESTIONS_TABLE)
       .update({
@@ -699,6 +689,7 @@ export async function getHoraryQuestion(id: string): Promise<HoraryQuestion | nu
       throw new SupabaseActionError("Geçersiz soru kimliği.");
     }
 
+    const supabase = getServiceClient();
     const { data, error } = await supabase
       .from(HORARY_QUESTIONS_TABLE)
       .select("*")
@@ -741,33 +732,4 @@ export async function waitForHoraryAnswer(
   throw new SupabaseActionError(
     "Yıldızlar henüz cevap vermedi. Lütfen tekrar deneyin."
   );
-}
-
-export function formatCountdown(expiresAt: string | null | undefined): string {
-  if (!expiresAt) {
-    return "00:00:00";
-  }
-
-  const remainingMs = new Date(expiresAt).getTime() - Date.now();
-
-  if (remainingMs <= 0) {
-    return "00:00:00";
-  }
-
-  const totalSeconds = Math.floor(remainingMs / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-
-  return [hours, minutes, seconds]
-    .map((value) => String(value).padStart(2, "0"))
-    .join(":");
-}
-
-export function isSessionActive(session: Session | null): session is Session {
-  if (!session?.expires_at) {
-    return false;
-  }
-
-  return new Date(session.expires_at).getTime() > Date.now();
 }

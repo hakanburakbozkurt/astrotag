@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { LogOut } from "lucide-react";
-import { signOutUser } from "@/lib/auth-client";
+import { signOutNfcSessionAction } from "@/lib/actions/nfc-auth";
 
 type SignOutButtonProps = {
   className?: string;
@@ -24,7 +24,7 @@ export default function SignOutButton({
 
     setIsSigningOut(true);
     try {
-      await signOutUser();
+      await signOutNfcSessionAction();
       router.replace("/");
     } catch {
       setIsSigningOut(false);

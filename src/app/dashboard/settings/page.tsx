@@ -14,9 +14,9 @@ import {
 } from "@/lib/partner-profile";
 import {
   getPartnerProfile,
-  SupabaseActionError,
   updatePartnerProfile,
 } from "@/lib/supabase-actions";
+import { SupabaseActionError } from "@/lib/supabase-action-error";
 
 const fieldClass =
   "mt-2 h-12 w-full min-w-0 max-w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-amber-400/30 [color-scheme:dark]";

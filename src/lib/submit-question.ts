@@ -1,11 +1,10 @@
-import { supabase } from "@/lib/supabase";
-import { getDevTestUserId, isDevAuthBypassActive } from "@/lib/dev-mode";
+"use server";
+
+import { createSupabaseServiceClient } from "@/lib/supabase/service";
+import { getNfcSessionProfileId } from "@/lib/nfc/session.server";
 import type { HoraryQuestion, HoraryQuestionInsert } from "@/types/database";
-import {
-  consumeCosmicEnergyForQuestion,
-  redirectToLogin,
-  SupabaseActionError,
-} from "@/lib/supabase-actions";
+import { SupabaseActionError, redirectToLogin } from "@/lib/supabase-action-error";
+import { consumeCosmicEnergyForQuestion } from "@/lib/supabase-actions";
 
 const HORARY_QUESTIONS_TABLE = "horary_questions";
 const PROFILE_TABLE = "profiles";
@@ -17,34 +16,15 @@ function mapSupabaseError(
   throw new SupabaseActionError(error?.message ?? fallback);
 }
 
-/**
- * FK (horary_questions_user_id_fkey) için profiles.id ile eşleşen geçerli user_id döner.
- * Önce supabase.auth.getUser(), gerekirse dev test id kullanılır.
- */
 export async function resolveProfileUserId(): Promise<string> {
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+  const candidateId = await getNfcSessionProfileId();
 
-  let candidateId = user?.id?.trim() ?? "";
-
-  if (!candidateId && isDevAuthBypassActive()) {
-    candidateId = getDevTestUserId().trim();
-  }
-
-  if (authError && !candidateId) {
+  if (!candidateId?.trim()) {
     redirectToLogin();
     throw new SupabaseActionError("Oturum doğrulanamadı. Lütfen tekrar giriş yapın.");
   }
 
-  if (!candidateId) {
-    redirectToLogin();
-    throw new SupabaseActionError(
-      "Kullanıcı kimliği boş. Lütfen tekrar giriş yapın."
-    );
-  }
-
+  const supabase = createSupabaseServiceClient();
   const { data: profile, error: profileError } = await supabase
     .from(PROFILE_TABLE)
     .select("id")
@@ -75,13 +55,9 @@ export async function submitHoraryQuestion(
     }
 
     const userId = await resolveProfileUserId();
-
-    if (!userId.trim()) {
-      throw new SupabaseActionError("Kullanıcı kimliği boş gönderilemez.");
-    }
-
     await consumeCosmicEnergyForQuestion();
 
+    const supabase = createSupabaseServiceClient();
     const payload: HoraryQuestionInsert = {
       user_id: userId,
       question: trimmed,

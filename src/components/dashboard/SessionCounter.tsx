@@ -10,10 +10,9 @@ import {
 import type { EnergyChargeState } from "@/lib/energy-charge";
 import {
   chargeCosmicEnergy,
-  formatCountdown,
   getEnergyChargeState,
-  SupabaseActionError,
 } from "@/lib/supabase-actions";
+import { formatCountdown, SupabaseActionError } from "@/lib/supabase-action-error";
 import { COSMIC_ENERGY_UPDATED_EVENT } from "@/lib/energy-events";
 
 function EnergyInfoButton() {

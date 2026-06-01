@@ -4,7 +4,8 @@ import {
   normalizeDateForInput,
   normalizeTimeForInput,
 } from "@/lib/partner-profile";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getNfcSessionProfileId } from "@/lib/nfc/session.server";
+import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { hasPartnerData, type UserData } from "@/types/user";
 
 const PROFILE_TABLE = "profiles";
@@ -12,7 +13,7 @@ const PROFILE_TABLE = "profiles";
 export async function getServerUserProfile(
   userId: string
 ): Promise<UserData | null> {
-  const supabase = await createServerSupabaseClient();
+  const supabase = createSupabaseServiceClient();
 
   const { data, error } = await supabase
     .from(PROFILE_TABLE)

@@ -14,9 +14,9 @@ import { submitHoraryQuestion } from "@/lib/submit-question";
 import {
   getCosmicEnergy,
   getHoraryQuestion,
-  SupabaseActionError,
   updateHoraryAnswer,
 } from "@/lib/supabase-actions";
+import { SupabaseActionError } from "@/lib/supabase-action-error";
 
 const HORARY_ERROR_MESSAGE =
   "Yıldızlar şu an sessiz, lütfen tekrar dene.";
