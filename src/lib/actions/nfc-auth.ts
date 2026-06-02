@@ -1,126 +1,150 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { randomUUID } from "crypto";
 import { redirect } from "next/navigation";
 import { STARTING_ENERGY } from "@/lib/constants/cosmic";
 import {
-  NFC_AUTH_ERROR_MESSAGE,
-  NFC_CARD_ALREADY_USED_MESSAGE,
+  NFC_CARD_INACTIVE_MESSAGE,
+  NFC_FINGERPRINT_MISMATCH_MESSAGE,
+  NFC_SESSION_TTL_MINUTES,
+  PROFILE_COMPLETE_PATH,
+  STORAGE_VERIFIED_COOKIE,
 } from "@/lib/nfc/constants";
-import { hashNfcPayload } from "@/lib/nfc/hash.server";
 import {
-  clearNfcSessionCookie,
-  createNfcSessionRecord,
-  getNfcSessionProfileId,
-  setNfcSessionCookie,
+  assertNfcFingerprintMatch,
+  clearNfcSessionCookies,
+  createEphemeralNfcSession,
+  getNfcSession,
+  setNfcSessionCookies,
+  validateNfcCardActive,
 } from "@/lib/nfc/session.server";
+import { isValidFingerprintHash } from "@/lib/nfc/fingerprint.server";
 import { generateReferralCode } from "@/lib/referral";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 
-export type NfcAuthResult =
-  | { success: true }
+export type NfcEntryResult =
+  | { success: true; redirectTo: string }
   | { success: false; error: string };
+
+export async function confirmStorageAccessAction(): Promise<void> {
+  const cookieStore = await cookies();
+  const expiresAt = new Date();
+  expiresAt.setMinutes(expiresAt.getMinutes() + NFC_SESSION_TTL_MINUTES);
+
+  cookieStore.set(STORAGE_VERIFIED_COOKIE, "1", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    expires: expiresAt,
+  });
+}
 
 export async function checkNfcSessionAction(): Promise<{
   authenticated: boolean;
   profileId: string | null;
+  expiresAt: string | null;
 }> {
-  const profileId = await getNfcSessionProfileId();
+  const session = await getNfcSession();
+
   return {
-    authenticated: Boolean(profileId),
-    profileId,
+    authenticated: Boolean(session),
+    profileId: session?.profileId ?? null,
+    expiresAt: session?.expiresAt ?? null,
   };
 }
 
-export async function authenticateNfcCard(
-  rawPayload: string
-): Promise<NfcAuthResult> {
-  if (!rawPayload?.trim()) {
-    return { success: false, error: NFC_AUTH_ERROR_MESSAGE };
+export async function initiateZeroClickSession(
+  uniqueId: string,
+  fingerprint: string,
+  userAgent: string
+): Promise<NfcEntryResult> {
+  if (!uniqueId?.trim() || !isValidFingerprintHash(fingerprint)) {
+    return { success: false, error: NFC_FINGERPRINT_MISMATCH_MESSAGE };
   }
 
   try {
-    const keyHash = hashNfcPayload(rawPayload);
-    const supabase = createSupabaseServiceClient();
-
-    // SELECT * FROM nfc_authorized_keys WHERE key_hash = $1
-    const { data: keyRow, error: keyError } = await supabase
-      .from("nfc_authorized_keys")
-      .select("*")
-      .eq("key_hash", keyHash)
-      .maybeSingle();
-
-    if (keyError) {
-      console.error("NFC_KEY_LOOKUP_ERROR:", keyError.message);
-      return { success: false, error: NFC_AUTH_ERROR_MESSAGE };
+    const card = await validateNfcCardActive(uniqueId);
+    if (!card.ok) {
+      return { success: false, error: NFC_CARD_INACTIVE_MESSAGE };
     }
 
-    if (!keyRow) {
-      return { success: false, error: NFC_AUTH_ERROR_MESSAGE };
+    const fingerprintCheck = await assertNfcFingerprintMatch(
+      card.nfcId,
+      fingerprint.trim()
+    );
+
+    if (!fingerprintCheck.ok) {
+      return { success: false, error: NFC_FINGERPRINT_MISMATCH_MESSAGE };
     }
 
-    if (keyRow.is_used === true) {
-      return { success: false, error: NFC_CARD_ALREADY_USED_MESSAGE };
+    const service = createSupabaseServiceClient();
+    let profileId = card.profileId;
+
+    if (!profileId) {
+      profileId = randomUUID();
+      const referralCode = generateReferralCode();
+
+      const { error: profileError } = await service.from("profiles").insert({
+        id: profileId,
+        name: "",
+        birth_date: "1970-01-01",
+        birth_time: "00:00:00",
+        birth_place: "",
+        relationship_status: "İlişki Yok",
+        cosmic_energy: STARTING_ENERGY,
+        energy_bonus: 0,
+        referral_code: referralCode,
+        nfc_uid: uniqueId.trim(),
+      });
+
+      if (profileError) {
+        console.error("PROFILE_STUB_ERROR:", profileError.message);
+        return { success: false, error: NFC_FINGERPRINT_MISMATCH_MESSAGE };
+      }
+
+      await service
+        .from("nfc_cards")
+        .update({ profile_id: profileId })
+        .eq("id", card.nfcId);
     }
 
-    if (keyRow.is_used !== false) {
-      return { success: false, error: NFC_AUTH_ERROR_MESSAGE };
-    }
-
-    const profileId = randomUUID();
-    const referralCode = generateReferralCode();
-
-    const { error: profileError } = await supabase.from("profiles").insert({
-      id: profileId,
-      name: "",
-      birth_date: "1970-01-01",
-      birth_time: "00:00:00",
-      birth_place: "",
-      relationship_status: "İlişki Yok",
-      cosmic_energy: STARTING_ENERGY,
-      energy_bonus: 0,
-      referral_code: referralCode,
-      nfc_uid: null,
+    const sessionId = await createEphemeralNfcSession({
+      profileId,
+      nfcId: card.nfcId,
+      fingerprint: fingerprint.trim(),
+      userAgent,
     });
 
-    if (profileError) {
-      console.error("NFC_PROFILE_STUB_ERROR:", profileError.message);
-      return { success: false, error: NFC_AUTH_ERROR_MESSAGE };
-    }
+    await setNfcSessionCookies(sessionId, fingerprint.trim());
+    await confirmStorageAccessAction();
 
-    const { data: updatedKeys, error: keyUpdateError } = await supabase
-      .from("nfc_authorized_keys")
-      .update({
-        is_used: true,
-        used_at: new Date().toISOString(),
-        profile_id: profileId,
-      })
-      .eq("id", keyRow.id)
-      .eq("is_used", false)
-      .select("id");
+    const { data: profileRow } = await service
+      .from("profiles")
+      .select("name")
+      .eq("id", profileId)
+      .maybeSingle();
 
-    if (keyUpdateError) {
-      console.error("NFC_KEY_UPDATE_ERROR:", keyUpdateError.message);
-      await supabase.from("profiles").delete().eq("id", profileId);
-      return { success: false, error: NFC_AUTH_ERROR_MESSAGE };
-    }
+    const redirectTo =
+      profileRow?.name?.trim() ? "/dashboard" : PROFILE_COMPLETE_PATH;
 
-    if (!updatedKeys?.length) {
-      await supabase.from("profiles").delete().eq("id", profileId);
-      return { success: false, error: NFC_CARD_ALREADY_USED_MESSAGE };
-    }
-
-    const sessionId = await createNfcSessionRecord(profileId, keyRow.id);
-    await setNfcSessionCookie(sessionId);
-
-    return { success: true };
+    return { success: true, redirectTo };
   } catch (error) {
-    console.error("NFC_AUTH_ERROR:", error);
-    return { success: false, error: NFC_AUTH_ERROR_MESSAGE };
+    console.error("ZERO_CLICK_SESSION_ERROR:", error);
+    return { success: false, error: NFC_FINGERPRINT_MISMATCH_MESSAGE };
   }
 }
 
 export async function signOutNfcSessionAction(): Promise<void> {
-  await clearNfcSessionCookie();
+  await clearNfcSessionCookies();
+
+  const cookieStore = await cookies();
+  cookieStore.set(STORAGE_VERIFIED_COOKIE, "", {
+    httpOnly: true,
+    path: "/",
+    maxAge: 0,
+  });
+
   redirect("/");
 }

@@ -1,0 +1,28 @@
+{
+  "name": "AstroTag",
+  "short_name": "AstroTag",
+  "description": "NFC Zero-Click kozmik danışmanlık",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "lang": "tr",
+  "categories": ["lifestyle", "entertainment"],
+  "icons": [
+    {
+      "src": "/globe.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "url": "/dashboard",
+      "description": "Kozmik panel"
+    }
+  ]
+}

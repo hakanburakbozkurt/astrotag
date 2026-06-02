@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import Starfield from "@/components/Starfield";
 import ProfileCompleteForm from "@/components/profile/ProfileCompleteForm";
 import { checkNfcSessionAction } from "@/lib/actions/nfc-auth";
-import { LOGIN_PATH } from "@/lib/nfc/constants";
+import { SESSION_EXPIRED_PATH } from "@/lib/nfc/constants";
 import { useUserProfile } from "@/lib/auth";
 
 export default function ProfileCompletePage() {
@@ -16,7 +16,7 @@ export default function ProfileCompletePage() {
   useEffect(() => {
     void checkNfcSessionAction().then((session) => {
       if (!session.authenticated) {
-        router.replace(LOGIN_PATH);
+        router.replace(SESSION_EXPIRED_PATH);
       }
     });
   }, [router]);

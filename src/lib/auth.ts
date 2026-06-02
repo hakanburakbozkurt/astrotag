@@ -6,16 +6,17 @@ import {
   checkNfcSessionAction,
 } from "@/lib/actions/nfc-auth";
 import { getUserProfile } from "@/lib/supabase-actions";
-import { LOGIN_PATH } from "@/lib/nfc/constants";
+import { SESSION_EXPIRED_PATH } from "@/lib/nfc/constants";
 import type { UserData } from "@/types/user";
 
-export { LOGIN_PATH };
+export { SESSION_EXPIRED_PATH as LOGIN_PATH };
 
 export type ProfileStatus = "loading" | "ready" | "empty" | "error";
 
 export function useAuth() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [profileId, setProfileId] = useState<string | null>(null);
+  const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -28,6 +29,7 @@ export function useAuth() {
 
       setIsAuthenticated(session.authenticated);
       setProfileId(session.profileId);
+      setExpiresAt(session.expiresAt);
       setIsLoading(false);
     });
 
@@ -42,10 +44,11 @@ export function useAuth() {
     isAuthenticated,
     isDevBypass: false,
     userId: profileId,
+    expiresAt,
   };
 }
 
-export function useRequireAuth(redirectTo: string = LOGIN_PATH) {
+export function useRequireAuth(redirectTo: string = SESSION_EXPIRED_PATH) {
   const router = useRouter();
   const auth = useAuth();
 
@@ -54,6 +57,25 @@ export function useRequireAuth(redirectTo: string = LOGIN_PATH) {
       router.replace(redirectTo);
     }
   }, [auth.isAuthenticated, auth.isLoading, router, redirectTo]);
+
+  useEffect(() => {
+    if (!auth.expiresAt || auth.isLoading) {
+      return;
+    }
+
+    const remainingMs = new Date(auth.expiresAt).getTime() - Date.now();
+
+    if (remainingMs <= 0) {
+      router.replace(SESSION_EXPIRED_PATH);
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      router.replace(SESSION_EXPIRED_PATH);
+    }, remainingMs);
+
+    return () => window.clearTimeout(timer);
+  }, [auth.expiresAt, auth.isLoading, router]);
 
   return auth;
 }

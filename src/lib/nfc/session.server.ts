@@ -3,37 +3,49 @@ import "server-only";
 import { cookies } from "next/headers";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import {
+  NFC_FINGERPRINT_COOKIE,
   NFC_SESSION_COOKIE,
-  NFC_SESSION_TTL_DAYS,
+  NFC_SESSION_TTL_MINUTES,
 } from "@/lib/nfc/constants";
+import { isValidFingerprintHash } from "@/lib/nfc/fingerprint.server";
 
 export type NfcSessionRecord = {
   sessionId: string;
   profileId: string;
-  keyId: string;
+  nfcId: string;
+  fingerprint: string;
   expiresAt: string;
 };
+
+function isExpired(expiresAt: string): boolean {
+  return new Date(expiresAt).getTime() <= Date.now();
+}
 
 export async function getNfcSession(): Promise<NfcSessionRecord | null> {
   const cookieStore = await cookies();
   const sessionId = cookieStore.get(NFC_SESSION_COOKIE)?.value?.trim();
+  const fingerprint = cookieStore.get(NFC_FINGERPRINT_COOKIE)?.value?.trim();
 
-  if (!sessionId) {
+  if (!sessionId || !isValidFingerprintHash(fingerprint)) {
     return null;
   }
 
   const supabase = createSupabaseServiceClient();
   const { data, error } = await supabase
     .from("nfc_sessions")
-    .select("id, profile_id, key_id, expires_at")
+    .select("id, profile_id, nfc_id, fingerprint, expires_at")
     .eq("id", sessionId)
     .maybeSingle();
 
-  if (error || !data?.profile_id || !data.key_id) {
+  if (error || !data?.profile_id || !data.nfc_id || !data.fingerprint) {
     return null;
   }
 
-  if (new Date(data.expires_at).getTime() <= Date.now()) {
+  if (data.fingerprint !== fingerprint) {
+    return null;
+  }
+
+  if (isExpired(data.expires_at)) {
     await supabase.from("nfc_sessions").delete().eq("id", sessionId);
     return null;
   }
@@ -41,7 +53,8 @@ export async function getNfcSession(): Promise<NfcSessionRecord | null> {
   return {
     sessionId: data.id,
     profileId: data.profile_id,
-    keyId: data.key_id,
+    nfcId: data.nfc_id,
+    fingerprint: data.fingerprint,
     expiresAt: data.expires_at,
   };
 }
@@ -61,19 +74,52 @@ export async function requireNfcSessionProfileId(): Promise<string> {
   return profileId;
 }
 
-export async function createNfcSessionRecord(
-  profileId: string,
-  keyId: string
-): Promise<string> {
+export async function assertNfcFingerprintMatch(
+  nfcId: string,
+  fingerprint: string
+): Promise<{ ok: true } | { ok: false; reason: "mismatch" | "blocked" }> {
+  const supabase = createSupabaseServiceClient();
+  const { data, error } = await supabase
+    .from("nfc_sessions")
+    .select("fingerprint")
+    .eq("nfc_id", nfcId)
+    .gt("expires_at", new Date().toISOString())
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    return { ok: false, reason: "blocked" };
+  }
+
+  if (!data?.fingerprint) {
+    return { ok: true };
+  }
+
+  if (data.fingerprint !== fingerprint) {
+    return { ok: false, reason: "mismatch" };
+  }
+
+  return { ok: true };
+}
+
+export async function createEphemeralNfcSession(params: {
+  profileId: string;
+  nfcId: string;
+  fingerprint: string;
+  userAgent?: string;
+}): Promise<string> {
   const supabase = createSupabaseServiceClient();
   const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + NFC_SESSION_TTL_DAYS);
+  expiresAt.setMinutes(expiresAt.getMinutes() + NFC_SESSION_TTL_MINUTES);
 
   const { data, error } = await supabase
     .from("nfc_sessions")
     .insert({
-      profile_id: profileId,
-      key_id: keyId,
+      profile_id: params.profileId,
+      nfc_id: params.nfcId,
+      fingerprint: params.fingerprint,
+      user_agent: params.userAgent ?? null,
       expires_at: expiresAt.toISOString(),
     })
     .select("id")
@@ -86,21 +132,27 @@ export async function createNfcSessionRecord(
   return data.id as string;
 }
 
-export async function setNfcSessionCookie(sessionId: string): Promise<void> {
+export async function setNfcSessionCookies(
+  sessionId: string,
+  fingerprint: string
+): Promise<void> {
   const cookieStore = await cookies();
   const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + NFC_SESSION_TTL_DAYS);
+  expiresAt.setMinutes(expiresAt.getMinutes() + NFC_SESSION_TTL_MINUTES);
 
-  cookieStore.set(NFC_SESSION_COOKIE, sessionId, {
+  const cookieOptions = {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: "lax" as const,
     path: "/",
     expires: expiresAt,
-  });
+  };
+
+  cookieStore.set(NFC_SESSION_COOKIE, sessionId, cookieOptions);
+  cookieStore.set(NFC_FINGERPRINT_COOKIE, fingerprint, cookieOptions);
 }
 
-export async function clearNfcSessionCookie(): Promise<void> {
+export async function clearNfcSessionCookies(): Promise<void> {
   const cookieStore = await cookies();
   const sessionId = cookieStore.get(NFC_SESSION_COOKIE)?.value;
 
@@ -109,11 +161,35 @@ export async function clearNfcSessionCookie(): Promise<void> {
     await supabase.from("nfc_sessions").delete().eq("id", sessionId);
   }
 
-  cookieStore.set(NFC_SESSION_COOKIE, "", {
+  const clearOptions = {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: "lax" as const,
     path: "/",
     maxAge: 0,
-  });
+  };
+
+  cookieStore.set(NFC_SESSION_COOKIE, "", clearOptions);
+  cookieStore.set(NFC_FINGERPRINT_COOKIE, "", clearOptions);
+}
+
+export async function validateNfcCardActive(
+  uniqueId: string
+): Promise<{ ok: true; nfcId: string; profileId: string | null } | { ok: false }> {
+  const supabase = createSupabaseServiceClient();
+  const { data, error } = await supabase
+    .from("nfc_cards")
+    .select("id, is_active, profile_id")
+    .eq("unique_id", uniqueId.trim())
+    .maybeSingle();
+
+  if (error || !data?.is_active) {
+    return { ok: false };
+  }
+
+  return {
+    ok: true,
+    nfcId: data.id,
+    profileId: data.profile_id ?? null,
+  };
 }

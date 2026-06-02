@@ -1,25 +1,39 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { LOGIN_PATH } from "@/lib/nfc/constants";
+import { motion } from "framer-motion";
+import Starfield from "@/components/Starfield";
 
-export default function Home() {
+export default function HomePage() {
   const router = useRouter();
-  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    setIsMounted(true);
-    router.replace(LOGIN_PATH);
+    router.prefetch("/session-expired");
   }, [router]);
 
-  if (!isMounted) {
-    return null;
-  }
-
   return (
-    <main className="relative flex min-h-dvh items-center justify-center">
-      <p className="text-sm text-white/45">Yönlendiriliyor...</p>
+    <main className="relative min-h-dvh overflow-hidden">
+      <Starfield />
+
+      <div className="relative flex min-h-dvh items-center justify-center px-6">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-sm text-center"
+        >
+          <h1 className="bg-gradient-to-b from-white via-amber-100 to-amber-300/90 bg-clip-text text-4xl font-extrabold tracking-tight text-transparent">
+            AstroTag
+          </h1>
+          <p className="mt-6 text-sm leading-relaxed text-white/50">
+            NFC kartınızı telefonunuza yaklaştırın. Zero-Click giriş otomatik
+            başlayacaktır.
+          </p>
+          <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.22em] text-amber-400/55">
+            astrotag.app/c/[kart-id]
+          </p>
+        </motion.div>
+      </div>
     </main>
   );
 }

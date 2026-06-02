@@ -1,4 +1,5 @@
--- NFC tabanlı yetkilendirme
+-- NFC tabanlı yetkilendirme (legacy nfc_authorized_keys — sonraki migration'larda nfc_cards'a geçilir)
+
 create table if not exists nfc_authorized_keys (
   id uuid primary key default gen_random_uuid(),
   key_hash text not null unique,
@@ -14,7 +15,6 @@ create index if not exists nfc_authorized_keys_hash_idx
 create table if not exists nfc_sessions (
   id uuid primary key default gen_random_uuid(),
   profile_id uuid not null references profiles (id) on delete cascade,
-  key_id uuid not null references nfc_authorized_keys (id) on delete cascade,
   expires_at timestamptz not null,
   created_at timestamptz not null default now()
 );
@@ -26,5 +26,5 @@ alter table nfc_authorized_keys enable row level security;
 alter table nfc_sessions enable row level security;
 
 -- Anon/authenticated erişimi kapalı; yalnızca service role (RLS bypass) kullanır.
-comment on table nfc_authorized_keys is 'NFC kart hash anahtarları — yalnızca server-side erişim';
-comment on table nfc_sessions is 'NFC oturum kayıtları — httpOnly cookie ile eşleşir';
+comment on table nfc_authorized_keys is 'Legacy NFC hash anahtarları — nfc_cards ile değiştirildi';
+comment on table nfc_sessions is 'NFC oturum kayıtları — nfc_id + fingerprint ile eşleşir';

@@ -1,4 +1,4 @@
-import { LOGIN_PATH } from "@/lib/nfc/constants";
+import { SESSION_EXPIRED_PATH } from "@/lib/nfc/constants";
 
 export class SupabaseActionError extends Error {
   constructor(message: string) {
@@ -9,7 +9,7 @@ export class SupabaseActionError extends Error {
 
 export function redirectToLogin(): void {
   if (typeof window !== "undefined") {
-    window.location.href = LOGIN_PATH;
+    window.location.href = SESSION_EXPIRED_PATH;
   }
 }
 

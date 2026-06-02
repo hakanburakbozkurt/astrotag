@@ -1,47 +1,63 @@
+import { createClient } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 import {
-  LOGIN_PATH,
+  NFC_FINGERPRINT_COOKIE,
   NFC_SESSION_COOKIE,
-  PUBLIC_PATHS,
+  STORAGE_VERIFIED_COOKIE,
 } from "@/lib/nfc/constants";
+import { runSecurityGate } from "@/lib/nfc/middleware-security";
 
-function isProtectedPath(pathname: string): boolean {
-  if (PUBLIC_PATHS.has(pathname)) {
-    return false;
+function getServiceClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !key) {
+    return null;
   }
 
-  if (pathname.startsWith("/login")) {
-    return false;
+  return createClient(url, key, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
+
+function buildDeniedResponse(
+  request: NextRequest,
+  redirectTo: string,
+  clearSession: boolean
+): NextResponse {
+  const url = request.nextUrl.clone();
+  url.pathname = redirectTo;
+  const response = NextResponse.redirect(url);
+
+  if (clearSession) {
+    response.cookies.set(NFC_SESSION_COOKIE, "", { maxAge: 0, path: "/" });
+    response.cookies.set(NFC_FINGERPRINT_COOKIE, "", { maxAge: 0, path: "/" });
+    response.cookies.set(STORAGE_VERIFIED_COOKIE, "", { maxAge: 0, path: "/" });
   }
 
-  if (pathname.startsWith("/api/debug-log")) {
-    return false;
-  }
-
-  return (
-    pathname.startsWith("/dashboard") ||
-    pathname.startsWith("/profile") ||
-    pathname.startsWith("/api/ai")
-  );
+  return response;
 }
 
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const supabase = getServiceClient();
+  const gate = await runSecurityGate(request, supabase);
 
-  if (!isProtectedPath(pathname)) {
-    return NextResponse.next();
+  if (!gate.allowed) {
+    const clearSession =
+      gate.reason === "session_expired" ||
+      gate.reason === "fingerprint_mismatch" ||
+      gate.reason === "session_missing";
+
+    return buildDeniedResponse(request, gate.redirectTo, clearSession);
   }
 
-  const sessionCookie = request.cookies.get(NFC_SESSION_COOKIE)?.value?.trim();
+  const response = NextResponse.next();
 
-  if (!sessionCookie) {
-    const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = LOGIN_PATH;
-    loginUrl.searchParams.set("next", pathname);
-    return NextResponse.redirect(loginUrl);
+  if (request.nextUrl.pathname.startsWith("/c/")) {
+    response.headers.set("Link", `<${request.nextUrl.pathname}>; rel=prefetch`);
   }
 
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {
