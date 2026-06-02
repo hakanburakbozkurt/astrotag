@@ -6,11 +6,16 @@ import {
 } from "@/lib/ai/synastry";
 import { buildCosmicAnalysisContext } from "@/lib/astrology/cosmic-context";
 import { logSynastryToArchive } from "@/lib/cosmic-journal/log-reading";
-import { getNfcSessionProfileId } from "@/lib/nfc/session.server";
+import { guardApiNfcAccess } from "@/lib/nfc/api-guard";
 import type { UserData } from "@/types/user";
 
 export async function POST(request: NextRequest) {
   try {
+    const guard = await guardApiNfcAccess();
+    if (!guard.ok) {
+      return guard.response;
+    }
+
     const body = await request.json();
     const question = body?.question as string | undefined;
     const userData = body?.userData as UserData | undefined;
@@ -27,10 +32,8 @@ export async function POST(request: NextRequest) {
     const context = await buildCosmicAnalysisContext(userData);
     const result = await requestSynastryAnalysis(question, userData, context);
 
-    const profileId = await getNfcSessionProfileId();
-    if (profileId) {
-      await logSynastryToArchive({
-        userId: profileId,
+    await logSynastryToArchive({
+        userId: guard.access.profileId,
         question: question.trim(),
         analysis: result.analysis,
         partnerName: partnerName || context.synastry?.partnerName || "Partner",
@@ -38,7 +41,6 @@ export async function POST(request: NextRequest) {
           ? compatibilityScore
           : 0,
       });
-    }
 
     return NextResponse.json(result);
   } catch (error) {

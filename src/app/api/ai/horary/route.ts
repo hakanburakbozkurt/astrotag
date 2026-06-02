@@ -4,11 +4,16 @@ import {
   HoraryReadingError,
   requestHoraryReading,
 } from "@/lib/ai/horary";
-import { getNfcSessionProfileId } from "@/lib/nfc/session.server";
+import { guardApiNfcAccess } from "@/lib/nfc/api-guard";
 import type { UserData } from "@/types/user";
 
 export async function POST(request: NextRequest) {
   try {
+    const guard = await guardApiNfcAccess();
+    if (!guard.ok) {
+      return guard.response;
+    }
+
     const body = await request.json();
     const question = body?.question as string | undefined;
     const userData = body?.userData as UserData | undefined;
@@ -23,9 +28,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const profileId = await getNfcSessionProfileId();
     const result = await requestHoraryReading(question, userData, {
-      logContext: profileId ? { userId: profileId } : undefined,
+      logContext: { userId: guard.access.profileId },
     });
 
     return NextResponse.json(result);

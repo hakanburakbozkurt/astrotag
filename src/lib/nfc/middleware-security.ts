@@ -10,6 +10,11 @@ import {
   STORAGE_VERIFIED_COOKIE,
 } from "@/lib/nfc/constants";
 import { isValidFingerprintHash } from "@/lib/nfc/fingerprint-utils";
+import {
+  cardEntryPathForUniqueId,
+  getTrustedCookiesFromRequest,
+  validateTrustedDeviceBound,
+} from "@/lib/nfc/trusted-device-gate";
 
 export type SecurityDenyReason =
   | "private_mode"
@@ -18,6 +23,7 @@ export type SecurityDenyReason =
   | "session_expired"
   | "fingerprint_mismatch"
   | "nfc_card_inactive"
+  | "device_bound_missing"
   | "unauthorized_route";
 
 export type SecurityGateResult =
@@ -134,6 +140,18 @@ async function validateSessionRecord(
     return { ok: false, reason: "session_expired" };
   }
 
+  const { data: rpcValid, error: rpcError } = await supabase.rpc(
+    "is_valid_nfc_session",
+    {
+      p_nfc_id: data.nfc_id,
+      p_fingerprint: fingerprint,
+    }
+  );
+
+  if (rpcError || !rpcValid) {
+    return { ok: false, reason: "session_expired" };
+  }
+
   const { data: conflicting } = await supabase
     .from("nfc_sessions")
     .select("fingerprint")
@@ -243,6 +261,29 @@ export async function runSecurityGate(
       allowed: false,
       reason: sessionCheck.reason,
       redirectTo: HOME_PATH,
+    };
+  }
+
+  const { trustedNfc, deviceToken } = getTrustedCookiesFromRequest(
+    request.cookies
+  );
+
+  const deviceBound = await validateTrustedDeviceBound(
+    supabase,
+    trustedNfc,
+    deviceToken,
+    sessionCheck.nfcId
+  );
+
+  if (!deviceBound.ok) {
+    const redirectTo = deviceBound.uniqueId
+      ? cardEntryPathForUniqueId(deviceBound.uniqueId)
+      : HOME_PATH;
+
+    return {
+      allowed: false,
+      reason: "device_bound_missing",
+      redirectTo,
     };
   }
 

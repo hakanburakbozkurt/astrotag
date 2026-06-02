@@ -5,6 +5,9 @@ export const HOME_PATH = "/";
 export const NFC_SESSION_COOKIE = "astrotag_nfc_session";
 export const NFC_FINGERPRINT_COOKIE = "astrotag_fingerprint";
 export const STORAGE_VERIFIED_COOKIE = "astrotag_storage_ok";
+export const TRUSTED_DEVICE_COOKIE = "astrotag_device_token";
+export const TRUSTED_NFC_COOKIE = "astrotag_trusted_nfc";
+export const WEBAUTHN_CHALLENGE_COOKIE = "astrotag_webauthn_challenge";
 
 /** Sunucu oturum tavanı (dakika) — istemci daha erken sonlandırır */
 export const NFC_SESSION_TTL_MINUTES = 30;
@@ -43,6 +46,11 @@ export const PROTECTED_PATH_PREFIXES = [
 export const NFC_CARD_INACTIVE_MESSAGE = "Bu NFC kartı aktif değil.";
 export const NFC_FINGERPRINT_MISMATCH_MESSAGE =
   "Oturum Sona Erdi veya Geçersiz Erişim";
+
+export const TRUSTED_DEVICE_MISMATCH_MESSAGE =
+  "Bu NFC anahtarlık yalnızca kayıtlı cihazınızda kullanılabilir.";
+
+export const NFC_CARD_OWNED_BY_OTHER_MESSAGE = "Bu kart başkasına ait.";
 
 /** @deprecated use NFC_FINGERPRINT_COOKIE */
 export const NFC_DEVICE_COOKIE = NFC_FINGERPRINT_COOKIE;

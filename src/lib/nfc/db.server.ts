@@ -1,12 +1,14 @@
 import "server-only";
 
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
-import { requireNfcSessionProfileId } from "@/lib/nfc/session.server";
+import { requireProtectedNfcAccess } from "@/lib/nfc/protected-access.server";
 
 export async function getAuthenticatedServiceClient() {
-  const profileId = await requireNfcSessionProfileId();
+  const access = await requireProtectedNfcAccess();
   return {
     supabase: createSupabaseServiceClient(),
-    profileId,
+    profileId: access.profileId,
+    authUserId: access.authUserId,
+    uniqueId: access.uniqueId,
   };
 }

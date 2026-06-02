@@ -6,10 +6,16 @@ import {
 } from "@/lib/ai/synastry";
 import { buildCosmicAnalysisContext } from "@/lib/astrology/cosmic-context";
 import { getDailyCompatibilityDateKey } from "@/lib/compatibility/daily-questions";
+import { guardApiNfcAccess } from "@/lib/nfc/api-guard";
 import type { UserData } from "@/types/user";
 
 export async function POST(request: NextRequest) {
   try {
+    const guard = await guardApiNfcAccess();
+    if (!guard.ok) {
+      return guard.response;
+    }
+
     const body = await request.json();
     const userData = body?.userData as UserData | undefined;
 

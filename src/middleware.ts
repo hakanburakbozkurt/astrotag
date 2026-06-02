@@ -5,6 +5,8 @@ import {
   NFC_FINGERPRINT_COOKIE,
   NFC_SESSION_COOKIE,
   STORAGE_VERIFIED_COOKIE,
+  TRUSTED_DEVICE_COOKIE,
+  TRUSTED_NFC_COOKIE,
 } from "@/lib/nfc/constants";
 import { runSecurityGate } from "@/lib/nfc/middleware-security";
 
@@ -24,17 +26,25 @@ function getServiceClient() {
 function buildDeniedResponse(
   request: NextRequest,
   redirectTo: string,
-  clearSession: boolean
+  clearSession: boolean,
+  clearTrustedDevice = false
 ): NextResponse {
   const url = request.nextUrl.clone();
-  url.pathname = redirectTo;
-  url.search = "";
+  const isReauth = redirectTo.startsWith("/c/");
+
+  url.pathname = isReauth ? redirectTo.split("?")[0] : redirectTo;
+  url.search = isReauth ? "reauth=1" : "";
   const response = NextResponse.redirect(url);
 
   if (clearSession) {
     response.cookies.set(NFC_SESSION_COOKIE, "", { maxAge: 0, path: "/" });
     response.cookies.set(NFC_FINGERPRINT_COOKIE, "", { maxAge: 0, path: "/" });
     response.cookies.set(STORAGE_VERIFIED_COOKIE, "", { maxAge: 0, path: "/" });
+  }
+
+  if (clearTrustedDevice) {
+    response.cookies.set(TRUSTED_DEVICE_COOKIE, "", { maxAge: 0, path: "/" });
+    response.cookies.set(TRUSTED_NFC_COOKIE, "", { maxAge: 0, path: "/" });
   }
 
   return response;
@@ -50,9 +60,17 @@ export async function middleware(request: NextRequest) {
       gate.reason === "session_missing" ||
       gate.reason === "fingerprint_mismatch" ||
       gate.reason === "nfc_card_inactive" ||
+      gate.reason === "device_bound_missing" ||
       gate.reason === "unauthorized_route";
 
-    return buildDeniedResponse(request, gate.redirectTo, clearSession);
+    const clearTrusted = gate.reason === "device_bound_missing";
+
+    return buildDeniedResponse(
+      request,
+      gate.redirectTo,
+      clearSession,
+      clearTrusted
+    );
   }
 
   const response = NextResponse.next();

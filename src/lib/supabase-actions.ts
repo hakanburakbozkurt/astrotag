@@ -2,8 +2,9 @@
 
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import {
-  getNfcSessionProfileId,
-} from "@/lib/nfc/session.server";
+  getProtectedNfcAccess,
+  requireProtectedNfcAccess,
+} from "@/lib/nfc/protected-access.server";
 import {
   SupabaseActionError,
   redirectToLogin,
@@ -59,18 +60,18 @@ export interface ReferralInfo {
 }
 
 export async function getAuthUserId(): Promise<string | null> {
-  return getNfcSessionProfileId();
+  const access = await getProtectedNfcAccess();
+  return access?.profileId ?? null;
 }
 
 export async function requireAuthUserId(): Promise<string> {
-  const profileId = await getNfcSessionProfileId();
-
-  if (!profileId) {
+  try {
+    const access = await requireProtectedNfcAccess();
+    return access.profileId;
+  } catch {
     redirectToLogin();
     throw new SupabaseActionError("Oturum bulunamadı. Giriş sayfasına yönlendiriliyorsunuz.");
   }
-
-  return profileId;
 }
 
 function getServiceClient() {

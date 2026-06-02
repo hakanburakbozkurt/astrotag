@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { STARTING_ENERGY } from "@/lib/constants/cosmic";
 import { HOME_PATH } from "@/lib/nfc/constants";
-import { requireNfcSessionProfileId } from "@/lib/nfc/session.server";
+import { requireProtectedNfcAccess } from "@/lib/nfc/protected-access.server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import type { UserData } from "@/types/user";
 
@@ -21,7 +21,8 @@ export async function completeUserProfile(
   let profileId: string;
 
   try {
-    profileId = await requireNfcSessionProfileId();
+    const access = await requireProtectedNfcAccess();
+    profileId = access.profileId;
   } catch {
     redirect(HOME_PATH);
   }

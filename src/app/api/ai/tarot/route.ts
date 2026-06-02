@@ -12,7 +12,7 @@ import {
 } from "@/lib/ai/tarot-pipeline";
 import { TAROT_SPREAD_SIZE } from "@/lib/constants/cosmic";
 import { getCardById } from "@/data/deck";
-import { getNfcSessionProfileId } from "@/lib/nfc/session.server";
+import { guardApiNfcAccess } from "@/lib/nfc/api-guard";
 import {
   formatPartnerDataForPrompt,
   formatUserDataForPrompt,
@@ -21,6 +21,11 @@ import type { UserData } from "@/types/user";
 
 export async function POST(request: NextRequest) {
   try {
+    const guard = await guardApiNfcAccess();
+    if (!guard.ok) {
+      return guard.response;
+    }
+
     const body = await request.json();
     const question = body?.question as string | undefined;
     const userData = body?.userData as UserData | undefined;
@@ -61,13 +66,12 @@ export async function POST(request: NextRequest) {
       partnerData: formatPartnerDataForPrompt(userData),
     };
 
-    const profileId = await getNfcSessionProfileId();
     const reading = await runTarotReadingPipeline({
       question,
       cards: cardsWithPositions,
       profile: profileContext,
       userProfile: userData,
-      logContext: profileId ? { userId: profileId } : undefined,
+      logContext: { userId: guard.access.profileId },
     });
 
     if (reading === TAROT_READING_FALLBACK_MESSAGE) {
