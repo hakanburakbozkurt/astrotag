@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logNfcError } from "@/lib/nfc/error-logger";
 import {
   getProtectedNfcAccess,
   type ProtectedNfcContext,
@@ -13,22 +14,27 @@ export type ApiNfcGuardResult =
   | { ok: false; response: NextResponse };
 
 export async function guardApiNfcAccess(): Promise<ApiNfcGuardResult> {
-  const access = await getProtectedNfcAccess();
+  try {
+    const access = await getProtectedNfcAccess();
 
-  if (!access) {
-    return {
-      ok: false,
-      response: NextResponse.json(
-        {
-          error: NFC_API_UNAUTHORIZED_MESSAGE,
-          reauth: true,
-        },
-        { status: 401 }
-      ),
-    };
+    if (!access) {
+      return {
+        ok: false,
+        response: NextResponse.json(
+          {
+            error: NFC_API_UNAUTHORIZED_MESSAGE,
+            reauth: true,
+          },
+          { status: 401 }
+        ),
+      };
+    }
+
+    return { ok: true, access };
+  } catch (error) {
+    logNfcError({ layer: "api-guard", handler: "guardApiNfcAccess" }, error);
+    throw error;
   }
-
-  return { ok: true, access };
 }
 
 export function nfcReauthRedirectPath(uniqueId: string): string {

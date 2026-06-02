@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import Starfield from "@/components/Starfield";
 import DeviceBindingFlow from "@/components/nfc/DeviceBindingFlow";
+import { useBiometricType } from "@/lib/biometric/useBiometricType";
 import { confirmStorageAccessAction } from "@/lib/actions/nfc-auth";
 import { resolveNfcEntryAction } from "@/lib/actions/device-auth";
 import { isPrivateBrowsingMode } from "@/lib/nfc/private-mode";
@@ -18,6 +19,7 @@ export default function NfcCardEntryPage() {
   const params = useParams<{ unique_id: string }>();
   const uniqueId = params.unique_id;
   const isReauth = searchParams.get("reauth") === "1";
+  const biometric = useBiometricType();
   const startedRef = useRef(false);
 
   const [state, setState] = useState<EntryState>(
@@ -71,6 +73,11 @@ export default function NfcCardEntryPage() {
     })();
   }, [uniqueId, router, isReauth]);
 
+  const loadingMessage =
+    state === "loading"
+      ? "Güvenli giriş hazırlanıyor..."
+      : "Yönlendiriliyor...";
+
   return (
     <main className="relative min-h-dvh overflow-hidden">
       <Starfield />
@@ -99,13 +106,9 @@ export default function NfcCardEntryPage() {
             ) : (
               <>
                 <div className="h-10 w-10 animate-pulse rounded-full border border-amber-400/30 bg-amber-400/10" />
-                <p className="mt-6 text-sm text-white/55">
-                  {state === "loading"
-                    ? "Cihaz doğrulanıyor..."
-                    : "Yönlendiriliyor..."}
-                </p>
+                <p className="mt-6 text-sm text-white/55">{loadingMessage}</p>
                 <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.2em] text-amber-400/60">
-                  Device-Bound Auth
+                  NFC · {biometric.shortName}
                 </p>
               </>
             )}

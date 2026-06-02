@@ -1,23 +1,15 @@
-import { NextRequest, NextResponse } from "next/server";
-import {
-  COSMIC_ERROR_MESSAGE,
-  TarotReadingError,
-} from "@/lib/ai/tarot";
+import { NextResponse } from "next/server";
 import { requestAstrologyInterpretation } from "@/lib/ai/astrology-interpretation";
 import {
   calculateNatalChart,
   getNatalChartSummary,
 } from "@/lib/astrology/planet-positions";
-import { guardApiNfcAccess } from "@/lib/nfc/api-guard";
+import { withNfcApiRoute } from "@/lib/nfc/with-nfc-api-route";
 import type { UserData } from "@/types/user";
 
-export async function POST(request: NextRequest) {
-  try {
-    const guard = await guardApiNfcAccess();
-    if (!guard.ok) {
-      return guard.response;
-    }
-
+export const POST = withNfcApiRoute(
+  "api/ai/natal-interpretation",
+  async (request) => {
     const body = await request.json();
     const userData = body?.userData as UserData | undefined;
 
@@ -38,17 +30,5 @@ export async function POST(request: NextRequest) {
     const result = await requestAstrologyInterpretation(userData, summary);
 
     return NextResponse.json(result);
-  } catch (error) {
-    console.error("NATAL_INTERPRETATION_ERROR:", error);
-
-    const message =
-      error instanceof TarotReadingError
-        ? error.message
-        : COSMIC_ERROR_MESSAGE;
-
-    return NextResponse.json(
-      { error: message, interpretation: message },
-      { status: 500 }
-    );
   }
-}
+);

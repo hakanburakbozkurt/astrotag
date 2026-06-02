@@ -1,21 +1,16 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import {
   requestSynastryAnalysis,
   SYNASTRY_ERROR_MESSAGE,
-  SynastryReadingError,
 } from "@/lib/ai/synastry";
 import { buildCosmicAnalysisContext } from "@/lib/astrology/cosmic-context";
 import { logSynastryToArchive } from "@/lib/cosmic-journal/log-reading";
-import { guardApiNfcAccess } from "@/lib/nfc/api-guard";
+import { withNfcApiRoute } from "@/lib/nfc/with-nfc-api-route";
 import type { UserData } from "@/types/user";
 
-export async function POST(request: NextRequest) {
-  try {
-    const guard = await guardApiNfcAccess();
-    if (!guard.ok) {
-      return guard.response;
-    }
-
+export const POST = withNfcApiRoute(
+  "api/ai/compatibility/analyze",
+  async (request, access) => {
     const body = await request.json();
     const question = body?.question as string | undefined;
     const userData = body?.userData as UserData | undefined;
@@ -33,24 +28,15 @@ export async function POST(request: NextRequest) {
     const result = await requestSynastryAnalysis(question, userData, context);
 
     await logSynastryToArchive({
-        userId: guard.access.profileId,
-        question: question.trim(),
-        analysis: result.analysis,
-        partnerName: partnerName || context.synastry?.partnerName || "Partner",
-        compatibilityScore: Number.isFinite(compatibilityScore)
-          ? compatibilityScore
-          : 0,
-      });
+      userId: access.profileId,
+      question: question.trim(),
+      analysis: result.analysis,
+      partnerName: partnerName || context.synastry?.partnerName || "Partner",
+      compatibilityScore: Number.isFinite(compatibilityScore)
+        ? compatibilityScore
+        : 0,
+    });
 
     return NextResponse.json(result);
-  } catch (error) {
-    console.error("COMPATIBILITY_ANALYZE_API_ERROR:", error);
-
-    const message =
-      error instanceof SynastryReadingError
-        ? error.message
-        : SYNASTRY_ERROR_MESSAGE;
-
-    return NextResponse.json({ error: message }, { status: 500 });
   }
-}
+);

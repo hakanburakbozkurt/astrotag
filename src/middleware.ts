@@ -8,6 +8,12 @@ import {
   TRUSTED_DEVICE_COOKIE,
   TRUSTED_NFC_COOKIE,
 } from "@/lib/nfc/constants";
+import {
+  getCookiePresence,
+  logNfcError,
+  logNfcEvent,
+  sanitizeRequestHeaders,
+} from "@/lib/nfc/error-logger";
 import { runSecurityGate } from "@/lib/nfc/middleware-security";
 
 function getServiceClient() {
@@ -15,6 +21,15 @@ function getServiceClient() {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !key) {
+    logNfcEvent(
+      "warn",
+      { layer: "middleware", handler: "getServiceClient" },
+      "Supabase service client yapılandırması eksik",
+      {
+        hasUrl: Boolean(url),
+        hasServiceRoleKey: Boolean(key),
+      }
+    );
     return null;
   }
 
@@ -51,35 +66,53 @@ function buildDeniedResponse(
 }
 
 export async function middleware(request: NextRequest) {
-  const supabase = getServiceClient();
-  const gate = await runSecurityGate(request, supabase);
+  const context = {
+    layer: "middleware" as const,
+    handler: "middleware",
+    pathname: request.nextUrl.pathname,
+    method: request.method,
+  };
 
-  if (!gate.allowed) {
-    const clearSession =
-      gate.reason === "session_expired" ||
-      gate.reason === "session_missing" ||
-      gate.reason === "fingerprint_mismatch" ||
-      gate.reason === "nfc_card_inactive" ||
-      gate.reason === "device_bound_missing" ||
-      gate.reason === "unauthorized_route";
+  try {
+    const supabase = getServiceClient();
+    const gate = await runSecurityGate(request, supabase);
 
-    const clearTrusted = gate.reason === "device_bound_missing";
+    if (!gate.allowed) {
+      const clearSession =
+        gate.reason === "session_expired" ||
+        gate.reason === "session_missing" ||
+        gate.reason === "fingerprint_mismatch" ||
+        gate.reason === "nfc_card_inactive" ||
+        gate.reason === "device_bound_missing" ||
+        gate.reason === "unauthorized_route";
 
-    return buildDeniedResponse(
-      request,
-      gate.redirectTo,
-      clearSession,
-      clearTrusted
-    );
+      const clearTrusted = gate.reason === "device_bound_missing";
+
+      return buildDeniedResponse(
+        request,
+        gate.redirectTo,
+        clearSession,
+        clearTrusted
+      );
+    }
+
+    const response = NextResponse.next();
+
+    if (request.nextUrl.pathname.startsWith("/c/")) {
+      response.headers.set("Link", `<${request.nextUrl.pathname}>; rel=prefetch`);
+    }
+
+    return response;
+  } catch (error) {
+    logNfcError(context, error, {
+      requestHeaders: sanitizeRequestHeaders(request.headers),
+      cookies: getCookiePresence(request.cookies),
+      url: request.nextUrl.toString(),
+      supabaseConfigured: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+    });
+
+    return buildDeniedResponse(request, HOME_PATH, true, true);
   }
-
-  const response = NextResponse.next();
-
-  if (request.nextUrl.pathname.startsWith("/c/")) {
-    response.headers.set("Link", `<${request.nextUrl.pathname}>; rel=prefetch`);
-  }
-
-  return response;
 }
 
 export const config = {

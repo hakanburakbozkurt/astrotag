@@ -7,6 +7,7 @@ import type {
   PublicKeyCredentialRequestOptionsJSON,
   RegistrationResponseJSON,
 } from "@simplewebauthn/browser";
+import { detectBiometricPresentation } from "@/lib/biometric/biometric-type.client";
 
 export function isPasskeySupported(): boolean {
   return (
@@ -16,24 +17,48 @@ export function isPasskeySupported(): boolean {
   );
 }
 
+function getBiometricLabels() {
+  return detectBiometricPresentation();
+}
+
 export async function registerPasskeyOnDevice(
   options: PublicKeyCredentialCreationOptionsJSON
 ): Promise<RegistrationResponseJSON> {
+  const bio = getBiometricLabels();
+
   if (!isPasskeySupported()) {
-    throw new Error(
-      "Bu cihaz Passkey (Face ID / Touch ID) desteklemiyor. Safari veya Chrome kullanın."
-    );
+    throw new Error(bio.unsupported);
   }
 
-  return startRegistration({ optionsJSON: options });
+  try {
+    return await startRegistration({ optionsJSON: options });
+  } catch (error) {
+    if (error instanceof Error && error.name === "NotAllowedError") {
+      throw new Error(
+        `${bio.shortName} doğrulaması iptal edildi veya zaman aşımına uğradı.`
+      );
+    }
+    throw error;
+  }
 }
 
 export async function authenticatePasskeyOnDevice(
   options: PublicKeyCredentialRequestOptionsJSON
 ): Promise<AuthenticationResponseJSON> {
+  const bio = getBiometricLabels();
+
   if (!isPasskeySupported()) {
-    throw new Error("Passkey doğrulaması bu cihazda kullanılamıyor.");
+    throw new Error(bio.unsupported);
   }
 
-  return startAuthentication({ optionsJSON: options });
+  try {
+    return await startAuthentication({ optionsJSON: options });
+  } catch (error) {
+    if (error instanceof Error && error.name === "NotAllowedError") {
+      throw new Error(
+        `${bio.shortName} doğrulaması iptal edildi veya zaman aşımına uğradı.`
+      );
+    }
+    throw error;
+  }
 }

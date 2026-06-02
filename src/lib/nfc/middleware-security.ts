@@ -11,10 +11,35 @@ import {
 } from "@/lib/nfc/constants";
 import { isValidFingerprintHash } from "@/lib/nfc/fingerprint-utils";
 import {
+  getCookiePresence,
+  logNfcError,
+  logNfcEvent,
+  sanitizeRequestHeaders,
+} from "@/lib/nfc/error-logger";
+import {
   cardEntryPathForUniqueId,
   getTrustedCookiesFromRequest,
   validateTrustedDeviceBound,
 } from "@/lib/nfc/trusted-device-gate";
+
+const GATE_LOG = { layer: "security-gate" as const, handler: "runSecurityGate" };
+
+function logGateDeny(
+  request: NextRequest,
+  reason: SecurityDenyReason,
+  redirectTo: string,
+  extra?: Record<string, unknown>
+): void {
+  logNfcEvent("warn", GATE_LOG, `Erişim reddedildi: ${reason}`, {
+    reason,
+    redirectTo,
+    pathname: request.nextUrl.pathname,
+    method: request.method,
+    cookies: getCookiePresence(request.cookies),
+    requestHeaders: sanitizeRequestHeaders(request.headers),
+    ...extra,
+  });
+}
 
 export type SecurityDenyReason =
   | "private_mode"
@@ -128,7 +153,22 @@ async function validateSessionRecord(
     .eq("id", sessionId)
     .maybeSingle();
 
-  if (error || !data?.nfc_id) {
+  if (error) {
+    logNfcError(
+      { layer: "security-gate", handler: "validateSessionRecord" },
+      error,
+      { sessionId, dbError: error.message, dbCode: error.code }
+    );
+    return { ok: false, reason: "session_missing" };
+  }
+
+  if (!data?.nfc_id) {
+    logNfcEvent(
+      "warn",
+      { layer: "security-gate", handler: "validateSessionRecord" },
+      "nfc_sessions kaydı bulunamadı",
+      { sessionId }
+    );
     return { ok: false, reason: "session_missing" };
   }
 
@@ -148,7 +188,22 @@ async function validateSessionRecord(
     }
   );
 
-  if (rpcError || !rpcValid) {
+  if (rpcError) {
+    logNfcError(
+      { layer: "security-gate", handler: "is_valid_nfc_session" },
+      rpcError,
+      { sessionId, nfcId: data.nfc_id, rpcCode: rpcError.code }
+    );
+    return { ok: false, reason: "session_expired" };
+  }
+
+  if (!rpcValid) {
+    logNfcEvent(
+      "warn",
+      { layer: "security-gate", handler: "is_valid_nfc_session" },
+      "RPC is_valid_nfc_session false döndü",
+      { sessionId, nfcId: data.nfc_id }
+    );
     return { ok: false, reason: "session_expired" };
   }
 
@@ -175,117 +230,160 @@ export async function runSecurityGate(
   request: NextRequest,
   supabase: SupabaseClient | null
 ): Promise<SecurityGateResult> {
-  const { pathname } = request.nextUrl;
+  try {
+    const { pathname } = request.nextUrl;
 
-  if (shouldRedirectUnknownToHome(pathname)) {
-    return {
-      allowed: false,
-      reason: "unauthorized_route",
-      redirectTo: HOME_PATH,
-    };
-  }
-
-  if (isCardEntryPath(pathname)) {
-    const uniqueId = pathname
-      .slice(`${CARD_ENTRY_PREFIX}/`.length)
-      .split("/")[0];
-
-    if (!uniqueId || !supabase) {
-      return {
-        allowed: false,
-        reason: "nfc_card_inactive",
+    if (shouldRedirectUnknownToHome(pathname)) {
+      const deny = {
+        allowed: false as const,
+        reason: "unauthorized_route" as const,
         redirectTo: HOME_PATH,
       };
+      logGateDeny(request, deny.reason, deny.redirectTo);
+      return deny;
     }
 
-    const cardActive = await validateNfcCard(supabase, uniqueId);
-    if (!cardActive) {
-      return {
-        allowed: false,
-        reason: "nfc_card_inactive",
+    if (isCardEntryPath(pathname)) {
+      const uniqueId = pathname
+        .slice(`${CARD_ENTRY_PREFIX}/`.length)
+        .split("/")[0];
+
+      if (!uniqueId || !supabase) {
+        const deny = {
+          allowed: false as const,
+          reason: "nfc_card_inactive" as const,
+          redirectTo: HOME_PATH,
+        };
+        logGateDeny(request, deny.reason, deny.redirectTo, {
+          uniqueId: uniqueId ?? null,
+          supabaseClient: Boolean(supabase),
+        });
+        return deny;
+      }
+
+      const cardActive = await validateNfcCard(supabase, uniqueId);
+      if (!cardActive) {
+        const deny = {
+          allowed: false as const,
+          reason: "nfc_card_inactive" as const,
+          redirectTo: HOME_PATH,
+        };
+        logGateDeny(request, deny.reason, deny.redirectTo, { uniqueId });
+        return deny;
+      }
+
+      return { allowed: true };
+    }
+
+    if (!isStorageCheckRequired(pathname)) {
+      return { allowed: true };
+    }
+
+    const storageVerified =
+      request.cookies.get(STORAGE_VERIFIED_COOKIE)?.value === "1";
+
+    if (!storageVerified) {
+      const deny = {
+        allowed: false as const,
+        reason: "private_mode" as const,
+        redirectTo: PRIVATE_MODE_PATH,
+      };
+      logGateDeny(request, deny.reason, deny.redirectTo);
+      return deny;
+    }
+
+    if (!isProtectedPath(pathname)) {
+      return { allowed: true };
+    }
+
+    const sessionId = request.cookies.get(NFC_SESSION_COOKIE)?.value?.trim();
+    const fingerprint = request.cookies.get(NFC_FINGERPRINT_COOKIE)?.value?.trim();
+
+    if (!sessionId || !isValidFingerprintHash(fingerprint)) {
+      const deny = {
+        allowed: false as const,
+        reason: "session_missing" as const,
         redirectTo: HOME_PATH,
       };
+      logGateDeny(request, deny.reason, deny.redirectTo, {
+        hasSessionId: Boolean(sessionId),
+        fingerprintValid: isValidFingerprintHash(fingerprint),
+      });
+      return deny;
+    }
+
+    const fp = fingerprint as string;
+
+    if (!supabase) {
+      const deny = {
+        allowed: false as const,
+        reason: "session_missing" as const,
+        redirectTo: HOME_PATH,
+      };
+      logGateDeny(request, deny.reason, deny.redirectTo, {
+        supabaseClient: false,
+      });
+      return deny;
+    }
+
+    const sessionCheck = await validateSessionRecord(
+      supabase,
+      sessionId,
+      fp
+    );
+
+    if (!sessionCheck.ok) {
+      const deny = {
+        allowed: false as const,
+        reason: sessionCheck.reason,
+        redirectTo: HOME_PATH,
+      };
+      logGateDeny(request, deny.reason, deny.redirectTo, {
+        sessionId,
+        sessionCheckReason: sessionCheck.reason,
+      });
+      return deny;
+    }
+
+    const { trustedNfc, deviceToken } = getTrustedCookiesFromRequest(
+      request.cookies
+    );
+
+    const deviceBound = await validateTrustedDeviceBound(
+      supabase,
+      trustedNfc,
+      deviceToken,
+      sessionCheck.nfcId
+    );
+
+    if (!deviceBound.ok) {
+      const redirectTo = deviceBound.uniqueId
+        ? cardEntryPathForUniqueId(deviceBound.uniqueId)
+        : HOME_PATH;
+
+      const deny = {
+        allowed: false as const,
+        reason: "device_bound_missing" as const,
+        redirectTo,
+      };
+      logGateDeny(request, deny.reason, deny.redirectTo, {
+        trustedNfcPresent: Boolean(trustedNfc?.trim()),
+        deviceTokenPresent: Boolean(deviceToken?.trim()),
+        nfcCardUuid: sessionCheck.nfcId,
+        resolvedUniqueId: deviceBound.uniqueId,
+      });
+      return deny;
     }
 
     return { allowed: true };
+  } catch (error) {
+    logNfcError(GATE_LOG, error, {
+      pathname: request.nextUrl.pathname,
+      method: request.method,
+      cookies: getCookiePresence(request.cookies),
+      requestHeaders: sanitizeRequestHeaders(request.headers),
+      supabaseClient: Boolean(supabase),
+    });
+    throw error;
   }
-
-  if (!isStorageCheckRequired(pathname)) {
-    return { allowed: true };
-  }
-
-  const storageVerified =
-    request.cookies.get(STORAGE_VERIFIED_COOKIE)?.value === "1";
-
-  if (!storageVerified) {
-    return {
-      allowed: false,
-      reason: "private_mode",
-      redirectTo: PRIVATE_MODE_PATH,
-    };
-  }
-
-  if (!isProtectedPath(pathname)) {
-    return { allowed: true };
-  }
-
-  const sessionId = request.cookies.get(NFC_SESSION_COOKIE)?.value?.trim();
-  const fingerprint = request.cookies.get(NFC_FINGERPRINT_COOKIE)?.value?.trim();
-
-  if (!sessionId || !isValidFingerprintHash(fingerprint)) {
-    return {
-      allowed: false,
-      reason: "session_missing",
-      redirectTo: HOME_PATH,
-    };
-  }
-
-  const fp = fingerprint as string;
-
-  if (!supabase) {
-    return {
-      allowed: false,
-      reason: "session_missing",
-      redirectTo: HOME_PATH,
-    };
-  }
-
-  const sessionCheck = await validateSessionRecord(
-    supabase,
-    sessionId,
-    fp
-  );
-
-  if (!sessionCheck.ok) {
-    return {
-      allowed: false,
-      reason: sessionCheck.reason,
-      redirectTo: HOME_PATH,
-    };
-  }
-
-  const { trustedNfc, deviceToken } = getTrustedCookiesFromRequest(
-    request.cookies
-  );
-
-  const deviceBound = await validateTrustedDeviceBound(
-    supabase,
-    trustedNfc,
-    deviceToken,
-    sessionCheck.nfcId
-  );
-
-  if (!deviceBound.ok) {
-    const redirectTo = deviceBound.uniqueId
-      ? cardEntryPathForUniqueId(deviceBound.uniqueId)
-      : HOME_PATH;
-
-    return {
-      allowed: false,
-      reason: "device_bound_missing",
-      redirectTo,
-    };
-  }
-
-  return { allowed: true };
 }

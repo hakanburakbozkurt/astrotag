@@ -1,21 +1,16 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import {
   requestSynastryScore,
   SYNASTRY_ERROR_MESSAGE,
-  SynastryReadingError,
 } from "@/lib/ai/synastry";
 import { buildCosmicAnalysisContext } from "@/lib/astrology/cosmic-context";
 import { getDailyCompatibilityDateKey } from "@/lib/compatibility/daily-questions";
-import { guardApiNfcAccess } from "@/lib/nfc/api-guard";
+import { withNfcApiRoute } from "@/lib/nfc/with-nfc-api-route";
 import type { UserData } from "@/types/user";
 
-export async function POST(request: NextRequest) {
-  try {
-    const guard = await guardApiNfcAccess();
-    if (!guard.ok) {
-      return guard.response;
-    }
-
+export const POST = withNfcApiRoute(
+  "api/ai/compatibility/score",
+  async (request) => {
     const body = await request.json();
     const userData = body?.userData as UserData | undefined;
 
@@ -28,14 +23,5 @@ export async function POST(request: NextRequest) {
     const result = await requestSynastryScore(userData, context, dateKey);
 
     return NextResponse.json(result);
-  } catch (error) {
-    console.error("COMPATIBILITY_SCORE_API_ERROR:", error);
-
-    const message =
-      error instanceof SynastryReadingError
-        ? error.message
-        : SYNASTRY_ERROR_MESSAGE;
-
-    return NextResponse.json({ error: message }, { status: 500 });
   }
-}
+);

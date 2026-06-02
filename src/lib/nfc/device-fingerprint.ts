@@ -1,7 +1,8 @@
 "use client";
 
 /**
- * userAgent + screen.width + screen.height → SHA-256 fingerprint
+ * Oturum imzası: userAgent + screen boyutu → SHA-256 hash.
+ * Biyometrik parmak izi / Face ID ile ilgisi yoktur.
  */
 export async function getDeviceFingerprint(): Promise<string> {
   const parts = [

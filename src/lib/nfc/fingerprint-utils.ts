@@ -1,4 +1,7 @@
-/** Edge-safe fingerprint yardımcıları (middleware uyumlu). */
+/**
+ * Edge-safe oturum imzası yardımcıları (middleware uyumlu).
+ * "fingerprint" = cihaz/oturum hash'i; biyometrik parmak izi veya Face ID DEĞİL.
+ */
 
 export function isValidFingerprintHash(value: string | undefined | null): boolean {
   return typeof value === "string" && /^[a-f0-9]{64}$/i.test(value);

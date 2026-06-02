@@ -44,6 +44,12 @@ import { generateReferralCode } from "@/lib/referral";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import {
+  SERVER_BIOMETRIC_FAILED,
+  SERVER_BIOMETRIC_UNAVAILABLE,
+} from "@/lib/biometric/biometric-labels";
+import { logNfcError, logNfcEvent } from "@/lib/nfc/error-logger";
+import { withNfcAction } from "@/lib/nfc/with-nfc-action.server";
+import {
   createPasskeyAuthenticationOptions,
   createPasskeyRegistrationOptions,
   verifyPasskeyAuthentication,
@@ -61,77 +67,93 @@ export async function resolveNfcEntryAction(
   screenHeight: number,
   userAgent: string
 ): Promise<NfcEntryResolveResult> {
-  const card = await validateNfcCardActive(uniqueId);
-  if (!card.ok) {
-    return { status: "error", error: NFC_CARD_INACTIVE_MESSAGE };
-  }
+  return withNfcAction("resolveNfcEntryAction", async () => {
+    logNfcEvent(
+      "info",
+      { layer: "action", handler: "resolveNfcEntryAction" },
+      "NFC giriş çözümlemesi başladı",
+      { uniqueId, screenWidth, screenHeight, userAgent }
+    );
 
-  const cookies = await getTrustedDeviceFromCookies();
-  const hasTrustedCookies =
-    cookies.nfcId === uniqueId.trim() && Boolean(cookies.deviceToken);
+    const card = await validateNfcCardActive(uniqueId);
+    if (!card.ok) {
+      logNfcEvent(
+        "warn",
+        { layer: "action", handler: "resolveNfcEntryAction" },
+        "Kart aktif değil",
+        { uniqueId }
+      );
+      return { status: "error", error: NFC_CARD_INACTIVE_MESSAGE };
+    }
 
-  if (card.isClaimed && card.ownerId) {
+    const cookies = await getTrustedDeviceFromCookies();
+    const hasTrustedCookies =
+      cookies.nfcId === uniqueId.trim() && Boolean(cookies.deviceToken);
+
+    if (card.isClaimed && card.ownerId) {
+      if (hasTrustedCookies) {
+        const ownerCheck = await assertTrustedDeviceForOwner({
+          uniqueId,
+          deviceToken: cookies.deviceToken!,
+          ownerId: card.ownerId,
+        });
+
+        if (!ownerCheck.ok) {
+          return { status: "error", error: ownerCheck.error };
+        }
+
+        const session = await establishNfcSessionForUser({
+          uniqueId,
+          nfcCardUuid: card.nfcId,
+          profileId: card.profileId,
+          deviceToken: cookies.deviceToken!,
+          userId: ownerCheck.userId,
+          userAgent,
+          screenWidth,
+          screenHeight,
+        });
+
+        if (!session.success) {
+          return { status: "error", error: session.error };
+        }
+
+        return { status: "trusted", redirectTo: session.redirectTo };
+      }
+
+      return { status: "bind_required" };
+    }
+
     if (hasTrustedCookies) {
-      const ownerCheck = await assertTrustedDeviceForOwner({
-        uniqueId,
-        deviceToken: cookies.deviceToken!,
-        ownerId: card.ownerId,
-      });
+      const trusted = await findTrustedDevice(uniqueId, cookies.deviceToken!);
 
-      if (!ownerCheck.ok) {
-        return { status: "error", error: ownerCheck.error };
+      if (trusted) {
+        const session = await establishNfcSessionForUser({
+          uniqueId,
+          nfcCardUuid: card.nfcId,
+          profileId: card.profileId,
+          deviceToken: cookies.deviceToken!,
+          userId: trusted.user_id,
+          userAgent,
+          screenWidth,
+          screenHeight,
+        });
+
+        if (!session.success) {
+          return { status: "error", error: session.error };
+        }
+
+        return { status: "trusted", redirectTo: session.redirectTo };
       }
-
-      const session = await establishNfcSessionForUser({
-        uniqueId,
-        nfcCardUuid: card.nfcId,
-        profileId: card.profileId,
-        deviceToken: cookies.deviceToken!,
-        userId: ownerCheck.userId,
-        userAgent,
-        screenWidth,
-        screenHeight,
-      });
-
-      if (!session.success) {
-        return { status: "error", error: session.error };
-      }
-
-      return { status: "trusted", redirectTo: session.redirectTo };
     }
 
     return { status: "bind_required" };
-  }
-
-  if (hasTrustedCookies) {
-    const trusted = await findTrustedDevice(uniqueId, cookies.deviceToken!);
-
-    if (trusted) {
-      const session = await establishNfcSessionForUser({
-        uniqueId,
-        nfcCardUuid: card.nfcId,
-        profileId: card.profileId,
-        deviceToken: cookies.deviceToken!,
-        userId: trusted.user_id,
-        userAgent,
-        screenWidth,
-        screenHeight,
-      });
-
-      if (!session.success) {
-        return { status: "error", error: session.error };
-      }
-
-      return { status: "trusted", redirectTo: session.redirectTo };
-    }
-  }
-
-  return { status: "bind_required" };
+  });
 }
 
 export async function sendDeviceBindingOtpAction(
   email: string
 ): Promise<{ success: true } | { success: false; error: string }> {
+  return withNfcAction("sendDeviceBindingOtpAction", async () => {
   const normalized = email.trim().toLowerCase();
 
   if (!normalized || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
@@ -145,11 +167,16 @@ export async function sendDeviceBindingOtpAction(
   });
 
   if (error) {
-    console.error("OTP_SEND_ERROR:", error.message);
+    logNfcError(
+      { layer: "action", handler: "sendDeviceBindingOtpAction" },
+      error,
+      { email: normalized, supabaseCode: error.code }
+    );
     return { success: false, error: "Doğrulama kodu gönderilemedi." };
   }
 
   return { success: true };
+  });
 }
 
 export async function verifyDeviceBindingOtpAction(
@@ -160,6 +187,7 @@ export async function verifyDeviceBindingOtpAction(
   | { success: true; userId: string; email: string }
   | { success: false; error: string }
 > {
+  return withNfcAction("verifyDeviceBindingOtpAction", async () => {
   const normalizedEmail = email.trim().toLowerCase();
   const token = otp.trim();
 
@@ -201,6 +229,7 @@ export async function verifyDeviceBindingOtpAction(
     userId: data.user.id,
     email: normalizedEmail,
   };
+  });
 }
 
 export async function beginPasskeyRegistrationAction(
@@ -211,6 +240,7 @@ export async function beginPasskeyRegistrationAction(
   | { success: true; options: PublicKeyCredentialCreationOptionsJSON }
   | { success: false; error: string }
 > {
+  return withNfcAction("beginPasskeyRegistrationAction", async () => {
   const card = await validateNfcCardActive(uniqueId);
   if (!card.ok) {
     return { success: false, error: NFC_CARD_INACTIVE_MESSAGE };
@@ -225,12 +255,17 @@ export async function beginPasskeyRegistrationAction(
 
     return { success: true, options };
   } catch (error) {
-    console.error("PASSKEY_REG_OPTIONS_ERROR:", error);
+    logNfcError(
+      { layer: "action", handler: "beginPasskeyRegistrationAction" },
+      error,
+      { uniqueId, userId, email }
+    );
     return {
       success: false,
-      error: "Passkey kaydı başlatılamadı. Face ID / Touch ID etkin olmalı.",
+      error: SERVER_BIOMETRIC_UNAVAILABLE,
     };
   }
+  });
 }
 
 export async function completeDeviceBindingAction(params: {
@@ -244,6 +279,7 @@ export async function completeDeviceBindingAction(params: {
   | { success: true; redirectTo: string }
   | { success: false; error: string }
 > {
+  return withNfcAction("completeDeviceBindingAction", async () => {
   const verification = await verifyPasskeyRegistration({
     response: params.registrationResponse,
   });
@@ -251,7 +287,7 @@ export async function completeDeviceBindingAction(params: {
   if (!verification.verified || !verification.credential) {
     return {
       success: false,
-      error: "Biyometrik doğrulama başarısız. Lütfen tekrar deneyin.",
+      error: SERVER_BIOMETRIC_FAILED,
     };
   }
 
@@ -306,6 +342,7 @@ export async function completeDeviceBindingAction(params: {
   }
 
   return { success: true, redirectTo: session.redirectTo };
+  });
 }
 
 export async function beginTrustedPasskeyAuthAction(
@@ -314,6 +351,7 @@ export async function beginTrustedPasskeyAuthAction(
   | { success: true; options: PublicKeyCredentialRequestOptionsJSON }
   | { success: false; error: string }
 > {
+  return withNfcAction("beginTrustedPasskeyAuthAction", async () => {
   const cookies = await getTrustedDeviceFromCookies();
 
   if (cookies.nfcId !== uniqueId.trim() || !cookies.deviceToken) {
@@ -334,9 +372,14 @@ export async function beginTrustedPasskeyAuthAction(
 
     return { success: true, options };
   } catch (error) {
-    console.error("PASSKEY_AUTH_OPTIONS_ERROR:", error);
+    logNfcError(
+      { layer: "action", handler: "beginTrustedPasskeyAuthAction" },
+      error,
+      { uniqueId }
+    );
     return { success: false, error: "Passkey doğrulaması başlatılamadı." };
   }
+  });
 }
 
 export async function completeTrustedPasskeyAuthAction(params: {
@@ -349,6 +392,7 @@ export async function completeTrustedPasskeyAuthAction(params: {
   | { success: true; redirectTo: string }
   | { success: false; error: string }
 > {
+  return withNfcAction("completeTrustedPasskeyAuthAction", async () => {
   const cookies = await getTrustedDeviceFromCookies();
 
   if (!cookies.deviceToken) {
@@ -377,7 +421,7 @@ export async function completeTrustedPasskeyAuthAction(params: {
   });
 
   if (!verification.verified) {
-    return { success: false, error: "Face ID / Touch ID doğrulaması başarısız." };
+    return { success: false, error: SERVER_BIOMETRIC_FAILED };
   }
 
   await updatePasskeyCounter(
@@ -402,11 +446,14 @@ export async function completeTrustedPasskeyAuthAction(params: {
   }
 
   return { success: true, redirectTo: session.redirectTo };
+  });
 }
 
 export async function signOutDeviceBoundSessionAction(): Promise<void> {
-  await endNfcSessionAction();
-  await clearTrustedDeviceCookies();
+  return withNfcAction("signOutDeviceBoundSessionAction", async () => {
+    await endNfcSessionAction();
+    await clearTrustedDeviceCookies();
+  });
 }
 
 async function establishNfcSessionForUser(params: {
@@ -487,7 +534,16 @@ async function establishNfcSessionForUser(params: {
 
     return { success: true, redirectTo };
   } catch (error) {
-    console.error("ESTABLISH_SESSION_ERROR:", error);
+    logNfcError(
+      { layer: "action", handler: "establishNfcSessionForUser" },
+      error,
+      {
+        uniqueId: params.uniqueId,
+        nfcCardUuid: params.nfcCardUuid,
+        profileId: params.profileId,
+        userId: params.userId,
+      }
+    );
     return { success: false, error: "Oturum başlatılamadı." };
   }
 }

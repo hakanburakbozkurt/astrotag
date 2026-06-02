@@ -9,6 +9,7 @@ import {
   sendDeviceBindingOtpAction,
   verifyDeviceBindingOtpAction,
 } from "@/lib/actions/device-auth";
+import { useBiometricType } from "@/lib/biometric/useBiometricType";
 import { registerPasskeyOnDevice, isPasskeySupported } from "@/lib/webauthn/client";
 import { HOME_PATH } from "@/lib/nfc/constants";
 
@@ -24,6 +25,7 @@ export default function DeviceBindingFlow({
   isReauth = false,
 }: DeviceBindingFlowProps) {
   const router = useRouter();
+  const biometric = useBiometricType();
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
@@ -73,9 +75,7 @@ export default function DeviceBindingFlow({
     }
 
     if (!isPasskeySupported()) {
-      setError(
-        "Bu cihaz Passkey desteklemiyor. iPhone’da Safari ile Face ID / Touch ID kullanın."
-      );
+      setError(biometric.unsupported);
       return;
     }
 
@@ -117,9 +117,7 @@ export default function DeviceBindingFlow({
       router.replace(completeResult.redirectTo);
     } catch (cause) {
       const message =
-        cause instanceof Error
-          ? cause.message
-          : "Passkey kaydı tamamlanamadı.";
+        cause instanceof Error ? cause.message : biometric.failed;
       setError(message);
       setLoading(false);
     }
@@ -137,8 +135,8 @@ export default function DeviceBindingFlow({
       </p>
       {isReauth && (
         <p className="mb-4 text-center text-xs leading-relaxed text-white/45">
-          Oturumunuz sona erdi veya cihaz eşleşmesi geçersiz. E-posta ve Passkey
-          ile tekrar bağlayın.
+          Oturumunuz sona erdi veya cihaz eşleşmesi geçersiz. E-posta ve{" "}
+          {biometric.shortName} ile tekrar bağlayın.
         </p>
       )}
 
@@ -201,9 +199,11 @@ export default function DeviceBindingFlow({
 
       {step === "passkey" && (
         <div className="flex flex-col gap-4 text-center">
+          <p className="font-mono text-[10px] uppercase tracking-widest text-amber-400/50">
+            {biometric.passkeyStepTitle}
+          </p>
           <p className="text-sm leading-relaxed text-white/55">
-            Bu cihazı anahtarlığınıza bağlamak için Face ID veya Touch ID ile
-            Passkey oluşturun.
+            {biometric.promptRegister}
           </p>
           <button
             type="button"
@@ -211,7 +211,7 @@ export default function DeviceBindingFlow({
             disabled={loading}
             className="rounded-xl bg-amber-500/90 px-4 py-3 text-xs font-medium uppercase tracking-widest text-black transition hover:bg-amber-400 disabled:opacity-50"
           >
-            {loading ? "Kaydediliyor..." : "Passkey ile Kaydet"}
+            {loading ? biometric.registering : biometric.promptButton}
           </button>
         </div>
       )}
