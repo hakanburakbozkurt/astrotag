@@ -111,6 +111,10 @@ export async function middleware(request: NextRequest) {
       supabaseConfigured: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
     });
 
+    if (process.env.NODE_ENV === "development") {
+      throw error;
+    }
+
     return buildDeniedResponse(request, HOME_PATH, true, true);
   }
 }

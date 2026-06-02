@@ -33,6 +33,10 @@ export async function registerPasskeyOnDevice(
   try {
     return await startRegistration({ optionsJSON: options });
   } catch (error) {
+    console.error("[WebAuthn client] registerPasskeyOnDevice:", error);
+    if (error instanceof Error && error.stack) {
+      console.error(error.stack);
+    }
     if (error instanceof Error && error.name === "NotAllowedError") {
       throw new Error(
         `${bio.shortName} doğrulaması iptal edildi veya zaman aşımına uğradı.`
@@ -54,6 +58,10 @@ export async function authenticatePasskeyOnDevice(
   try {
     return await startAuthentication({ optionsJSON: options });
   } catch (error) {
+    console.error("[WebAuthn client] authenticatePasskeyOnDevice:", error);
+    if (error instanceof Error && error.stack) {
+      console.error(error.stack);
+    }
     if (error instanceof Error && error.name === "NotAllowedError") {
       throw new Error(
         `${bio.shortName} doğrulaması iptal edildi veya zaman aşımına uğradı.`

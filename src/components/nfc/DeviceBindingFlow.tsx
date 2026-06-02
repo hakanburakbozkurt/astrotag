@@ -116,6 +116,10 @@ export default function DeviceBindingFlow({
 
       router.replace(completeResult.redirectTo);
     } catch (cause) {
+      console.error("[DeviceBindingFlow] passkey binding failed:", cause);
+      if (cause instanceof Error && cause.stack) {
+        console.error(cause.stack);
+      }
       const message =
         cause instanceof Error ? cause.message : biometric.failed;
       setError(message);

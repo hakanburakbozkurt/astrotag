@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { guardApiNfcAccess } from "@/lib/nfc/api-guard";
-import {
-  logNfcError,
-  sanitizeRequestHeaders,
-  serializeError,
-} from "@/lib/nfc/error-logger";
+import { logNfcError, sanitizeRequestHeaders } from "@/lib/nfc/error-logger";
 import type { ProtectedNfcContext } from "@/lib/nfc/protected-access.server";
 
 type NfcApiHandler = (
@@ -37,12 +33,12 @@ export function withNfcApiRoute(handlerName: string, handler: NfcApiHandler) {
         url: request.nextUrl.toString(),
       });
 
+      if (process.env.NODE_ENV === "development") {
+        throw error;
+      }
+
       const payload = {
         error: "Sunucu hatası.",
-        debug:
-          process.env.NODE_ENV === "development"
-            ? serializeError(error)
-            : undefined,
       };
 
       return NextResponse.json(payload, { status: 500 });

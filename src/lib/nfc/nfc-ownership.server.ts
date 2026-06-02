@@ -1,8 +1,12 @@
 import "server-only";
 
 import { NFC_CARD_OWNED_BY_OTHER_MESSAGE } from "@/lib/nfc/constants";
+import { logNfcErrorAndThrow, toError } from "@/lib/nfc/error-logger";
 import { findTrustedDevice } from "@/lib/nfc/trusted-devices.server";
+import { throwIfSupabaseError } from "@/lib/nfc/supabase-nfc.server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
+
+const CLAIM_CTX = { layer: "action" as const, handler: "claimNfcCard" };
 
 export type NfcCardOwnership = {
   nfcId: string;
@@ -58,10 +62,10 @@ export async function claimNfcCard(
     .update({ is_claimed: true, owner_id: ownerId })
     .eq("id", nfcCardUuid);
 
-  if (updateError) {
-    console.error("NFC_CLAIM_ERROR:", updateError.message);
-    return { ok: false, error: "Kart sahipliği kaydedilemedi." };
-  }
+  throwIfSupabaseError(updateError, CLAIM_CTX, "nfc_cards.update.claim", {
+    nfcCardUuid,
+    ownerId,
+  });
 
   return { ok: true };
 }

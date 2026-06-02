@@ -13,15 +13,26 @@ import type {
   PublicKeyCredentialRequestOptionsJSON,
   RegistrationResponseJSON,
 } from "@simplewebauthn/server";
+import { logNfcErrorAndThrow, toError } from "@/lib/nfc/error-logger";
+import {
+  consumeWebAuthnChallengeCookie,
+  setWebAuthnChallengeCookie,
+} from "@/lib/nfc/device-cookies.server";
 import {
   getWebAuthnOrigin,
   getWebAuthnRpId,
   getWebAuthnRpName,
 } from "@/lib/webauthn/config";
-import {
-  consumeWebAuthnChallengeCookie,
-  setWebAuthnChallengeCookie,
-} from "@/lib/nfc/device-cookies.server";
+
+const VERIFY_REG_CTX = {
+  layer: "action" as const,
+  handler: "verifyPasskeyRegistration",
+};
+
+const VERIFY_AUTH_CTX = {
+  layer: "action" as const,
+  handler: "verifyPasskeyAuthentication",
+};
 
 export type StoredPasskey = {
   credentialId: string;
@@ -63,25 +74,52 @@ export async function verifyPasskeyRegistration(params: {
   response: RegistrationResponseJSON;
   expectedOrigin?: string;
 }): Promise<{
-  verified: boolean;
-  credential?: StoredPasskey;
+  verified: true;
+  credential: StoredPasskey;
 }> {
+  const expectedOrigin = params.expectedOrigin ?? getWebAuthnOrigin();
+  const expectedRPID = getWebAuthnRpId();
+
   const expectedChallenge = await consumeWebAuthnChallengeCookie();
 
   if (!expectedChallenge) {
-    return { verified: false };
+    logNfcErrorAndThrow(
+      VERIFY_REG_CTX,
+      toError("WebAuthn challenge çerezi eksik veya süresi dolmuş"),
+      { step: "consumeWebAuthnChallengeCookie" }
+    );
   }
 
-  const verification = await verifyRegistrationResponse({
-    response: params.response,
-    expectedChallenge,
-    expectedOrigin: params.expectedOrigin ?? getWebAuthnOrigin(),
-    expectedRPID: getWebAuthnRpId(),
-    requireUserVerification: true,
-  });
+  let verification: Awaited<ReturnType<typeof verifyRegistrationResponse>>;
+
+  try {
+    verification = await verifyRegistrationResponse({
+      response: params.response,
+      expectedChallenge,
+      expectedOrigin,
+      expectedRPID,
+      requireUserVerification: true,
+    });
+  } catch (error) {
+    logNfcErrorAndThrow(VERIFY_REG_CTX, error, {
+      step: "verifyRegistrationResponse",
+      expectedOrigin,
+      expectedRPID,
+      responseId: params.response.id,
+    });
+  }
 
   if (!verification.verified || !verification.registrationInfo) {
-    return { verified: false };
+    logNfcErrorAndThrow(
+      VERIFY_REG_CTX,
+      toError("verifyRegistrationResponse: verified=false veya registrationInfo yok"),
+      {
+        verified: verification.verified,
+        hasRegistrationInfo: Boolean(verification.registrationInfo),
+        expectedOrigin,
+        expectedRPID,
+      }
+    );
   }
 
   const { credential } = verification.registrationInfo;
@@ -121,29 +159,61 @@ export async function verifyPasskeyAuthentication(params: {
   response: AuthenticationResponseJSON;
   stored: StoredPasskey;
   expectedOrigin?: string;
-}): Promise<{ verified: boolean; newCounter: number }> {
+}): Promise<{ verified: true; newCounter: number }> {
+  const expectedOrigin = params.expectedOrigin ?? getWebAuthnOrigin();
+  const expectedRPID = getWebAuthnRpId();
+
   const expectedChallenge = await consumeWebAuthnChallengeCookie();
 
   if (!expectedChallenge) {
-    return { verified: false, newCounter: params.stored.counter };
+    logNfcErrorAndThrow(
+      VERIFY_AUTH_CTX,
+      toError("WebAuthn challenge çerezi eksik veya süresi dolmuş"),
+      { step: "consumeWebAuthnChallengeCookie", credentialId: params.stored.credentialId }
+    );
   }
 
-  const verification = await verifyAuthenticationResponse({
-    response: params.response,
-    expectedChallenge,
-    expectedOrigin: params.expectedOrigin ?? getWebAuthnOrigin(),
-    expectedRPID: getWebAuthnRpId(),
-    credential: {
-      id: params.stored.credentialId,
-      publicKey: Buffer.from(params.stored.publicKey, "base64url"),
-      counter: params.stored.counter,
-      transports: params.stored.transports,
-    },
-    requireUserVerification: true,
-  });
+  let verification: Awaited<ReturnType<typeof verifyAuthenticationResponse>>;
+
+  try {
+    verification = await verifyAuthenticationResponse({
+      response: params.response,
+      expectedChallenge,
+      expectedOrigin,
+      expectedRPID,
+      credential: {
+        id: params.stored.credentialId,
+        publicKey: Buffer.from(params.stored.publicKey, "base64url"),
+        counter: params.stored.counter,
+        transports: params.stored.transports,
+      },
+      requireUserVerification: true,
+    });
+  } catch (error) {
+    logNfcErrorAndThrow(VERIFY_AUTH_CTX, error, {
+      step: "verifyAuthenticationResponse",
+      expectedOrigin,
+      expectedRPID,
+      credentialId: params.stored.credentialId,
+      responseId: params.response.id,
+    });
+  }
+
+  if (!verification.verified) {
+    logNfcErrorAndThrow(
+      VERIFY_AUTH_CTX,
+      toError("verifyAuthenticationResponse: verified=false"),
+      {
+        expectedOrigin,
+        expectedRPID,
+        newCounter: verification.authenticationInfo?.newCounter,
+      }
+    );
+  }
 
   return {
-    verified: verification.verified,
-    newCounter: verification.authenticationInfo?.newCounter ?? params.stored.counter,
+    verified: true,
+    newCounter:
+      verification.authenticationInfo?.newCounter ?? params.stored.counter,
   };
 }

@@ -171,8 +171,47 @@ export function logNfcError(
       ? `${error.name}: ${error.message}`
       : String(error);
 
+  const tag = `[NFC:${context.layer}:${context.handler}]`;
+
   logNfcEvent("error", context, summary, {
     error: serialized,
     ...details,
   });
+
+  if (error instanceof Error && error.stack) {
+    console.error(`${tag} STACK TRACE:\n${error.stack}`);
+  }
+
+  console.error(`${tag} RAW ERROR:`, error);
+}
+
+/**
+ * Terminale yazar ve hatayı yeniden fırlatır (Next.js dev terminal + overlay).
+ */
+export function logNfcErrorAndThrow(
+  context: NfcErrorLogContext,
+  error: unknown,
+  details?: Record<string, unknown>
+): never {
+  logNfcError(context, error, details);
+
+  if (error instanceof Error) {
+    throw error;
+  }
+
+  throw new Error(
+    typeof error === "string" ? error : JSON.stringify(serializeError(error))
+  );
+}
+
+export function toError(
+  message: string,
+  cause?: unknown,
+  extra?: Record<string, unknown>
+): Error {
+  const err = new Error(message, cause !== undefined ? { cause } : undefined);
+  if (extra) {
+    Object.assign(err, extra);
+  }
+  return err;
 }

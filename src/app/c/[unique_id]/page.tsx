@@ -66,7 +66,11 @@ export default function NfcCardEntryPage() {
 
         setError(result.error);
         setState("error");
-      } catch {
+      } catch (cause) {
+        console.error("[NfcCardEntry] resolve failed:", cause);
+        if (cause instanceof Error && cause.stack) {
+          console.error(cause.stack);
+        }
         setError("Oturum başlatılamadı. Lütfen tekrar deneyin.");
         setState("error");
       }

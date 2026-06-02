@@ -43,11 +43,8 @@ import {
 import { generateReferralCode } from "@/lib/referral";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
-import {
-  SERVER_BIOMETRIC_FAILED,
-  SERVER_BIOMETRIC_UNAVAILABLE,
-} from "@/lib/biometric/biometric-labels";
 import { logNfcError, logNfcEvent } from "@/lib/nfc/error-logger";
+import { throwIfSupabaseError } from "@/lib/nfc/supabase-nfc.server";
 import { withNfcAction } from "@/lib/nfc/with-nfc-action.server";
 import {
   createPasskeyAuthenticationOptions,
@@ -113,10 +110,6 @@ export async function resolveNfcEntryAction(
           screenHeight,
         });
 
-        if (!session.success) {
-          return { status: "error", error: session.error };
-        }
-
         return { status: "trusted", redirectTo: session.redirectTo };
       }
 
@@ -137,10 +130,6 @@ export async function resolveNfcEntryAction(
           screenWidth,
           screenHeight,
         });
-
-        if (!session.success) {
-          return { status: "error", error: session.error };
-        }
 
         return { status: "trusted", redirectTo: session.redirectTo };
       }
@@ -172,7 +161,7 @@ export async function sendDeviceBindingOtpAction(
       error,
       { email: normalized, supabaseCode: error.code }
     );
-    return { success: false, error: "Doğrulama kodu gönderilemedi." };
+    throw error;
   }
 
   return { success: true };
@@ -207,7 +196,16 @@ export async function verifyDeviceBindingOtpAction(
     type: "email",
   });
 
-  if (error || !data.user?.id) {
+  if (error) {
+    logNfcError(
+      { layer: "action", handler: "verifyDeviceBindingOtpAction" },
+      error,
+      { email: normalizedEmail, supabaseCode: error.code }
+    );
+    throw error;
+  }
+
+  if (!data.user?.id) {
     return { success: false, error: "Doğrulama kodu geçersiz veya süresi dolmuş." };
   }
 
@@ -246,25 +244,13 @@ export async function beginPasskeyRegistrationAction(
     return { success: false, error: NFC_CARD_INACTIVE_MESSAGE };
   }
 
-  try {
-    const options = await createPasskeyRegistrationOptions({
-      userId,
-      email,
-      existingCredentials: [],
-    });
+  const options = await createPasskeyRegistrationOptions({
+    userId,
+    email,
+    existingCredentials: [],
+  });
 
-    return { success: true, options };
-  } catch (error) {
-    logNfcError(
-      { layer: "action", handler: "beginPasskeyRegistrationAction" },
-      error,
-      { uniqueId, userId, email }
-    );
-    return {
-      success: false,
-      error: SERVER_BIOMETRIC_UNAVAILABLE,
-    };
-  }
+  return { success: true, options };
   });
 }
 
@@ -284,13 +270,6 @@ export async function completeDeviceBindingAction(params: {
     response: params.registrationResponse,
   });
 
-  if (!verification.verified || !verification.credential) {
-    return {
-      success: false,
-      error: SERVER_BIOMETRIC_FAILED,
-    };
-  }
-
   const card = await validateNfcCardActive(params.uniqueId);
   if (!card.ok) {
     return { success: false, error: NFC_CARD_INACTIVE_MESSAGE };
@@ -304,22 +283,24 @@ export async function completeDeviceBindingAction(params: {
     return { success: false, error: NFC_CARD_OWNED_BY_OTHER_MESSAGE };
   }
 
-  const registered = await registerTrustedPasskey({
+  await registerTrustedPasskey({
     nfcId: params.uniqueId.trim(),
     userId: params.userId,
     credential: verification.credential,
   });
-
-  if (!registered.ok) {
-    return { success: false, error: registered.error };
-  }
 
   const claimed = await claimNfcCard(card.nfcId, params.userId);
   if (!claimed.ok) {
     return { success: false, error: claimed.error };
   }
 
-  await syncAnonymousProfileToUser(params.userId, params.uniqueId);
+  const synced = await syncAnonymousProfileToUser(
+    params.userId,
+    params.uniqueId
+  );
+  if (!synced.ok) {
+    return { success: false, error: synced.error };
+  }
 
   await setTrustedDeviceCookies(
     params.uniqueId.trim(),
@@ -336,10 +317,6 @@ export async function completeDeviceBindingAction(params: {
     screenWidth: params.screenWidth,
     screenHeight: params.screenHeight,
   });
-
-  if (!session.success) {
-    return { success: false, error: session.error };
-  }
 
   return { success: true, redirectTo: session.redirectTo };
   });
@@ -364,21 +341,12 @@ export async function beginTrustedPasskeyAuthAction(
     return { success: false, error: "Passkey kaydı bulunamadı." };
   }
 
-  try {
-    const options = await createPasskeyAuthenticationOptions({
-      credentialId: passkey.credentialId,
-      transports: passkey.transports,
-    });
+  const options = await createPasskeyAuthenticationOptions({
+    credentialId: passkey.credentialId,
+    transports: passkey.transports,
+  });
 
-    return { success: true, options };
-  } catch (error) {
-    logNfcError(
-      { layer: "action", handler: "beginTrustedPasskeyAuthAction" },
-      error,
-      { uniqueId }
-    );
-    return { success: false, error: "Passkey doğrulaması başlatılamadı." };
-  }
+  return { success: true, options };
   });
 }
 
@@ -420,10 +388,6 @@ export async function completeTrustedPasskeyAuthAction(params: {
     stored: passkey,
   });
 
-  if (!verification.verified) {
-    return { success: false, error: SERVER_BIOMETRIC_FAILED };
-  }
-
   await updatePasskeyCounter(
     params.uniqueId,
     cookies.deviceToken,
@@ -440,10 +404,6 @@ export async function completeTrustedPasskeyAuthAction(params: {
     screenWidth: params.screenWidth,
     screenHeight: params.screenHeight,
   });
-
-  if (!session.success) {
-    return { success: false, error: session.error };
-  }
 
   return { success: true, redirectTo: session.redirectTo };
   });
@@ -465,85 +425,82 @@ async function establishNfcSessionForUser(params: {
   userAgent: string;
   screenWidth: number;
   screenHeight: number;
-}): Promise<
-  | { success: true; redirectTo: string }
-  | { success: false; error: string }
-> {
-  try {
-    const service = createSupabaseServiceClient();
-    const fingerprint = hashFingerprintPayload(
-      params.userAgent,
-      params.screenWidth,
-      params.screenHeight
-    );
+}): Promise<{ redirectTo: string }> {
+  const ctx = { layer: "action" as const, handler: "establishNfcSessionForUser" };
+  const service = createSupabaseServiceClient();
+  const fingerprint = hashFingerprintPayload(
+    params.userAgent,
+    params.screenWidth,
+    params.screenHeight
+  );
 
-    let profileId = params.profileId;
+  let profileId = params.profileId;
 
-    if (!profileId) {
-      profileId = randomUUID();
-      const referralCode = generateReferralCode();
+  if (!profileId) {
+    profileId = randomUUID();
+    const referralCode = generateReferralCode();
 
-      const { error: profileError } = await service.from("profiles").insert({
-        id: profileId,
-        user_id: params.userId ?? null,
-        name: "",
-        birth_date: "1970-01-01",
-        birth_time: "00:00:00",
-        birth_place: "",
-        relationship_status: "İlişki Yok",
-        cosmic_energy: STARTING_ENERGY,
-        energy_bonus: 0,
-        referral_code: referralCode,
-        nfc_uid: params.uniqueId.trim(),
-      });
-
-      if (profileError) {
-        return { success: false, error: "Profil oluşturulamadı." };
-      }
-
-      await service
-        .from("nfc_cards")
-        .update({ profile_id: profileId })
-        .eq("id", params.nfcCardUuid);
-    } else if (params.userId) {
-      await service
-        .from("profiles")
-        .update({ user_id: params.userId })
-        .eq("id", profileId);
-    }
-
-    const sessionId = await createEphemeralNfcSession({
-      profileId,
-      nfcId: params.nfcCardUuid,
-      fingerprint,
-      userAgent: params.userAgent,
+    const { error: profileError } = await service.from("profiles").insert({
+      id: profileId,
+      user_id: params.userId ?? null,
+      name: "",
+      birth_date: "1970-01-01",
+      birth_time: "00:00:00",
+      birth_place: "",
+      relationship_status: "İlişki Yok",
+      cosmic_energy: STARTING_ENERGY,
+      energy_bonus: 0,
+      referral_code: referralCode,
+      nfc_uid: params.uniqueId.trim(),
     });
 
-    await setNfcSessionCookies(sessionId, fingerprint);
-    await confirmStorageAccessAction();
+    throwIfSupabaseError(profileError, ctx, "profiles.insert", {
+      profileId,
+      uniqueId: params.uniqueId,
+    });
 
-    const { data: profileRow } = await service
+    const { error: cardError } = await service
+      .from("nfc_cards")
+      .update({ profile_id: profileId })
+      .eq("id", params.nfcCardUuid);
+
+    throwIfSupabaseError(cardError, ctx, "nfc_cards.update.profile_id", {
+      nfcCardUuid: params.nfcCardUuid,
+      profileId,
+    });
+  } else if (params.userId) {
+    const { error: linkError } = await service
       .from("profiles")
-      .select("name")
-      .eq("id", profileId)
-      .maybeSingle();
+      .update({ user_id: params.userId })
+      .eq("id", profileId);
 
-    const redirectTo = profileRow?.name?.trim()
-      ? "/dashboard"
-      : PROFILE_COMPLETE_PATH;
-
-    return { success: true, redirectTo };
-  } catch (error) {
-    logNfcError(
-      { layer: "action", handler: "establishNfcSessionForUser" },
-      error,
-      {
-        uniqueId: params.uniqueId,
-        nfcCardUuid: params.nfcCardUuid,
-        profileId: params.profileId,
-        userId: params.userId,
-      }
-    );
-    return { success: false, error: "Oturum başlatılamadı." };
+    throwIfSupabaseError(linkError, ctx, "profiles.update.user_id", {
+      profileId,
+      userId: params.userId,
+    });
   }
+
+  const sessionId = await createEphemeralNfcSession({
+    profileId,
+    nfcId: params.nfcCardUuid,
+    fingerprint,
+    userAgent: params.userAgent,
+  });
+
+  await setNfcSessionCookies(sessionId, fingerprint);
+  await confirmStorageAccessAction();
+
+  const { data: profileRow, error: nameError } = await service
+    .from("profiles")
+    .select("name")
+    .eq("id", profileId)
+    .maybeSingle();
+
+  throwIfSupabaseError(nameError, ctx, "profiles.select.name", { profileId });
+
+  const redirectTo = profileRow?.name?.trim()
+    ? "/dashboard"
+    : PROFILE_COMPLETE_PATH;
+
+  return { redirectTo };
 }

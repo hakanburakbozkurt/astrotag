@@ -1,7 +1,11 @@
 import "server-only";
 
+import { logNfcErrorAndThrow, toError } from "@/lib/nfc/error-logger";
+import { throwIfSupabaseError } from "@/lib/nfc/supabase-nfc.server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import type { StoredPasskey } from "@/lib/webauthn/server";
+
+const CTX = { layer: "action" as const, handler: "trusted-devices" };
 
 export type TrustedDeviceRow = {
   id: string;
@@ -27,7 +31,13 @@ export async function findTrustedDevice(
     .eq("device_token", deviceToken.trim())
     .maybeSingle();
 
-  if (error || !data) {
+  if (error) {
+    throwIfSupabaseError(error, { ...CTX, handler: "findTrustedDevice" }, "select", {
+      nfcId,
+    });
+  }
+
+  if (!data) {
     return null;
   }
 
@@ -56,18 +66,21 @@ export async function registerTrustedPasskey(params: {
   nfcId: string;
   userId: string;
   credential: StoredPasskey;
-}): Promise<{ ok: true } | { ok: false; error: string }> {
+}): Promise<void> {
   const supabase = createSupabaseServiceClient();
+  const handler = "registerTrustedPasskey";
 
   const { error: deleteError } = await supabase
     .from("trusted_devices")
     .delete()
     .eq("nfc_id", params.nfcId.trim());
 
-  if (deleteError) {
-    console.error("TRUSTED_DEVICES_DELETE_ERROR:", deleteError.message);
-    return { ok: false, error: "Cihaz kaydı güncellenemedi." };
-  }
+  throwIfSupabaseError(
+    deleteError,
+    { ...CTX, handler },
+    "trusted_devices.delete",
+    { nfcId: params.nfcId, userId: params.userId }
+  );
 
   const { error: insertError } = await supabase.from("trusted_devices").insert({
     nfc_id: params.nfcId.trim(),
@@ -78,12 +91,12 @@ export async function registerTrustedPasskey(params: {
     transports: params.credential.transports ?? [],
   });
 
-  if (insertError) {
-    console.error("TRUSTED_DEVICES_INSERT_ERROR:", insertError.message);
-    return { ok: false, error: "Cihaz güvenilir listesine eklenemedi." };
-  }
-
-  return { ok: true };
+  throwIfSupabaseError(
+    insertError,
+    { ...CTX, handler },
+    "trusted_devices.insert",
+    { nfcId: params.nfcId, userId: params.userId }
+  );
 }
 
 export async function updatePasskeyCounter(
@@ -92,11 +105,18 @@ export async function updatePasskeyCounter(
   counter: number
 ): Promise<void> {
   const supabase = createSupabaseServiceClient();
-  await supabase
+  const { error } = await supabase
     .from("trusted_devices")
     .update({ counter })
     .eq("nfc_id", nfcId.trim())
     .eq("device_token", deviceToken.trim());
+
+  throwIfSupabaseError(
+    error,
+    { ...CTX, handler: "updatePasskeyCounter" },
+    "trusted_devices.update",
+    { nfcId, deviceToken }
+  );
 }
 
 export async function hasTrustedDevicesForCard(nfcId: string): Promise<boolean> {
@@ -106,5 +126,14 @@ export async function hasTrustedDevicesForCard(nfcId: string): Promise<boolean> 
     .select("id", { count: "exact", head: true })
     .eq("nfc_id", nfcId.trim());
 
-  return !error && (count ?? 0) > 0;
+  if (error) {
+    throwIfSupabaseError(
+      error,
+      { ...CTX, handler: "hasTrustedDevicesForCard" },
+      "trusted_devices.count",
+      { nfcId }
+    );
+  }
+
+  return (count ?? 0) > 0;
 }
