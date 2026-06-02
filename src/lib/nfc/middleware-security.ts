@@ -16,15 +16,6 @@ import {
   logNfcEvent,
   sanitizeRequestHeaders,
 } from "@/lib/nfc/error-logger";
-import {
-  BIOMETRIC_GRACE_COOKIE,
-  verifyBiometricGraceToken,
-} from "@/lib/nfc/biometric-grace";
-import {
-  cardEntryPathForUniqueId,
-  getTrustedCookiesFromRequest,
-  validateTrustedDeviceBound,
-} from "@/lib/nfc/trusted-device-gate";
 
 const GATE_LOG = { layer: "security-gate" as const, handler: "runSecurityGate" };
 
@@ -52,7 +43,6 @@ export type SecurityDenyReason =
   | "session_expired"
   | "fingerprint_mismatch"
   | "nfc_card_inactive"
-  | "device_bound_missing"
   | "unauthorized_route";
 
 export type SecurityGateResult =
@@ -95,7 +85,6 @@ export function isProtectedPath(pathname: string): boolean {
   );
 }
 
-/** /c/* ve / dışındaki, korunan olmayan rotalar → ana sayfa */
 export function shouldRedirectUnknownToHome(pathname: string): boolean {
   if (pathname === HOME_PATH) {
     return false;
@@ -148,7 +137,7 @@ async function validateSessionRecord(
   sessionId: string,
   fingerprint: string
 ): Promise<
-  | { ok: true; nfcId: string }
+  | { ok: true }
   | { ok: false; reason: "session_expired" | "fingerprint_mismatch" | "session_missing" }
 > {
   const { data, error } = await supabase
@@ -167,12 +156,6 @@ async function validateSessionRecord(
   }
 
   if (!data?.nfc_id) {
-    logNfcEvent(
-      "warn",
-      { layer: "security-gate", handler: "validateSessionRecord" },
-      "nfc_sessions kaydı bulunamadı",
-      { sessionId }
-    );
     return { ok: false, reason: "session_missing" };
   }
 
@@ -202,12 +185,6 @@ async function validateSessionRecord(
   }
 
   if (!rpcValid) {
-    logNfcEvent(
-      "warn",
-      { layer: "security-gate", handler: "is_valid_nfc_session" },
-      "RPC is_valid_nfc_session false döndü",
-      { sessionId, nfcId: data.nfc_id }
-    );
     return { ok: false, reason: "session_expired" };
   }
 
@@ -224,11 +201,11 @@ async function validateSessionRecord(
     return { ok: false, reason: "fingerprint_mismatch" };
   }
 
-  return { ok: true, nfcId: data.nfc_id };
+  return { ok: true };
 }
 
 /**
- * Merkezi güvenlik katmanı — fingerprint + gizli sekme + oturum + rota.
+ * Korunan rotalar: yalnızca NFC oturum çerezi + fingerprint doğrulaması.
  */
 export async function runSecurityGate(
   request: NextRequest,
@@ -345,57 +322,6 @@ export async function runSecurityGate(
       logGateDeny(request, deny.reason, deny.redirectTo, {
         sessionId,
         sessionCheckReason: sessionCheck.reason,
-      });
-      return deny;
-    }
-
-    const { trustedNfc, deviceToken } = getTrustedCookiesFromRequest(
-      request.cookies
-    );
-
-    const deviceBound = await validateTrustedDeviceBound(
-      supabase,
-      trustedNfc,
-      deviceToken,
-      sessionCheck.nfcId
-    );
-
-    if (!deviceBound.ok) {
-      const graceToken = request.cookies.get(BIOMETRIC_GRACE_COOKIE)?.value;
-      const graceValid = await verifyBiometricGraceToken(
-        graceToken,
-        deviceBound.uniqueId
-      );
-
-      if (graceValid) {
-        logNfcEvent(
-          "info",
-          GATE_LOG,
-          "Biyometrik grace aktif — device-bound kontrolü atlandı",
-          {
-            uniqueId: deviceBound.uniqueId,
-            pathname,
-          }
-        );
-        return { allowed: true };
-      }
-
-      const redirectTo = deviceBound.uniqueId
-        ? `${cardEntryPathForUniqueId(deviceBound.uniqueId)}?reauth=1`
-        : HOME_PATH;
-
-      const deny = {
-        allowed: false as const,
-        reason: "device_bound_missing" as const,
-        redirectTo,
-      };
-      logGateDeny(request, deny.reason, deny.redirectTo, {
-        trustedNfcPresent: Boolean(trustedNfc?.trim()),
-        deviceTokenPresent: Boolean(deviceToken?.trim()),
-        nfcCardUuid: sessionCheck.nfcId,
-        resolvedUniqueId: deviceBound.uniqueId,
-        biometricGracePresent: Boolean(graceToken?.trim()),
-        biometricGraceValid: graceValid,
       });
       return deny;
     }

@@ -2,31 +2,23 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { navigateAfterNfcAuth } from "@/lib/nfc/post-auth-nav.client";
 import { motion } from "framer-motion";
 import {
-  beginPasskeyRegistrationAction,
-  completeDeviceBindingAction,
-  sendDeviceBindingOtpAction,
-  verifyDeviceBindingOtpAction,
+  completeNfcCardPairingAction,
+  sendNfcPairingOtpAction,
+  verifyNfcPairingOtpAction,
 } from "@/lib/actions/device-auth";
-import { useBiometricType } from "@/lib/biometric/useBiometricType";
-import { registerPasskeyOnDevice, isPasskeySupported } from "@/lib/webauthn/client";
+import { navigateAfterNfcAuth } from "@/lib/nfc/post-auth-nav.client";
 import { HOME_PATH } from "@/lib/nfc/constants";
 
-type Step = "email" | "otp" | "passkey";
+type Step = "email" | "otp" | "confirm";
 
 type DeviceBindingFlowProps = {
   uniqueId: string;
-  isReauth?: boolean;
 };
 
-export default function DeviceBindingFlow({
-  uniqueId,
-  isReauth = false,
-}: DeviceBindingFlowProps) {
+export default function DeviceBindingFlow({ uniqueId }: DeviceBindingFlowProps) {
   const router = useRouter();
-  const biometric = useBiometricType();
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
@@ -39,7 +31,7 @@ export default function DeviceBindingFlow({
     setLoading(true);
     setError(null);
 
-    const result = await sendDeviceBindingOtpAction(email);
+    const result = await sendNfcPairingOtpAction(email);
 
     setLoading(false);
 
@@ -56,7 +48,7 @@ export default function DeviceBindingFlow({
     setLoading(true);
     setError(null);
 
-    const result = await verifyDeviceBindingOtpAction(email, otp, uniqueId);
+    const result = await verifyNfcPairingOtpAction(email, otp, uniqueId);
 
     setLoading(false);
 
@@ -66,17 +58,12 @@ export default function DeviceBindingFlow({
     }
 
     setUserId(result.userId);
-    setStep("passkey");
+    setStep("confirm");
   }
 
-  async function handleRegisterPasskey() {
+  async function handleCompletePairing() {
     if (!userId) {
       setError("Önce e-posta doğrulamasını tamamlayın.");
-      return;
-    }
-
-    if (!isPasskeySupported()) {
-      setError(biometric.unsupported);
       return;
     }
 
@@ -84,46 +71,29 @@ export default function DeviceBindingFlow({
     setError(null);
 
     try {
-      const optionsResult = await beginPasskeyRegistrationAction(
+      const result = await completeNfcCardPairingAction({
         uniqueId,
         userId,
-        email
-      );
-
-      if (!optionsResult.success) {
-        setError(optionsResult.error);
-        setLoading(false);
-        return;
-      }
-
-      const registrationResponse = await registerPasskeyOnDevice(
-        optionsResult.options
-      );
-
-      const completeResult = await completeDeviceBindingAction({
-        uniqueId,
-        userId,
-        registrationResponse,
         screenWidth: window.screen.width,
         screenHeight: window.screen.height,
         userAgent: navigator.userAgent,
       });
 
-      if (!completeResult.success) {
-        setError(completeResult.error);
+      if (!result.success) {
+        setError(result.error);
         setLoading(false);
         return;
       }
 
-      navigateAfterNfcAuth(completeResult.redirectTo);
+      navigateAfterNfcAuth(result.redirectTo);
     } catch (cause) {
-      console.error("[DeviceBindingFlow] passkey binding failed:", cause);
+      console.error("[DeviceBindingFlow] pairing failed:", cause);
       if (cause instanceof Error && cause.stack) {
         console.error(cause.stack);
       }
-      const message =
-        cause instanceof Error ? cause.message : biometric.failed;
-      setError(message);
+      setError(
+        cause instanceof Error ? cause.message : "Kart eşleştirmesi başarısız."
+      );
       setLoading(false);
     }
   }
@@ -136,19 +106,17 @@ export default function DeviceBindingFlow({
       className="w-full max-w-sm"
     >
       <p className="mb-6 text-center text-xs uppercase tracking-[0.2em] text-amber-400/70">
-        {isReauth ? "Cihazı Yeniden Doğrula" : "Cihazı Güvenilir Olarak Kaydet"}
+        NFC Kartını Eşleştir
       </p>
-      {isReauth && (
-        <p className="mb-4 text-center text-xs leading-relaxed text-white/45">
-          Oturumunuz sona erdi veya cihaz eşleşmesi geçersiz. E-posta ve{" "}
-          {biometric.shortName} ile tekrar bağlayın.
-        </p>
-      )}
+      <p className="mb-4 text-center text-xs leading-relaxed text-white/45">
+        Bu kart henüz bir hesaba bağlı değil. E-posta ile doğrulayıp kartı
+        hesabınıza bağlayın.
+      </p>
 
       {step === "email" && (
         <form onSubmit={handleSendOtp} className="flex flex-col gap-4">
           <label className="text-left text-[11px] uppercase tracking-widest text-white/45">
-            E-posta (tek seferlik doğrulama)
+            E-posta
           </label>
           <input
             type="email"
@@ -202,21 +170,18 @@ export default function DeviceBindingFlow({
         </form>
       )}
 
-      {step === "passkey" && (
+      {step === "confirm" && (
         <div className="flex flex-col gap-4 text-center">
-          <p className="font-mono text-[10px] uppercase tracking-widest text-amber-400/50">
-            {biometric.passkeyStepTitle}
-          </p>
           <p className="text-sm leading-relaxed text-white/55">
-            {biometric.promptRegister}
+            E-posta doğrulandı. Kartı hesabınıza bağlamak için onaylayın.
           </p>
           <button
             type="button"
-            onClick={() => void handleRegisterPasskey()}
+            onClick={() => void handleCompletePairing()}
             disabled={loading}
             className="rounded-xl bg-amber-500/90 px-4 py-3 text-xs font-medium uppercase tracking-widest text-black transition hover:bg-amber-400 disabled:opacity-50"
           >
-            {loading ? biometric.registering : biometric.promptButton}
+            {loading ? "Eşleştiriliyor..." : "Kartı Hesabıma Bağla"}
           </button>
         </div>
       )}

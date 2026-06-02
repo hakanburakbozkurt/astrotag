@@ -5,8 +5,6 @@ import {
   NFC_FINGERPRINT_COOKIE,
   NFC_SESSION_COOKIE,
   STORAGE_VERIFIED_COOKIE,
-  TRUSTED_DEVICE_COOKIE,
-  TRUSTED_NFC_COOKIE,
 } from "@/lib/nfc/constants";
 import {
   getCookiePresence,
@@ -41,25 +39,17 @@ function getServiceClient() {
 function buildDeniedResponse(
   request: NextRequest,
   redirectTo: string,
-  clearSession: boolean,
-  clearTrustedDevice = false
+  clearSession: boolean
 ): NextResponse {
   const url = request.nextUrl.clone();
-  const isReauth = redirectTo.startsWith("/c/");
-
-  url.pathname = isReauth ? redirectTo.split("?")[0] : redirectTo;
-  url.search = isReauth ? "reauth=1" : "";
+  url.pathname = redirectTo.split("?")[0];
+  url.search = "";
   const response = NextResponse.redirect(url);
 
   if (clearSession) {
     response.cookies.set(NFC_SESSION_COOKIE, "", { maxAge: 0, path: "/" });
     response.cookies.set(NFC_FINGERPRINT_COOKIE, "", { maxAge: 0, path: "/" });
     response.cookies.set(STORAGE_VERIFIED_COOKIE, "", { maxAge: 0, path: "/" });
-  }
-
-  if (clearTrustedDevice) {
-    response.cookies.set(TRUSTED_DEVICE_COOKIE, "", { maxAge: 0, path: "/" });
-    response.cookies.set(TRUSTED_NFC_COOKIE, "", { maxAge: 0, path: "/" });
   }
 
   return response;
@@ -85,17 +75,7 @@ export async function middleware(request: NextRequest) {
         gate.reason === "nfc_card_inactive" ||
         gate.reason === "unauthorized_route";
 
-      /** device_bound_missing: çerezler henüz istemciye düşmemiş olabilir — oturumu silme */
-      const clearTrusted =
-        gate.reason === "device_bound_missing" &&
-        gate.redirectTo === HOME_PATH;
-
-      return buildDeniedResponse(
-        request,
-        gate.redirectTo,
-        clearSession,
-        clearTrusted
-      );
+      return buildDeniedResponse(request, gate.redirectTo, clearSession);
     }
 
     const response = NextResponse.next();
@@ -117,7 +97,7 @@ export async function middleware(request: NextRequest) {
       throw error;
     }
 
-    return buildDeniedResponse(request, HOME_PATH, true, true);
+    return buildDeniedResponse(request, HOME_PATH, true);
   }
 }
 

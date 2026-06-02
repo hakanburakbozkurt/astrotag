@@ -1,31 +1,25 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Starfield from "@/components/Starfield";
 import DeviceBindingFlow from "@/components/nfc/DeviceBindingFlow";
-import { useBiometricType } from "@/lib/biometric/useBiometricType";
 import { confirmStorageAccessAction } from "@/lib/actions/nfc-auth";
 import { resolveNfcEntryAction } from "@/lib/actions/device-auth";
 import { isPrivateBrowsingMode } from "@/lib/nfc/private-mode";
 import { HOME_PATH, PRIVATE_MODE_PATH } from "@/lib/nfc/constants";
 import { navigateAfterNfcAuth } from "@/lib/nfc/post-auth-nav.client";
 
-type EntryState = "loading" | "binding" | "error";
+type EntryState = "loading" | "pairing" | "error";
 
 export default function NfcCardEntryPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const params = useParams<{ unique_id: string }>();
   const uniqueId = params.unique_id;
-  const isReauth = searchParams.get("reauth") === "1";
-  const biometric = useBiometricType();
   const startedRef = useRef(false);
 
-  const [state, setState] = useState<EntryState>(
-    isReauth ? "binding" : "loading"
-  );
+  const [state, setState] = useState<EntryState>("loading");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -34,10 +28,6 @@ export default function NfcCardEntryPage() {
     }
 
     startedRef.current = true;
-
-    if (isReauth) {
-      return;
-    }
 
     void (async () => {
       try {
@@ -55,13 +45,13 @@ export default function NfcCardEntryPage() {
           navigator.userAgent
         );
 
-        if (result.status === "trusted") {
+        if (result.status === "logged_in") {
           navigateAfterNfcAuth(result.redirectTo);
           return;
         }
 
-        if (result.status === "bind_required") {
-          setState("binding");
+        if (result.status === "pair_required") {
+          setState("pairing");
           return;
         }
 
@@ -76,20 +66,18 @@ export default function NfcCardEntryPage() {
         setState("error");
       }
     })();
-  }, [uniqueId, router, isReauth]);
+  }, [uniqueId, router]);
 
   const loadingMessage =
-    state === "loading"
-      ? "Güvenli giriş hazırlanıyor..."
-      : "Yönlendiriliyor...";
+    state === "loading" ? "NFC kartı doğrulanıyor..." : "Yönlendiriliyor...";
 
   return (
     <main className="relative min-h-dvh overflow-hidden">
       <Starfield />
 
       <div className="relative flex min-h-dvh items-center justify-center px-6">
-        {state === "binding" && uniqueId ? (
-          <DeviceBindingFlow uniqueId={uniqueId} isReauth={isReauth} />
+        {state === "pairing" && uniqueId ? (
+          <DeviceBindingFlow uniqueId={uniqueId} />
         ) : (
           <motion.div
             initial={{ opacity: 0, y: 12 }}
@@ -113,7 +101,7 @@ export default function NfcCardEntryPage() {
                 <div className="h-10 w-10 animate-pulse rounded-full border border-amber-400/30 bg-amber-400/10" />
                 <p className="mt-6 text-sm text-white/55">{loadingMessage}</p>
                 <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.2em] text-amber-400/60">
-                  NFC · {biometric.shortName}
+                  NFC Giriş
                 </p>
               </>
             )}

@@ -2,18 +2,15 @@ import "server-only";
 
 import { logNfcError, logNfcEvent } from "@/lib/nfc/error-logger";
 import { NFC_CARD_OWNED_BY_OTHER_MESSAGE } from "@/lib/nfc/constants";
-import { getTrustedDeviceFromCookies } from "@/lib/nfc/device-cookies.server";
 import {
   getNfcSession,
   type NfcSessionRecord,
 } from "@/lib/nfc/session.server";
-import { findTrustedDevice } from "@/lib/nfc/trusted-devices.server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 
 export type ProtectedNfcAccessErrorCode =
   | "session_missing"
   | "session_invalid"
-  | "device_bound_missing"
   | "ownership_mismatch";
 
 export class ProtectedNfcAccessError extends Error {
@@ -31,7 +28,7 @@ export type ProtectedNfcContext = {
   profileId: string;
   nfcCardUuid: string;
   uniqueId: string;
-  authUserId: string;
+  authUserId: string | null;
   isClaimed: boolean;
   ownerId: string | null;
 };
@@ -98,9 +95,7 @@ async function loadCardMeta(nfcCardUuid: string): Promise<NfcCardMeta | null> {
   };
 }
 
-/**
- * NFC session + DB doğrulama (is_valid_nfc_session) + device-bound çerezler.
- */
+/** NFC oturum çerezi + DB doğrulama (is_valid_nfc_session). */
 export async function getProtectedNfcAccess(): Promise<ProtectedNfcContext | null> {
   try {
     const session = await getNfcSession();
@@ -108,7 +103,7 @@ export async function getProtectedNfcAccess(): Promise<ProtectedNfcContext | nul
       logNfcEvent(
         "warn",
         { layer: "protected-access", handler: "getProtectedNfcAccess" },
-        "Adım başarısız: nfc_session çerezi yok veya geçersiz",
+        "NFC oturum çerezi yok veya geçersiz",
         { step: "getNfcSession" }
       );
       return null;
@@ -123,9 +118,8 @@ export async function getProtectedNfcAccess(): Promise<ProtectedNfcContext | nul
       logNfcEvent(
         "warn",
         { layer: "protected-access", handler: "getProtectedNfcAccess" },
-        "Adım başarısız: is_valid_nfc_session false",
+        "is_valid_nfc_session false",
         {
-          step: "is_valid_nfc_session",
           sessionId: session.sessionId,
           nfcCardUuid: session.nfcId,
         }
@@ -138,59 +132,12 @@ export async function getProtectedNfcAccess(): Promise<ProtectedNfcContext | nul
       return null;
     }
 
-    const uniqueId = card.unique_id.trim();
-    const cookies = await getTrustedDeviceFromCookies();
-
-    if (cookies.nfcId !== uniqueId || !cookies.deviceToken) {
-      logNfcEvent(
-        "warn",
-        { layer: "protected-access", handler: "getProtectedNfcAccess" },
-        "Adım başarısız: trusted device çerezleri eksik veya unique_id uyuşmuyor",
-        {
-          step: "trusted_cookies",
-          expectedUniqueId: uniqueId,
-          cookieNfcId: cookies.nfcId,
-          hasDeviceToken: Boolean(cookies.deviceToken),
-        }
-      );
-      return null;
-    }
-
-    const trusted = await findTrustedDevice(uniqueId, cookies.deviceToken);
-    if (!trusted?.user_id) {
-      logNfcEvent(
-        "warn",
-        { layer: "protected-access", handler: "getProtectedNfcAccess" },
-        "Adım başarısız: trusted_devices kaydı yok",
-        { step: "findTrustedDevice", uniqueId }
-      );
-      return null;
-    }
-
-    if (
-      card.is_claimed &&
-      card.owner_id &&
-      trusted.user_id !== card.owner_id
-    ) {
-      logNfcEvent(
-        "warn",
-        { layer: "protected-access", handler: "getProtectedNfcAccess" },
-        "Adım başarısız: sahiplik uyuşmazlığı",
-        {
-          step: "ownership",
-          ownerId: card.owner_id,
-          trustedUserId: trusted.user_id,
-        }
-      );
-      return null;
-    }
-
     return {
       session,
       profileId: session.profileId,
       nfcCardUuid: session.nfcId,
-      uniqueId,
-      authUserId: trusted.user_id,
+      uniqueId: card.unique_id.trim(),
+      authUserId: card.owner_id,
       isClaimed: card.is_claimed,
       ownerId: card.owner_id,
     };
@@ -209,7 +156,7 @@ export async function requireProtectedNfcAccess(): Promise<ProtectedNfcContext> 
   if (!access) {
     throw new ProtectedNfcAccessError(
       "Oturum Sona Erdi veya Geçersiz Erişim",
-      "device_bound_missing"
+      "session_missing"
     );
   }
 

@@ -4,7 +4,7 @@ import {
   getProtectedNfcAccess,
   type ProtectedNfcContext,
 } from "@/lib/nfc/protected-access.server";
-import { cardEntryPathForUniqueId } from "@/lib/nfc/trusted-device-gate";
+import { cardEntryPathForUniqueId } from "@/lib/nfc/card-paths";
 
 export const NFC_API_UNAUTHORIZED_MESSAGE =
   "Oturum geçersiz. Lütfen NFC kartınızı tekrar okutun.";

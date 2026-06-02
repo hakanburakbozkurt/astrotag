@@ -2,7 +2,6 @@ import "server-only";
 
 import { NFC_CARD_OWNED_BY_OTHER_MESSAGE } from "@/lib/nfc/constants";
 import { logNfcErrorAndThrow, toError } from "@/lib/nfc/error-logger";
-import { findTrustedDevice } from "@/lib/nfc/trusted-devices.server";
 import { throwIfSupabaseError } from "@/lib/nfc/supabase-nfc.server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 
@@ -49,8 +48,16 @@ export async function claimNfcCard(
     .eq("id", nfcCardUuid)
     .maybeSingle();
 
-  if (fetchError || !card) {
-    return { ok: false, error: "Kart bulunamadı." };
+  throwIfSupabaseError(fetchError, CLAIM_CTX, "nfc_cards.select", {
+    nfcCardUuid,
+  });
+
+  if (!card) {
+    logNfcErrorAndThrow(
+      CLAIM_CTX,
+      toError("Kart bulunamadı."),
+      { nfcCardUuid }
+    );
   }
 
   if (card.is_claimed && card.owner_id && card.owner_id !== ownerId) {
@@ -68,27 +75,6 @@ export async function claimNfcCard(
   });
 
   return { ok: true };
-}
-
-export async function assertTrustedDeviceForOwner(params: {
-  uniqueId: string;
-  deviceToken: string;
-  ownerId: string;
-}): Promise<
-  | { ok: true; userId: string }
-  | { ok: false; error: string }
-> {
-  const row = await findTrustedDevice(params.uniqueId, params.deviceToken);
-
-  if (!row) {
-    return { ok: false, error: NFC_CARD_OWNED_BY_OTHER_MESSAGE };
-  }
-
-  if (row.user_id !== params.ownerId) {
-    return { ok: false, error: NFC_CARD_OWNED_BY_OTHER_MESSAGE };
-  }
-
-  return { ok: true, userId: row.user_id };
 }
 
 export function canBindClaimedCard(

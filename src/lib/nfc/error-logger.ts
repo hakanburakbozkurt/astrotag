@@ -116,10 +116,6 @@ export function getCookiePresence(
     "astrotag_nfc_session",
     "astrotag_fingerprint",
     "astrotag_storage_ok",
-    "astrotag_device_token",
-    "astrotag_trusted_nfc",
-    "astrotag_webauthn_challenge",
-    "astrotag_bio_grace",
   ];
 
   const out: Record<string, string> = {};
