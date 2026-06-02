@@ -2,11 +2,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { NextRequest } from "next/server";
 import {
   CARD_ENTRY_PREFIX,
+  HOME_PATH,
   NFC_FINGERPRINT_COOKIE,
   NFC_SESSION_COOKIE,
   PRIVATE_MODE_PATH,
   PUBLIC_PATHS,
-  SESSION_EXPIRED_PATH,
   STORAGE_VERIFIED_COOKIE,
 } from "@/lib/nfc/constants";
 import { isValidFingerprintHash } from "@/lib/nfc/fingerprint-utils";
@@ -17,7 +17,8 @@ export type SecurityDenyReason =
   | "fingerprint_invalid"
   | "session_expired"
   | "fingerprint_mismatch"
-  | "nfc_card_inactive";
+  | "nfc_card_inactive"
+  | "unauthorized_route";
 
 export type SecurityGateResult =
   | { allowed: true }
@@ -28,10 +29,7 @@ function isCardEntryPath(pathname: string): boolean {
 }
 
 function isWarningPath(pathname: string): boolean {
-  return (
-    pathname.startsWith(SESSION_EXPIRED_PATH) ||
-    pathname.startsWith(PRIVATE_MODE_PATH)
-  );
+  return pathname.startsWith(PRIVATE_MODE_PATH);
 }
 
 export function isProtectedPath(pathname: string): boolean {
@@ -55,15 +53,42 @@ export function isProtectedPath(pathname: string): boolean {
     return false;
   }
 
-  if (pathname.startsWith("/login")) {
-    return false;
-  }
-
   return (
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/profile") ||
     pathname.startsWith("/api/ai")
   );
+}
+
+/** /c/* ve / dışındaki, korunan olmayan rotalar → ana sayfa */
+export function shouldRedirectUnknownToHome(pathname: string): boolean {
+  if (pathname === HOME_PATH) {
+    return false;
+  }
+
+  if (isCardEntryPath(pathname)) {
+    return false;
+  }
+
+  if (isWarningPath(pathname)) {
+    return false;
+  }
+
+  if (isProtectedPath(pathname)) {
+    return false;
+  }
+
+  if (
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/api/") ||
+    pathname === "/manifest.json" ||
+    pathname === "/sw.js" ||
+    pathname.startsWith("/.well-known")
+  ) {
+    return false;
+  }
+
+  return true;
 }
 
 function isStorageCheckRequired(pathname: string): boolean {
@@ -126,13 +151,21 @@ async function validateSessionRecord(
 }
 
 /**
- * Merkezi güvenlik katmanı — fingerprint + gizli sekme (storage) + oturum.
+ * Merkezi güvenlik katmanı — fingerprint + gizli sekme + oturum + rota.
  */
 export async function runSecurityGate(
   request: NextRequest,
   supabase: SupabaseClient | null
 ): Promise<SecurityGateResult> {
   const { pathname } = request.nextUrl;
+
+  if (shouldRedirectUnknownToHome(pathname)) {
+    return {
+      allowed: false,
+      reason: "unauthorized_route",
+      redirectTo: HOME_PATH,
+    };
+  }
 
   if (isCardEntryPath(pathname)) {
     const uniqueId = pathname
@@ -143,7 +176,7 @@ export async function runSecurityGate(
       return {
         allowed: false,
         reason: "nfc_card_inactive",
-        redirectTo: SESSION_EXPIRED_PATH,
+        redirectTo: HOME_PATH,
       };
     }
 
@@ -152,7 +185,7 @@ export async function runSecurityGate(
       return {
         allowed: false,
         reason: "nfc_card_inactive",
-        redirectTo: SESSION_EXPIRED_PATH,
+        redirectTo: HOME_PATH,
       };
     }
 
@@ -185,7 +218,7 @@ export async function runSecurityGate(
     return {
       allowed: false,
       reason: "session_missing",
-      redirectTo: SESSION_EXPIRED_PATH,
+      redirectTo: HOME_PATH,
     };
   }
 
@@ -195,7 +228,7 @@ export async function runSecurityGate(
     return {
       allowed: false,
       reason: "session_missing",
-      redirectTo: SESSION_EXPIRED_PATH,
+      redirectTo: HOME_PATH,
     };
   }
 
@@ -209,7 +242,7 @@ export async function runSecurityGate(
     return {
       allowed: false,
       reason: sessionCheck.reason,
-      redirectTo: SESSION_EXPIRED_PATH,
+      redirectTo: HOME_PATH,
     };
   }
 

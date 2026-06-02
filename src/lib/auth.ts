@@ -2,14 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  checkNfcSessionAction,
-} from "@/lib/actions/nfc-auth";
+import { checkNfcSessionAction } from "@/lib/actions/nfc-auth";
 import { getUserProfile } from "@/lib/supabase-actions";
-import { SESSION_EXPIRED_PATH } from "@/lib/nfc/constants";
+import { HOME_PATH } from "@/lib/nfc/constants";
 import type { UserData } from "@/types/user";
 
-export { SESSION_EXPIRED_PATH as LOGIN_PATH };
+export { HOME_PATH as LOGIN_PATH };
 
 export type ProfileStatus = "loading" | "ready" | "empty" | "error";
 
@@ -48,7 +46,7 @@ export function useAuth() {
   };
 }
 
-export function useRequireAuth(redirectTo: string = SESSION_EXPIRED_PATH) {
+export function useRequireAuth(redirectTo: string = HOME_PATH) {
   const router = useRouter();
   const auth = useAuth();
 
@@ -57,25 +55,6 @@ export function useRequireAuth(redirectTo: string = SESSION_EXPIRED_PATH) {
       router.replace(redirectTo);
     }
   }, [auth.isAuthenticated, auth.isLoading, router, redirectTo]);
-
-  useEffect(() => {
-    if (!auth.expiresAt || auth.isLoading) {
-      return;
-    }
-
-    const remainingMs = new Date(auth.expiresAt).getTime() - Date.now();
-
-    if (remainingMs <= 0) {
-      router.replace(SESSION_EXPIRED_PATH);
-      return;
-    }
-
-    const timer = window.setTimeout(() => {
-      router.replace(SESSION_EXPIRED_PATH);
-    }, remainingMs);
-
-    return () => window.clearTimeout(timer);
-  }, [auth.expiresAt, auth.isLoading, router]);
 
   return auth;
 }

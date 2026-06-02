@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 import {
+  HOME_PATH,
   NFC_FINGERPRINT_COOKIE,
   NFC_SESSION_COOKIE,
   STORAGE_VERIFIED_COOKIE,
@@ -27,6 +28,7 @@ function buildDeniedResponse(
 ): NextResponse {
   const url = request.nextUrl.clone();
   url.pathname = redirectTo;
+  url.search = "";
   const response = NextResponse.redirect(url);
 
   if (clearSession) {
@@ -45,8 +47,10 @@ export async function middleware(request: NextRequest) {
   if (!gate.allowed) {
     const clearSession =
       gate.reason === "session_expired" ||
+      gate.reason === "session_missing" ||
       gate.reason === "fingerprint_mismatch" ||
-      gate.reason === "session_missing";
+      gate.reason === "nfc_card_inactive" ||
+      gate.reason === "unauthorized_route";
 
     return buildDeniedResponse(request, gate.redirectTo, clearSession);
   }

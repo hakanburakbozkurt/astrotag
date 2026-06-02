@@ -1,28 +1,42 @@
 {
+  "id": "astrotag-pwa",
   "name": "AstroTag",
   "short_name": "AstroTag",
-  "description": "NFC Zero-Click kozmik danışmanlık",
-  "start_url": "/",
-  "scope": "/",
+  "description": "NFC anahtarlığınızla Zero-Click kozmik danışmanlık",
+  "start_url": "https://astrotag.vercel.app/",
+  "scope": "https://astrotag.vercel.app/",
   "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#0f172a",
-  "theme_color": "#0f172a",
+  "display_override": ["standalone", "minimal-ui", "browser"],
+  "orientation": "portrait-primary",
+  "background_color": "#070b14",
+  "theme_color": "#070b14",
   "lang": "tr",
-  "categories": ["lifestyle", "entertainment"],
+  "dir": "ltr",
+  "categories": ["lifestyle", "entertainment", "utilities"],
+  "prefer_related_applications": false,
   "icons": [
     {
-      "src": "/globe.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "src": "/image_485027.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/image_485027.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
+  "screenshots": [],
   "shortcuts": [
     {
-      "name": "Dashboard",
-      "url": "/dashboard",
-      "description": "Kozmik panel"
+      "name": "Ana Sayfa",
+      "short_name": "Ana Sayfa",
+      "url": "https://astrotag.vercel.app/",
+      "description": "AstroTag karşılama ekranı"
     }
-  ]
+  ],
+  "related_applications": [],
+  "handle_links": "preferred"
 }

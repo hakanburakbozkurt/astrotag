@@ -7,6 +7,7 @@ import { STARTING_ENERGY } from "@/lib/constants/cosmic";
 import {
   NFC_CARD_INACTIVE_MESSAGE,
   NFC_FINGERPRINT_MISMATCH_MESSAGE,
+  HOME_PATH,
   NFC_SESSION_TTL_MINUTES,
   PROFILE_COMPLETE_PATH,
   STORAGE_VERIFIED_COOKIE,
@@ -137,6 +138,11 @@ export async function initiateZeroClickSession(
 }
 
 export async function signOutNfcSessionAction(): Promise<void> {
+  await endNfcSessionAction();
+  redirect(HOME_PATH);
+}
+
+export async function endNfcSessionAction(): Promise<void> {
   await clearNfcSessionCookies();
 
   const cookieStore = await cookies();
@@ -145,6 +151,4 @@ export async function signOutNfcSessionAction(): Promise<void> {
     path: "/",
     maxAge: 0,
   });
-
-  redirect("/");
 }

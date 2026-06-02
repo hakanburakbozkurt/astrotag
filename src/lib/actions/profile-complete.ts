@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { STARTING_ENERGY } from "@/lib/constants/cosmic";
-import { SESSION_EXPIRED_PATH } from "@/lib/nfc/constants";
+import { HOME_PATH } from "@/lib/nfc/constants";
 import { requireNfcSessionProfileId } from "@/lib/nfc/session.server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import type { UserData } from "@/types/user";
@@ -23,7 +23,7 @@ export async function completeUserProfile(
   try {
     profileId = await requireNfcSessionProfileId();
   } catch {
-    redirect(SESSION_EXPIRED_PATH);
+    redirect(HOME_PATH);
   }
 
   const name = input.name.trim();

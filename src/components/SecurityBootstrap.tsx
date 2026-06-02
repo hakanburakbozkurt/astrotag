@@ -3,29 +3,40 @@
 import { useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { confirmStorageAccessAction } from "@/lib/actions/nfc-auth";
-import { PRIVATE_MODE_PATH, SESSION_EXPIRED_PATH } from "@/lib/nfc/constants";
+import { CARD_ENTRY_PREFIX, HOME_PATH, PRIVATE_MODE_PATH } from "@/lib/nfc/constants";
 import { isPrivateBrowsingMode } from "@/lib/nfc/private-mode";
 
-const SKIP_PATHS = new Set([
-  PRIVATE_MODE_PATH,
-  SESSION_EXPIRED_PATH,
-]);
+function shouldRunStorageCheck(pathname: string): boolean {
+  if (pathname === HOME_PATH) {
+    return false;
+  }
 
-/**
- * Her sayfa yüklenişinde gizli sekme tespiti yapar;
- * geçerliyse storage doğrulama cookie'sini set eder.
- */
+  if (pathname.startsWith(PRIVATE_MODE_PATH)) {
+    return false;
+  }
+
+  if (pathname.startsWith(CARD_ENTRY_PREFIX)) {
+    return false;
+  }
+
+  return true;
+}
+
 export default function SecurityBootstrap() {
   const router = useRouter();
   const pathname = usePathname();
-  const checkedRef = useRef(false);
+  const checkedRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (checkedRef.current || SKIP_PATHS.has(pathname)) {
+    if (!shouldRunStorageCheck(pathname)) {
       return;
     }
 
-    checkedRef.current = true;
+    if (checkedRef.current === pathname) {
+      return;
+    }
+
+    checkedRef.current = pathname;
 
     void (async () => {
       if (await isPrivateBrowsingMode()) {

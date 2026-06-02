@@ -11,8 +11,8 @@ import {
 import { getDeviceFingerprint } from "@/lib/nfc/device-fingerprint";
 import { isPrivateBrowsingMode } from "@/lib/nfc/private-mode";
 import {
+  HOME_PATH,
   PRIVATE_MODE_PATH,
-  SESSION_EXPIRED_PATH,
 } from "@/lib/nfc/constants";
 
 type EntryState = "loading" | "activating" | "error";
@@ -81,7 +81,7 @@ export default function NfcCardEntryPage() {
               <p className="text-sm leading-relaxed text-red-300/90">{error}</p>
               <button
                 type="button"
-                onClick={() => router.replace(SESSION_EXPIRED_PATH)}
+                onClick={() => router.replace(HOME_PATH)}
                 className="mt-8 rounded-xl border border-white/15 px-5 py-2.5 text-xs uppercase tracking-widest text-white/60 transition hover:border-white/30"
               >
                 Geri Dön

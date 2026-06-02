@@ -1,12 +1,11 @@
-const CACHE_NAME = "astrotag-v1";
-const OFFLINE_URL = "/session-expired";
+const CACHE_NAME = "astrotag-v2";
+const OFFLINE_URL = "/";
 
 const PRECACHE_URLS = [
   "/",
   "/manifest.json",
-  "/session-expired",
+  "/image_485027.png",
   "/private-mode-warning",
-  OFFLINE_URL,
 ];
 
 self.addEventListener("install", (event) => {
@@ -46,18 +45,19 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  if (url.pathname.startsWith("/c/")) {
+    event.respondWith(fetch(request));
+    return;
+  }
+
   if (
-    url.pathname.startsWith("/c/") ||
     url.pathname.startsWith("/dashboard") ||
     url.pathname.startsWith("/profile")
   ) {
     event.respondWith(
       fetch(request).catch(async () => {
         const cache = await caches.open(CACHE_NAME);
-        return (
-          (await cache.match(OFFLINE_URL)) ??
-          new Response("Offline", { status: 503 })
-        );
+        return (await cache.match(OFFLINE_URL)) ?? new Response("Offline", { status: 503 });
       })
     );
     return;
