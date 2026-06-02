@@ -17,6 +17,10 @@ import {
   sanitizeRequestHeaders,
 } from "@/lib/nfc/error-logger";
 import {
+  BIOMETRIC_GRACE_COOKIE,
+  verifyBiometricGraceToken,
+} from "@/lib/nfc/biometric-grace";
+import {
   cardEntryPathForUniqueId,
   getTrustedCookiesFromRequest,
   validateTrustedDeviceBound,
@@ -357,8 +361,27 @@ export async function runSecurityGate(
     );
 
     if (!deviceBound.ok) {
+      const graceToken = request.cookies.get(BIOMETRIC_GRACE_COOKIE)?.value;
+      const graceValid = await verifyBiometricGraceToken(
+        graceToken,
+        deviceBound.uniqueId
+      );
+
+      if (graceValid) {
+        logNfcEvent(
+          "info",
+          GATE_LOG,
+          "Biyometrik grace aktif — device-bound kontrolü atlandı",
+          {
+            uniqueId: deviceBound.uniqueId,
+            pathname,
+          }
+        );
+        return { allowed: true };
+      }
+
       const redirectTo = deviceBound.uniqueId
-        ? cardEntryPathForUniqueId(deviceBound.uniqueId)
+        ? `${cardEntryPathForUniqueId(deviceBound.uniqueId)}?reauth=1`
         : HOME_PATH;
 
       const deny = {
@@ -371,6 +394,8 @@ export async function runSecurityGate(
         deviceTokenPresent: Boolean(deviceToken?.trim()),
         nfcCardUuid: sessionCheck.nfcId,
         resolvedUniqueId: deviceBound.uniqueId,
+        biometricGracePresent: Boolean(graceToken?.trim()),
+        biometricGraceValid: graceValid,
       });
       return deny;
     }

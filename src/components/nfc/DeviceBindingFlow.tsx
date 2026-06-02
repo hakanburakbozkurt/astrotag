@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { navigateAfterNfcAuth } from "@/lib/nfc/post-auth-nav.client";
 import { motion } from "framer-motion";
 import {
   beginPasskeyRegistrationAction,
@@ -114,7 +115,7 @@ export default function DeviceBindingFlow({
         return;
       }
 
-      router.replace(completeResult.redirectTo);
+      navigateAfterNfcAuth(completeResult.redirectTo);
     } catch (cause) {
       console.error("[DeviceBindingFlow] passkey binding failed:", cause);
       if (cause instanceof Error && cause.stack) {

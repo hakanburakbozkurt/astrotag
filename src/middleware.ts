@@ -83,10 +83,12 @@ export async function middleware(request: NextRequest) {
         gate.reason === "session_missing" ||
         gate.reason === "fingerprint_mismatch" ||
         gate.reason === "nfc_card_inactive" ||
-        gate.reason === "device_bound_missing" ||
         gate.reason === "unauthorized_route";
 
-      const clearTrusted = gate.reason === "device_bound_missing";
+      /** device_bound_missing: çerezler henüz istemciye düşmemiş olabilir — oturumu silme */
+      const clearTrusted =
+        gate.reason === "device_bound_missing" &&
+        gate.redirectTo === HOME_PATH;
 
       return buildDeniedResponse(
         request,

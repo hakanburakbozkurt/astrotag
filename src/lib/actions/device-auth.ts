@@ -20,8 +20,10 @@ import {
 } from "@/lib/nfc/nfc-ownership.server";
 import { syncAnonymousProfileToUser } from "@/lib/nfc/profile-sync.server";
 import {
+  clearBiometricGraceCookie,
   clearTrustedDeviceCookies,
   getTrustedDeviceFromCookies,
+  setBiometricGraceCookie,
   setTrustedDeviceCookies,
 } from "@/lib/nfc/device-cookies.server";
 import { hashFingerprintPayload } from "@/lib/nfc/fingerprint.server";
@@ -244,6 +246,8 @@ export async function beginPasskeyRegistrationAction(
     return { success: false, error: NFC_CARD_INACTIVE_MESSAGE };
   }
 
+  await setBiometricGraceCookie(uniqueId);
+
   const options = await createPasskeyRegistrationOptions({
     userId,
     email,
@@ -318,6 +322,8 @@ export async function completeDeviceBindingAction(params: {
     screenHeight: params.screenHeight,
   });
 
+  await clearBiometricGraceCookie();
+
   return { success: true, redirectTo: session.redirectTo };
   });
 }
@@ -340,6 +346,8 @@ export async function beginTrustedPasskeyAuthAction(
   if (!passkey) {
     return { success: false, error: "Passkey kaydı bulunamadı." };
   }
+
+  await setBiometricGraceCookie(uniqueId);
 
   const options = await createPasskeyAuthenticationOptions({
     credentialId: passkey.credentialId,
@@ -404,6 +412,8 @@ export async function completeTrustedPasskeyAuthAction(params: {
     screenWidth: params.screenWidth,
     screenHeight: params.screenHeight,
   });
+
+  await clearBiometricGraceCookie();
 
   return { success: true, redirectTo: session.redirectTo };
   });

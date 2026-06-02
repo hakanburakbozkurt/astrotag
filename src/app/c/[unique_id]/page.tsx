@@ -10,6 +10,7 @@ import { confirmStorageAccessAction } from "@/lib/actions/nfc-auth";
 import { resolveNfcEntryAction } from "@/lib/actions/device-auth";
 import { isPrivateBrowsingMode } from "@/lib/nfc/private-mode";
 import { HOME_PATH, PRIVATE_MODE_PATH } from "@/lib/nfc/constants";
+import { navigateAfterNfcAuth } from "@/lib/nfc/post-auth-nav.client";
 
 type EntryState = "loading" | "binding" | "error";
 
@@ -55,7 +56,7 @@ export default function NfcCardEntryPage() {
         );
 
         if (result.status === "trusted") {
-          router.replace(result.redirectTo);
+          navigateAfterNfcAuth(result.redirectTo);
           return;
         }
 

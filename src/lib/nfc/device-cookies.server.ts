@@ -2,6 +2,10 @@ import "server-only";
 
 import { cookies } from "next/headers";
 import {
+  BIOMETRIC_GRACE_COOKIE,
+  createBiometricGraceToken,
+} from "@/lib/nfc/biometric-grace";
+import {
   NFC_SESSION_TTL_MINUTES,
   TRUSTED_DEVICE_COOKIE,
   TRUSTED_NFC_COOKIE,
@@ -85,4 +89,28 @@ export async function consumeWebAuthnChallengeCookie(): Promise<string | null> {
   cookieStore.set(WEBAUTHN_CHALLENGE_COOKIE, "", getStrictClearCookieOptions());
 
   return value;
+}
+
+/** Passkey diyaloğu açılmadan önce — middleware device-bound kontrolünü geçici gevşetir */
+export async function setBiometricGraceCookie(uniqueId: string): Promise<void> {
+  const token = await createBiometricGraceToken(uniqueId);
+  if (!token) {
+    return;
+  }
+
+  const cookieStore = await cookies();
+  const expires = new Date(Date.now() + 5 * 60 * 1000);
+
+  cookieStore.set(BIOMETRIC_GRACE_COOKIE, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    path: "/",
+    expires,
+  });
+}
+
+export async function clearBiometricGraceCookie(): Promise<void> {
+  const cookieStore = await cookies();
+  cookieStore.set(BIOMETRIC_GRACE_COOKIE, "", getStrictClearCookieOptions());
 }
