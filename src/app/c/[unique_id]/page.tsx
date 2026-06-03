@@ -1,25 +1,36 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import Starfield from "@/components/Starfield";
 import DeviceBindingFlow from "@/components/nfc/DeviceBindingFlow";
 import { confirmStorageAccessAction } from "@/lib/actions/nfc-auth";
-import { resolveNfcEntryAction } from "@/lib/actions/device-auth";
+import {
+  prepareNfcPairingAction,
+  resolveNfcEntryAction,
+} from "@/lib/actions/device-auth";
+import {
+  HOME_PATH,
+  NFC_PAIRING_QUERY,
+  PRIVATE_MODE_PATH,
+} from "@/lib/nfc/constants";
 import { isPrivateBrowsingMode } from "@/lib/nfc/private-mode";
-import { HOME_PATH, PRIVATE_MODE_PATH } from "@/lib/nfc/constants";
 import { navigateAfterNfcAuth } from "@/lib/nfc/post-auth-nav.client";
 
 type EntryState = "loading" | "pairing" | "error";
 
 export default function NfcCardEntryPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const params = useParams<{ unique_id: string }>();
   const uniqueId = params.unique_id;
+  const isPairingMode = searchParams.get(NFC_PAIRING_QUERY) === "1";
   const startedRef = useRef(false);
 
-  const [state, setState] = useState<EntryState>("loading");
+  const [state, setState] = useState<EntryState>(
+    isPairingMode ? "pairing" : "loading"
+  );
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -38,6 +49,12 @@ export default function NfcCardEntryPage() {
 
         await confirmStorageAccessAction();
 
+        if (isPairingMode) {
+          await prepareNfcPairingAction(uniqueId);
+          setState("pairing");
+          return;
+        }
+
         const result = await resolveNfcEntryAction(
           uniqueId,
           window.screen.width,
@@ -51,7 +68,7 @@ export default function NfcCardEntryPage() {
         }
 
         if (result.status === "pair_required") {
-          setState("pairing");
+          router.replace(result.pairingPath);
           return;
         }
 
@@ -66,7 +83,7 @@ export default function NfcCardEntryPage() {
         setState("error");
       }
     })();
-  }, [uniqueId, router]);
+  }, [uniqueId, router, isPairingMode]);
 
   const loadingMessage =
     state === "loading" ? "NFC kartı doğrulanıyor..." : "Yönlendiriliyor...";

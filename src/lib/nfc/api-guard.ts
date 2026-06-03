@@ -4,7 +4,7 @@ import {
   getProtectedNfcAccess,
   type ProtectedNfcContext,
 } from "@/lib/nfc/protected-access.server";
-import { cardEntryPathForUniqueId } from "@/lib/nfc/card-paths";
+import { nfcPairingPathForUniqueId } from "@/lib/nfc/card-paths";
 
 export const NFC_API_UNAUTHORIZED_MESSAGE =
   "Oturum geçersiz. Lütfen NFC kartınızı tekrar okutun.";
@@ -38,5 +38,5 @@ export async function guardApiNfcAccess(): Promise<ApiNfcGuardResult> {
 }
 
 export function nfcReauthRedirectPath(uniqueId: string): string {
-  return `${cardEntryPathForUniqueId(uniqueId)}?reauth=1`;
+  return nfcPairingPathForUniqueId(uniqueId);
 }

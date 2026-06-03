@@ -148,6 +148,26 @@ export async function setNfcSessionCookies(
   cookieStore.set(NFC_FINGERPRINT_COOKIE, fingerprint, cookieOptions);
 }
 
+/**
+ * DB kaydı + astrotag_nfc_session / astrotag_fingerprint çerezleri.
+ */
+export async function setNfcSession(params: {
+  profileId: string;
+  nfcCardUuid: string;
+  fingerprint: string;
+  userAgent?: string;
+}): Promise<string> {
+  const sessionId = await createEphemeralNfcSession({
+    profileId: params.profileId,
+    nfcId: params.nfcCardUuid,
+    fingerprint: params.fingerprint,
+    userAgent: params.userAgent,
+  });
+
+  await setNfcSessionCookies(sessionId, params.fingerprint);
+  return sessionId;
+}
+
 export async function clearNfcSessionCookies(): Promise<void> {
   const cookieStore = await cookies();
   const sessionId = cookieStore.get(NFC_SESSION_COOKIE)?.value;

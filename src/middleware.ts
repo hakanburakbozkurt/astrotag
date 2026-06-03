@@ -42,8 +42,9 @@ function buildDeniedResponse(
   clearSession: boolean
 ): NextResponse {
   const url = request.nextUrl.clone();
-  url.pathname = redirectTo.split("?")[0];
-  url.search = "";
+  const [path, search] = redirectTo.split("?");
+  url.pathname = path;
+  url.search = search ? `?${search}` : "";
   const response = NextResponse.redirect(url);
 
   if (clearSession) {
@@ -68,12 +69,13 @@ export async function middleware(request: NextRequest) {
     const gate = await runSecurityGate(request, supabase);
 
     if (!gate.allowed) {
+      const pairingRedirect = gate.redirectTo.includes("pair=1");
       const clearSession =
-        gate.reason === "session_expired" ||
-        gate.reason === "session_missing" ||
-        gate.reason === "fingerprint_mismatch" ||
-        gate.reason === "nfc_card_inactive" ||
-        gate.reason === "unauthorized_route";
+        (gate.reason === "session_expired" ||
+          gate.reason === "fingerprint_mismatch" ||
+          gate.reason === "nfc_card_inactive" ||
+          gate.reason === "unauthorized_route") ||
+        (gate.reason === "session_missing" && !pairingRedirect);
 
       return buildDeniedResponse(request, gate.redirectTo, clearSession);
     }

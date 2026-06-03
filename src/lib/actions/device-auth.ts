@@ -7,16 +7,20 @@ import {
   NFC_CARD_OWNED_BY_OTHER_MESSAGE,
   PROFILE_COMPLETE_PATH,
 } from "@/lib/nfc/constants";
+import { nfcPairingPathForUniqueId } from "@/lib/nfc/card-paths";
 import { canBindClaimedCard, claimNfcCard } from "@/lib/nfc/nfc-ownership.server";
 import { syncAnonymousProfileToUser } from "@/lib/nfc/profile-sync.server";
+import {
+  clearPendingNfcCardCookie,
+  setPendingNfcCardCookie,
+} from "@/lib/nfc/device-cookies.server";
 import { hashFingerprintPayload } from "@/lib/nfc/fingerprint.server";
 import {
   confirmStorageAccessAction,
   endNfcSessionAction,
 } from "@/lib/actions/nfc-auth";
 import {
-  createEphemeralNfcSession,
-  setNfcSessionCookies,
+  setNfcSession,
   validateNfcCardActive,
 } from "@/lib/nfc/session.server";
 import { generateReferralCode } from "@/lib/referral";
@@ -28,8 +32,14 @@ import { withNfcAction } from "@/lib/nfc/with-nfc-action.server";
 
 export type NfcEntryResolveResult =
   | { status: "logged_in"; redirectTo: string }
-  | { status: "pair_required" }
+  | { status: "pair_required"; pairingPath: string }
   | { status: "error"; error: string };
+
+type DeviceContext = {
+  screenWidth: number;
+  screenHeight: number;
+  userAgent: string;
+};
 
 /**
  * NFC kartı okutulduğunda: unique_id → nfc_cards → sahip varsa oturum aç.
@@ -53,7 +63,11 @@ export async function resolveNfcEntryAction(
       return { status: "error", error: NFC_CARD_INACTIVE_MESSAGE };
     }
 
-    if (card.isClaimed && card.ownerId) {
+    if (card.ownerId) {
+      if (!card.isClaimed) {
+        await claimNfcCard(card.nfcId, card.ownerId);
+      }
+
       const session = await establishNfcSessionForUser({
         uniqueId,
         nfcCardUuid: card.nfcId,
@@ -64,15 +78,41 @@ export async function resolveNfcEntryAction(
         screenHeight,
       });
 
+      await clearPendingNfcCardCookie();
       return { status: "logged_in", redirectTo: session.redirectTo };
     }
 
-    return { status: "pair_required" };
+    await setPendingNfcCardCookie(uniqueId);
+    return {
+      status: "pair_required",
+      pairingPath: nfcPairingPathForUniqueId(uniqueId),
+    };
+  });
+}
+
+/** Kart eşleştirme sayfasına geçmeden önce çağrılır — middleware pending kartı bilir */
+export async function prepareNfcPairingAction(
+  uniqueId: string
+): Promise<{ success: true; pairingPath: string }> {
+  return withNfcAction("prepareNfcPairingAction", async () => {
+    const card = await validateNfcCardActive(uniqueId);
+    if (!card.ok) {
+      throw new Error(NFC_CARD_INACTIVE_MESSAGE);
+    }
+
+    await setPendingNfcCardCookie(uniqueId);
+    await confirmStorageAccessAction();
+
+    return {
+      success: true,
+      pairingPath: nfcPairingPathForUniqueId(uniqueId),
+    };
   });
 }
 
 export async function sendNfcPairingOtpAction(
-  email: string
+  email: string,
+  uniqueId: string
 ): Promise<{ success: true } | { success: false; error: string }> {
   return withNfcAction("sendNfcPairingOtpAction", async () => {
     const normalized = email.trim().toLowerCase();
@@ -80,6 +120,13 @@ export async function sendNfcPairingOtpAction(
     if (!normalized || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
       return { success: false, error: "Geçerli bir e-posta adresi girin." };
     }
+
+    const card = await validateNfcCardActive(uniqueId);
+    if (!card.ok) {
+      return { success: false, error: NFC_CARD_INACTIVE_MESSAGE };
+    }
+
+    await setPendingNfcCardCookie(uniqueId);
 
     const supabase = await createServerSupabaseClient();
     const { error } = await supabase.auth.signInWithOtp({
@@ -91,9 +138,9 @@ export async function sendNfcPairingOtpAction(
       logNfcError(
         { layer: "action", handler: "sendNfcPairingOtpAction" },
         error,
-        { email: normalized, supabaseCode: error.code }
+        { email: normalized, supabaseCode: error.code, uniqueId }
       );
-      throw error;
+      return { success: false, error: "Doğrulama kodu gönderilemedi." };
     }
 
     return { success: true };
@@ -103,9 +150,12 @@ export async function sendNfcPairingOtpAction(
 export async function verifyNfcPairingOtpAction(
   email: string,
   otp: string,
-  uniqueId: string
+  uniqueId: string,
+  screenWidth: number,
+  screenHeight: number,
+  userAgent: string
 ): Promise<
-  | { success: true; userId: string; email: string }
+  | { success: true; redirectTo: string }
   | { success: false; error: string }
 > {
   return withNfcAction("verifyNfcPairingOtpAction", async () => {
@@ -121,6 +171,8 @@ export async function verifyNfcPairingOtpAction(
       return { success: false, error: NFC_CARD_INACTIVE_MESSAGE };
     }
 
+    await setPendingNfcCardCookie(uniqueId);
+
     const supabase = await createServerSupabaseClient();
     const { data, error } = await supabase.auth.verifyOtp({
       email: normalizedEmail,
@@ -132,9 +184,12 @@ export async function verifyNfcPairingOtpAction(
       logNfcError(
         { layer: "action", handler: "verifyNfcPairingOtpAction" },
         error,
-        { email: normalizedEmail, supabaseCode: error.code }
+        { email: normalizedEmail, supabaseCode: error.code, uniqueId }
       );
-      throw error;
+      return {
+        success: false,
+        error: "Doğrulama kodu geçersiz veya süresi dolmuş.",
+      };
     }
 
     if (!data.user?.id) {
@@ -152,16 +207,13 @@ export async function verifyNfcPairingOtpAction(
       return { success: false, error: NFC_CARD_OWNED_BY_OTHER_MESSAGE };
     }
 
-    const synced = await syncAnonymousProfileToUser(data.user.id, uniqueId);
-    if (!synced.ok) {
-      return { success: false, error: synced.error };
-    }
-
-    return {
-      success: true,
+    return pairNfcCardAndCreateSession({
+      uniqueId,
       userId: data.user.id,
-      email: normalizedEmail,
-    };
+      nfcCardUuid: card.nfcId,
+      profileId: card.profileId,
+      device: { screenWidth, screenHeight, userAgent },
+    });
   });
 }
 
@@ -181,39 +233,80 @@ export async function completeNfcCardPairingAction(params: {
       return { success: false, error: NFC_CARD_INACTIVE_MESSAGE };
     }
 
-    if (
-      card.isClaimed &&
-      card.ownerId &&
-      !canBindClaimedCard(card.isClaimed, card.ownerId, params.userId)
-    ) {
-      return { success: false, error: NFC_CARD_OWNED_BY_OTHER_MESSAGE };
-    }
-
-    const claimed = await claimNfcCard(card.nfcId, params.userId);
-    if (!claimed.ok) {
-      return { success: false, error: claimed.error };
-    }
-
-    await syncAnonymousProfileToUser(params.userId, params.uniqueId);
-
-    const session = await establishNfcSessionForUser({
+    return pairNfcCardAndCreateSession({
       uniqueId: params.uniqueId,
+      userId: params.userId,
       nfcCardUuid: card.nfcId,
       profileId: card.profileId,
-      userId: params.userId,
-      userAgent: params.userAgent,
-      screenWidth: params.screenWidth,
-      screenHeight: params.screenHeight,
+      device: {
+        screenWidth: params.screenWidth,
+        screenHeight: params.screenHeight,
+        userAgent: params.userAgent,
+      },
     });
-
-    return { success: true, redirectTo: session.redirectTo };
   });
 }
 
 export async function signOutNfcAction(): Promise<void> {
   return withNfcAction("signOutNfcAction", async () => {
     await endNfcSessionAction();
+    await clearPendingNfcCardCookie();
   });
+}
+
+async function pairNfcCardAndCreateSession(params: {
+  uniqueId: string;
+  userId: string;
+  nfcCardUuid: string;
+  profileId: string | null;
+  device: DeviceContext;
+}): Promise<
+  | { success: true; redirectTo: string }
+  | { success: false; error: string }
+> {
+  const card = await validateNfcCardActive(params.uniqueId);
+  if (!card.ok) {
+    return { success: false, error: NFC_CARD_INACTIVE_MESSAGE };
+  }
+
+  if (
+    card.isClaimed &&
+    card.ownerId &&
+    !canBindClaimedCard(card.isClaimed, card.ownerId, params.userId)
+  ) {
+    return { success: false, error: NFC_CARD_OWNED_BY_OTHER_MESSAGE };
+  }
+
+  const claimed = await claimNfcCard(params.nfcCardUuid, params.userId);
+  if (!claimed.ok) {
+    return { success: false, error: claimed.error };
+  }
+
+  const synced = await syncAnonymousProfileToUser(params.userId, params.uniqueId);
+  if (!synced.ok) {
+    return { success: false, error: synced.error };
+  }
+
+  const session = await establishNfcSessionForUser({
+    uniqueId: params.uniqueId,
+    nfcCardUuid: params.nfcCardUuid,
+    profileId: synced.profileId ?? params.profileId,
+    userId: params.userId,
+    userAgent: params.device.userAgent,
+    screenWidth: params.device.screenWidth,
+    screenHeight: params.device.screenHeight,
+  });
+
+  await clearPendingNfcCardCookie();
+
+  logNfcEvent(
+    "info",
+    { layer: "action", handler: "pairNfcCardAndCreateSession" },
+    "Kart eşleştirildi ve NFC oturumu oluşturuldu",
+    { uniqueId: params.uniqueId, userId: params.userId }
+  );
+
+  return { success: true, redirectTo: session.redirectTo };
 }
 
 async function establishNfcSessionForUser(params: {
@@ -279,14 +372,13 @@ async function establishNfcSessionForUser(params: {
     });
   }
 
-  const sessionId = await createEphemeralNfcSession({
+  await setNfcSession({
     profileId,
-    nfcId: params.nfcCardUuid,
+    nfcCardUuid: params.nfcCardUuid,
     fingerprint,
     userAgent: params.userAgent,
   });
 
-  await setNfcSessionCookies(sessionId, fingerprint);
   await confirmStorageAccessAction();
 
   const { data: profileRow, error: nameError } = await service

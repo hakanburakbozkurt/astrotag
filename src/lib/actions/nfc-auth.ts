@@ -3,7 +3,11 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { HOME_PATH, STORAGE_VERIFIED_COOKIE } from "@/lib/nfc/constants";
-import { getStrictCookieOptions, getStrictClearCookieOptions } from "@/lib/nfc/device-cookies.server";
+import {
+  clearPendingNfcCardCookie,
+  getStrictCookieOptions,
+  getStrictClearCookieOptions,
+} from "@/lib/nfc/device-cookies.server";
 import { getProtectedNfcAccess } from "@/lib/nfc/protected-access.server";
 import { clearNfcSessionCookies } from "@/lib/nfc/session.server";
 import { withNfcAction } from "@/lib/nfc/with-nfc-action.server";
@@ -41,6 +45,7 @@ export async function signOutNfcSessionAction(): Promise<void> {
 export async function endNfcSessionAction(): Promise<void> {
   return withNfcAction("endNfcSessionAction", async () => {
     await clearNfcSessionCookies();
+    await clearPendingNfcCardCookie();
 
     const cookieStore = await cookies();
     cookieStore.set(STORAGE_VERIFIED_COOKIE, "", getStrictClearCookieOptions());

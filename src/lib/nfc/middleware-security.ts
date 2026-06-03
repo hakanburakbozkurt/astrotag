@@ -1,10 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { NextRequest } from "next/server";
+import { nfcPairingPathForUniqueId } from "@/lib/nfc/card-paths";
 import {
   CARD_ENTRY_PREFIX,
   HOME_PATH,
   NFC_FINGERPRINT_COOKIE,
   NFC_SESSION_COOKIE,
+  PENDING_NFC_COOKIE,
   PRIVATE_MODE_PATH,
   PUBLIC_PATHS,
   STORAGE_VERIFIED_COOKIE,
@@ -117,6 +119,14 @@ export function shouldRedirectUnknownToHome(pathname: string): boolean {
 
 function isStorageCheckRequired(pathname: string): boolean {
   return isProtectedPath(pathname);
+}
+
+function sessionMissingRedirect(request: NextRequest): string {
+  const pending = request.cookies.get(PENDING_NFC_COOKIE)?.value?.trim();
+  if (pending) {
+    return nfcPairingPathForUniqueId(pending);
+  }
+  return HOME_PATH;
 }
 
 async function validateNfcCard(
@@ -281,14 +291,16 @@ export async function runSecurityGate(
     const fingerprint = request.cookies.get(NFC_FINGERPRINT_COOKIE)?.value?.trim();
 
     if (!sessionId || !isValidFingerprintHash(fingerprint)) {
+      const redirectTo = sessionMissingRedirect(request);
       const deny = {
         allowed: false as const,
         reason: "session_missing" as const,
-        redirectTo: HOME_PATH,
+        redirectTo,
       };
       logGateDeny(request, deny.reason, deny.redirectTo, {
         hasSessionId: Boolean(sessionId),
         fingerprintValid: isValidFingerprintHash(fingerprint),
+        pendingNfc: request.cookies.get(PENDING_NFC_COOKIE)?.value ?? null,
       });
       return deny;
     }
@@ -314,14 +326,19 @@ export async function runSecurityGate(
     );
 
     if (!sessionCheck.ok) {
+      const redirectTo =
+        sessionCheck.reason === "session_missing"
+          ? sessionMissingRedirect(request)
+          : HOME_PATH;
       const deny = {
         allowed: false as const,
         reason: sessionCheck.reason,
-        redirectTo: HOME_PATH,
+        redirectTo,
       };
       logGateDeny(request, deny.reason, deny.redirectTo, {
         sessionId,
         sessionCheckReason: sessionCheck.reason,
+        pendingNfc: request.cookies.get(PENDING_NFC_COOKIE)?.value ?? null,
       });
       return deny;
     }

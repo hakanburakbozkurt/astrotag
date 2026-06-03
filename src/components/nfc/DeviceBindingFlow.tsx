@@ -4,14 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
-  completeNfcCardPairingAction,
   sendNfcPairingOtpAction,
   verifyNfcPairingOtpAction,
 } from "@/lib/actions/device-auth";
 import { navigateAfterNfcAuth } from "@/lib/nfc/post-auth-nav.client";
 import { HOME_PATH } from "@/lib/nfc/constants";
 
-type Step = "email" | "otp" | "confirm";
+type Step = "email" | "otp";
 
 type DeviceBindingFlowProps = {
   uniqueId: string;
@@ -22,7 +21,6 @@ export default function DeviceBindingFlow({ uniqueId }: DeviceBindingFlowProps) 
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
-  const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,7 +29,7 @@ export default function DeviceBindingFlow({ uniqueId }: DeviceBindingFlowProps) 
     setLoading(true);
     setError(null);
 
-    const result = await sendNfcPairingOtpAction(email);
+    const result = await sendNfcPairingOtpAction(email, uniqueId);
 
     setLoading(false);
 
@@ -48,36 +46,15 @@ export default function DeviceBindingFlow({ uniqueId }: DeviceBindingFlowProps) 
     setLoading(true);
     setError(null);
 
-    const result = await verifyNfcPairingOtpAction(email, otp, uniqueId);
-
-    setLoading(false);
-
-    if (!result.success) {
-      setError(result.error);
-      return;
-    }
-
-    setUserId(result.userId);
-    setStep("confirm");
-  }
-
-  async function handleCompletePairing() {
-    if (!userId) {
-      setError("Önce e-posta doğrulamasını tamamlayın.");
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
     try {
-      const result = await completeNfcCardPairingAction({
+      const result = await verifyNfcPairingOtpAction(
+        email,
+        otp,
         uniqueId,
-        userId,
-        screenWidth: window.screen.width,
-        screenHeight: window.screen.height,
-        userAgent: navigator.userAgent,
-      });
+        window.screen.width,
+        window.screen.height,
+        navigator.userAgent
+      );
 
       if (!result.success) {
         setError(result.error);
@@ -87,7 +64,7 @@ export default function DeviceBindingFlow({ uniqueId }: DeviceBindingFlowProps) 
 
       navigateAfterNfcAuth(result.redirectTo);
     } catch (cause) {
-      console.error("[DeviceBindingFlow] pairing failed:", cause);
+      console.error("[DeviceBindingFlow] verify/pair failed:", cause);
       if (cause instanceof Error && cause.stack) {
         console.error(cause.stack);
       }
@@ -109,8 +86,7 @@ export default function DeviceBindingFlow({ uniqueId }: DeviceBindingFlowProps) 
         NFC Kartını Eşleştir
       </p>
       <p className="mb-4 text-center text-xs leading-relaxed text-white/45">
-        Bu kart henüz bir hesaba bağlı değil. E-posta ile doğrulayıp kartı
-        hesabınıza bağlayın.
+        E-postanızı doğrulayın; kart hesabınıza bağlanır ve giriş tamamlanır.
       </p>
 
       {step === "email" && (
@@ -158,7 +134,7 @@ export default function DeviceBindingFlow({ uniqueId }: DeviceBindingFlowProps) 
             disabled={loading}
             className="rounded-xl bg-amber-500/90 px-4 py-3 text-xs font-medium uppercase tracking-widest text-black transition hover:bg-amber-400 disabled:opacity-50"
           >
-            {loading ? "Doğrulanıyor..." : "Kodu Doğrula"}
+            {loading ? "Giriş yapılıyor..." : "Doğrula ve Giriş Yap"}
           </button>
           <button
             type="button"
@@ -168,22 +144,6 @@ export default function DeviceBindingFlow({ uniqueId }: DeviceBindingFlowProps) 
             E-postayı değiştir
           </button>
         </form>
-      )}
-
-      {step === "confirm" && (
-        <div className="flex flex-col gap-4 text-center">
-          <p className="text-sm leading-relaxed text-white/55">
-            E-posta doğrulandı. Kartı hesabınıza bağlamak için onaylayın.
-          </p>
-          <button
-            type="button"
-            onClick={() => void handleCompletePairing()}
-            disabled={loading}
-            className="rounded-xl bg-amber-500/90 px-4 py-3 text-xs font-medium uppercase tracking-widest text-black transition hover:bg-amber-400 disabled:opacity-50"
-          >
-            {loading ? "Eşleştiriliyor..." : "Kartı Hesabıma Bağla"}
-          </button>
-        </div>
       )}
 
       {error && (
