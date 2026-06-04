@@ -3,6 +3,8 @@ import type { NextRequest } from "next/server";
 import { nfcPairingPathForUniqueId } from "@/lib/nfc/card-paths";
 import {
   AUTH_CALLBACK_PATH,
+  AUTH_LOGIN_PATH,
+  AUTH_SIGNUP_PATH,
   CARD_ENTRY_PREFIX,
   DASHBOARD_PATH,
   HOME_PATH,
@@ -84,7 +86,9 @@ export function isProtectedPath(pathname: string): boolean {
     isCardEntryPath(pathname) ||
     isPublicProfilePath(pathname) ||
     isWarningPath(pathname) ||
-    pathname === VERIFY_OTP_PATH
+    pathname === VERIFY_OTP_PATH ||
+    pathname === AUTH_SIGNUP_PATH ||
+    pathname === AUTH_LOGIN_PATH
   ) {
     return false;
   }
@@ -112,7 +116,9 @@ function isAuthPublicPath(pathname: string): boolean {
   return (
     isCardEntryPath(pathname) ||
     isPublicProfilePath(pathname) ||
-    pathname === VERIFY_OTP_PATH
+    pathname === VERIFY_OTP_PATH ||
+    pathname === AUTH_SIGNUP_PATH ||
+    pathname === AUTH_LOGIN_PATH
   );
 }
 

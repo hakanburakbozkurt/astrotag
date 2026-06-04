@@ -5,7 +5,8 @@
  */
 export {
   checkNfcAutoLoginAction,
-  startNfcEmailAuthAction,
+  startNfcSignupAction,
+  startNfcLoginAction,
   verifyNfcOtpAndEnterAction,
   resendNfcOtpAction,
 } from "@/lib/actions/nfc-email-auth";

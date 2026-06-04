@@ -2,19 +2,18 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
-import { clientRedirect } from "@/lib/auth/client-redirect.client";
 import { useAppRouter } from "@/lib/auth/router-ready-context.client";
 import { useSafeRouter } from "@/lib/auth/safe-router-nav.client";
 import AuthMobileShell from "@/components/auth/AuthMobileShell";
-import NfcLoginForm from "@/components/nfc/NfcLoginForm";
 import { checkNfcAutoLoginAction } from "@/lib/actions/nfc-email-auth";
+import { nfcAuthSignupPath } from "@/lib/nfc/auth-paths";
 import { confirmStorageAccessAction } from "@/lib/actions/nfc-auth";
 import { isPrivateBrowsingMode } from "@/lib/nfc/private-mode";
 import { HOME_PATH, PRIVATE_MODE_PATH } from "@/lib/nfc/constants";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 import { navigateAfterNfcAuth } from "@/lib/nfc/post-auth-nav.client";
 
-type EntryState = "loading" | "login" | "error";
+type EntryState = "loading" | "error";
 
 /** NFC okutma → oturum varsa panele; yoksa e-posta + şifre girişi */
 export default function NfcCardEntryPage() {
@@ -57,7 +56,7 @@ export default function NfcCardEntryPage() {
         }
 
         if (result.status === "auth_required") {
-          setState("login");
+          await safeReplace(nfcAuthSignupPath(uniqueId));
           return;
         }
 
@@ -75,7 +74,7 @@ export default function NfcCardEntryPage() {
         setState("error");
       }
     })();
-  }, [uniqueId, isMounted]);
+  }, [uniqueId, isMounted, safeReplace]);
 
   if (state === "loading") {
     return (
@@ -99,12 +98,5 @@ export default function NfcCardEntryPage() {
     );
   }
 
-  return (
-    <AuthMobileShell
-      title="AstroTag'a Gir"
-      subtitle="Kozmik profilinize erişmek için hesabınızla giriş yapın veya kaydolun."
-    >
-      {uniqueId ? <NfcLoginForm uniqueId={uniqueId} /> : null}
-    </AuthMobileShell>
-  );
+  return null;
 }

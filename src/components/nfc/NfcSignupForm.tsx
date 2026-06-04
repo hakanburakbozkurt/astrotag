@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useSafeRouter } from "@/lib/auth/safe-router-nav.client";
 import { logNfcAuthTrace } from "@/lib/auth/nfc-auth-debug";
-import { startNfcLoginAction } from "@/lib/actions/nfc-email-auth";
-import { nfcAuthSignupPath } from "@/lib/nfc/auth-paths";
+import { startNfcSignupAction } from "@/lib/actions/nfc-email-auth";
+import { nfcAuthLoginPath } from "@/lib/nfc/auth-paths";
 import { navigateAfterNfcAuth } from "@/lib/nfc/post-auth-nav.client";
 import {
   authInputClassName,
@@ -18,11 +18,12 @@ type AuthToast = {
   variant: "error" | "info";
 };
 
-export default function NfcLoginForm() {
+export default function NfcSignupForm() {
   const { uniqueId, email: emailFromQuery, msg: msgFromQuery } = useNfcAuthQuery();
   const { safePush, isRouterReady, isPending: routerPending } = useSafeRouter();
   const [email, setEmail] = useState(emailFromQuery);
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<AuthToast | null>(null);
   const isPending = loading || routerPending;
@@ -60,19 +61,20 @@ export default function NfcLoginForm() {
     );
   }
 
-  const signupHref = nfcAuthSignupPath(uniqueId, { email });
+  const loginHref = nfcAuthLoginPath(uniqueId, { email });
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setLoading(true);
     setToast(null);
 
-    logNfcAuthTrace("Tetiklendi", { source: "NfcLoginForm.submit", uniqueId });
+    logNfcAuthTrace("Tetiklendi", { source: "NfcSignupForm.submit", uniqueId });
 
     try {
-      const result = await startNfcLoginAction({
+      const result = await startNfcSignupAction({
         email,
         password,
+        confirmPassword,
         uniqueId,
         device: {
           screenWidth: window.screen.width,
@@ -97,10 +99,19 @@ export default function NfcLoginForm() {
         return;
       }
 
-      navigateAfterNfcAuth(result.redirectTo);
+      if (result.skipOtp) {
+        navigateAfterNfcAuth(result.redirectTo);
+        return;
+      }
+
+      if (!isRouterReady) {
+        throw new Error("Router henüz hazır değil. Lütfen tekrar deneyin.");
+      }
+
+      await safePush(result.redirectTo);
     } catch (cause) {
       const message =
-        cause instanceof Error ? cause.message : "Giriş tamamlanamadı.";
+        cause instanceof Error ? cause.message : "Kayıt tamamlanamadı.";
       showToast(message);
       setLoading(false);
     }
@@ -142,12 +153,27 @@ export default function NfcLoginForm() {
         <input
           type="password"
           name="password"
-          autoComplete="current-password"
+          autoComplete="new-password"
           required
           minLength={8}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="Şifreniz"
+          placeholder="En az 8 karakter"
+          className={authInputClassName}
+        />
+
+        <label className="text-[11px] uppercase tracking-widest text-white/45">
+          Şifre tekrar
+        </label>
+        <input
+          type="password"
+          name="confirmPassword"
+          autoComplete="new-password"
+          required
+          minLength={8}
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          placeholder="Şifrenizi tekrar girin"
           className={authInputClassName}
         />
 
@@ -156,20 +182,20 @@ export default function NfcLoginForm() {
           disabled={isPending}
           className={`${authPrimaryButtonClassName} mt-2`}
         >
-          {isPending ? "İşleniyor..." : "Giriş Yap"}
+          {isPending ? "İşleniyor..." : "Kayıt Ol"}
         </button>
       </form>
 
       <p className="mt-4 text-center text-[11px] text-white/40">
-        Giriş yaptığınızda kartınız otomatik eşleştirilir.
+        Yeni hesaplarda e-postanıza 6 haneli doğrulama kodu gönderilir.
       </p>
 
       <p className="mt-3 text-center text-[11px]">
         <Link
-          href={signupHref}
+          href={loginHref}
           className="font-medium text-amber-200/90 underline-offset-2 hover:underline"
         >
-          Yeni misin? Kayıt Ol
+          Hesabın var mı? Giriş Yap
         </Link>
       </p>
     </>
