@@ -4,6 +4,7 @@ import {
   AUTH_CALLBACK_PATH,
   HOME_PATH,
   NFC_FINGERPRINT_COOKIE,
+  NFC_PROFILE_COOKIE,
   NFC_SESSION_COOKIE,
   STORAGE_VERIFIED_COOKIE,
 } from "@/lib/nfc/constants";
@@ -51,6 +52,7 @@ function buildDeniedResponse(
   if (clearSession) {
     response.cookies.set(NFC_SESSION_COOKIE, "", { maxAge: 0, path: "/" });
     response.cookies.set(NFC_FINGERPRINT_COOKIE, "", { maxAge: 0, path: "/" });
+    response.cookies.set(NFC_PROFILE_COOKIE, "", { maxAge: 0, path: "/" });
     response.cookies.set(STORAGE_VERIFIED_COOKIE, "", { maxAge: 0, path: "/" });
   }
 

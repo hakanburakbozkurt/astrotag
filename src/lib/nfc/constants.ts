@@ -5,6 +5,8 @@ export const HOME_PATH = "/";
 
 export const NFC_SESSION_COOKIE = "astrotag_nfc_session";
 export const NFC_FINGERPRINT_COOKIE = "astrotag_fingerprint";
+/** nfc_sessions.profile_id ile aynı — oturum çerezi yanında hızlı doğrulama */
+export const NFC_PROFILE_COOKIE = "astrotag_nfc_profile";
 export const STORAGE_VERIFIED_COOKIE = "astrotag_storage_ok";
 /** E-posta doğrulama / eşleştirme sırasında kartı hatırla (middleware yönlendirmesi) */
 export const PENDING_NFC_COOKIE = "astrotag_pending_nfc";

@@ -8,6 +8,7 @@ import {
 } from "@/lib/nfc/device-cookies.server";
 import {
   NFC_FINGERPRINT_COOKIE,
+  NFC_PROFILE_COOKIE,
   NFC_SESSION_COOKIE,
   NFC_SESSION_TTL_MINUTES,
 } from "@/lib/nfc/constants";
@@ -120,6 +121,13 @@ export async function createEphemeralNfcSession(params: {
   const expiresAt = new Date();
   expiresAt.setMinutes(expiresAt.getMinutes() + NFC_SESSION_TTL_MINUTES);
 
+  console.log("[NFC_AUTH_DEBUG]: nfc_sessions.insert deneniyor", {
+    profileId: params.profileId,
+    nfcId: params.nfcId,
+    fingerprintLength: params.fingerprint?.length ?? 0,
+    expiresAt: expiresAt.toISOString(),
+  });
+
   const { data, error } = await supabase
     .from("nfc_sessions")
     .insert({
@@ -132,7 +140,32 @@ export async function createEphemeralNfcSession(params: {
     .select("id")
     .single();
 
-  if (error || !data?.id) {
+  if (error) {
+    console.error(
+      "[NFC_AUTH_DEBUG]: Hata sebebi nfc_sessions.insert — Supabase insert reddetti"
+    );
+    console.error("[NFC_AUTH_DEBUG]: error.message", error.message);
+    console.error("[NFC_AUTH_DEBUG]: error.details", error.details);
+    console.error("[createEphemeralNfcSession] nfc_sessions.insert başarısız", {
+      profileId: params.profileId,
+      nfcId: params.nfcId,
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
+    throw new Error(`NFC oturumu oluşturulamadı: ${error.message}`);
+  }
+
+  if (!data?.id) {
+    console.error(
+      "[NFC_AUTH_DEBUG]: Hata sebebi nfc_sessions.insert — insert başarılı göründü ama session id dönmedi"
+    );
+    console.error("[createEphemeralNfcSession] insert döndü ama id yok", {
+      profileId: params.profileId,
+      nfcId: params.nfcId,
+      data,
+    });
     throw new Error("NFC oturumu oluşturulamadı.");
   }
 
@@ -141,17 +174,53 @@ export async function createEphemeralNfcSession(params: {
 
 export async function setNfcSessionCookies(
   sessionId: string,
-  fingerprint: string
+  fingerprint: string,
+  profileId: string
 ): Promise<void> {
-  const cookieStore = await cookies();
-  const cookieOptions = getStrictCookieOptions();
+  const trimmedSessionId = sessionId?.trim() ?? "";
+  const trimmedFingerprint = fingerprint?.trim() ?? "";
+  const trimmedProfileId = profileId?.trim() ?? "";
 
-  cookieStore.set(NFC_SESSION_COOKIE, sessionId, cookieOptions);
-  cookieStore.set(NFC_FINGERPRINT_COOKIE, fingerprint, cookieOptions);
+  if (!trimmedSessionId || !trimmedFingerprint || !trimmedProfileId) {
+    console.error(
+      "[NFC_AUTH_DEBUG]: Hata sebebi çerez değerleri boş — oturum yazılamadı",
+      {
+        sessionId: trimmedSessionId || "(boş)",
+        fingerprint: trimmedFingerprint ? "[set]" : "(boş)",
+        profileId: trimmedProfileId || "(boş)",
+      }
+    );
+    throw new Error("NFC çerez değerleri boş — oturum yazılamadı.");
+  }
+
+  try {
+    const cookieStore = await cookies();
+    const cookieOptions = getStrictCookieOptions();
+
+    cookieStore.set(NFC_SESSION_COOKIE, trimmedSessionId, cookieOptions);
+    cookieStore.set(NFC_FINGERPRINT_COOKIE, trimmedFingerprint, cookieOptions);
+    cookieStore.set(NFC_PROFILE_COOKIE, trimmedProfileId, cookieOptions);
+
+    console.log("[NFC_AUTH_DEBUG]: NFC oturum çerezleri set edildi", {
+      sessionId: trimmedSessionId,
+      profileId: trimmedProfileId,
+      fingerprintLength: trimmedFingerprint.length,
+    });
+  } catch (error) {
+    console.error(
+      "[NFC_AUTH_DEBUG]: Hata sebebi cookies().set — Server Action çerez yazımı başarısız",
+      error
+    );
+    throw error instanceof Error
+      ? error
+      : new Error(
+          typeof error === "string" ? error : "NFC çerezleri yazılamadı."
+        );
+  }
 }
 
 /**
- * DB kaydı + astrotag_nfc_session / astrotag_fingerprint çerezleri.
+ * DB kaydı (profile_id) + astrotag_nfc_session / astrotag_fingerprint / astrotag_nfc_profile çerezleri.
  */
 export async function setNfcSession(params: {
   profileId: string;
@@ -166,7 +235,16 @@ export async function setNfcSession(params: {
     userAgent: params.userAgent,
   });
 
-  await setNfcSessionCookies(sessionId, params.fingerprint);
+  try {
+    await setNfcSessionCookies(sessionId, params.fingerprint, params.profileId);
+  } catch (error) {
+    console.error(
+      "[NFC_AUTH_DEBUG]: Hata sebebi setNfcSessionCookies — setNfcSession akışında çerez hatası",
+      { sessionId, profileId: params.profileId, error }
+    );
+    throw error;
+  }
+
   return sessionId;
 }
 
@@ -183,6 +261,7 @@ export async function clearNfcSessionCookies(): Promise<void> {
 
   cookieStore.set(NFC_SESSION_COOKIE, "", clearOptions);
   cookieStore.set(NFC_FINGERPRINT_COOKIE, "", clearOptions);
+  cookieStore.set(NFC_PROFILE_COOKIE, "", clearOptions);
 }
 
 export type NfcCardActive = {
