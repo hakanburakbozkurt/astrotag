@@ -28,6 +28,11 @@ import { nfcCardValidationErrorMessage } from "@/lib/nfc/card-validation-message
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 import { validateNfcCardActive } from "@/lib/nfc/session.server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import {
+  authErrorMessage,
+  logNfcAuthSupabaseError,
+  logNfcAuthTrace,
+} from "@/lib/auth/nfc-auth-debug";
 import { logNfcError } from "@/lib/nfc/error-logger";
 import { withNfcAction } from "@/lib/nfc/with-nfc-action.server";
 
@@ -150,6 +155,11 @@ export async function startNfcEmailAuthAction(params: {
   | { success: false; error: string }
 > {
   return withNfcAction("startNfcEmailAuthAction", async () => {
+    logNfcAuthTrace("Tetiklendi", {
+      handler: "startNfcEmailAuthAction",
+      uniqueId: params.uniqueId,
+    });
+
     const normalizedEmail = params.email.trim().toLowerCase();
     const passwordError = validatePasswordPair(
       params.password,
@@ -176,10 +186,21 @@ export async function startNfcEmailAuthAction(params: {
 
     const supabase = await createServerSupabaseClient();
 
+    logNfcAuthTrace("signInWithPassword çağrılıyor", { email: normalizedEmail });
+
     const signIn = await supabase.auth.signInWithPassword({
       email: normalizedEmail,
       password: params.password,
     });
+
+    if (signIn.error) {
+      logNfcAuthTrace("signInWithPassword hata (kayıt akışına devam)", {
+        email: normalizedEmail,
+      });
+      logNfcAuthSupabaseError("signInWithPassword", signIn.error, {
+        email: normalizedEmail,
+      });
+    }
 
     if (signIn.data.user?.id && signIn.data.session) {
       if (
@@ -211,12 +232,22 @@ export async function startNfcEmailAuthAction(params: {
       };
     }
 
+    logNfcAuthTrace("signUp çağrılıyor", { email: normalizedEmail });
+
     const signUp = await supabase.auth.signUp({
       email: normalizedEmail,
       password: params.password,
     });
 
     if (signUp.error) {
+      logNfcAuthTrace("Hata yakalandı", { step: "signUp", email: normalizedEmail });
+      logNfcAuthSupabaseError("signUp", signUp.error, { email: normalizedEmail });
+      logNfcError(
+        { layer: "action", handler: "startNfcEmailAuthAction" },
+        signUp.error,
+        { email: normalizedEmail, step: "signUp" }
+      );
+
       const msg = signUp.error.message.toLowerCase();
       if (msg.includes("already") || msg.includes("registered")) {
         return {
@@ -225,13 +256,19 @@ export async function startNfcEmailAuthAction(params: {
         };
       }
 
-      logNfcError(
-        { layer: "action", handler: "startNfcEmailAuthAction" },
-        signUp.error,
-        { email: normalizedEmail }
-      );
-      return { success: false, error: "Hesap oluşturulamadı." };
+      return {
+        success: false,
+        error: authErrorMessage(signUp.error, "Hesap oluşturulamadı."),
+      };
     }
+
+    logNfcAuthTrace("signUp tamam", {
+      email: normalizedEmail,
+      hasUser: Boolean(signUp.data.user?.id),
+      hasSession: Boolean(signUp.data.session),
+    });
+
+    logNfcAuthTrace("signInWithOtp çağrılıyor", { email: normalizedEmail });
 
     const { error: otpError } = await supabase.auth.signInWithOtp({
       email: normalizedEmail,
@@ -242,13 +279,25 @@ export async function startNfcEmailAuthAction(params: {
     });
 
     if (otpError) {
+      logNfcAuthTrace("Hata yakalandı", {
+        step: "signInWithOtp",
+        email: normalizedEmail,
+      });
+      logNfcAuthSupabaseError("signInWithOtp", otpError, {
+        email: normalizedEmail,
+      });
       logNfcError(
         { layer: "action", handler: "startNfcEmailAuthAction" },
         otpError,
         { email: normalizedEmail, step: "signInWithOtp" }
       );
-      return { success: false, error: "Doğrulama kodu gönderilemedi." };
+      return {
+        success: false,
+        error: authErrorMessage(otpError, "Doğrulama kodu gönderilemedi."),
+      };
     }
+
+    logNfcAuthTrace("signInWithOtp tamam", { email: normalizedEmail });
 
     await setAuthPendingCookie(normalizedEmail, params.uniqueId);
 
@@ -264,6 +313,8 @@ export async function resendNfcOtpAction(
   uniqueId: string
 ): Promise<{ success: true } | { success: false; error: string }> {
   return withNfcAction("resendNfcOtpAction", async () => {
+    logNfcAuthTrace("Tetiklendi", { handler: "resendNfcOtpAction" });
+
     const normalizedEmail = email.trim().toLowerCase();
 
     if (!normalizedEmail) {
@@ -288,12 +339,19 @@ export async function resendNfcOtpAction(
     });
 
     if (error) {
+      logNfcAuthTrace("Hata yakalandı", { step: "signInWithOtp", email: normalizedEmail });
+      logNfcAuthSupabaseError("resendNfcOtpAction/signInWithOtp", error, {
+        email: normalizedEmail,
+      });
       logNfcError(
         { layer: "action", handler: "resendNfcOtpAction" },
         error,
         { email: normalizedEmail }
       );
-      return { success: false, error: "Kod tekrar gönderilemedi." };
+      return {
+        success: false,
+        error: authErrorMessage(error, "Kod tekrar gönderilemedi."),
+      };
     }
 
     await setAuthPendingCookie(normalizedEmail, uniqueId);
