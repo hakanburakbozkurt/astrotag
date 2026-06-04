@@ -1,15 +1,20 @@
 "use client";
 
-import { useEffect } from "react";
-import { safeRouterReplace, useSafeRouter } from "@/lib/auth/safe-router-nav.client";
+import { useRedirectWhenReady } from "@/lib/auth/safe-router-nav.client";
 
-/** Eski /profile rotası → /dashboard yönlendirmesi */
+/** Eski /profile rotası → /profile/complete yönlendirmesi */
 export default function ProfileRedirectPage() {
-  const { router } = useSafeRouter();
+  const { isRedirecting } = useRedirectWhenReady("/profile/complete", true, {
+    replace: true,
+  });
 
-  useEffect(() => {
-    void safeRouterReplace(router, "/profile/complete");
-  }, [router]);
+  if (isRedirecting) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center text-sm text-white/45">
+        Yönlendiriliyor...
+      </div>
+    );
+  }
 
   return null;
 }

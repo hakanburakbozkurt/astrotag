@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
-import { safeRouterReplace, useSafeRouter } from "@/lib/auth/safe-router-nav.client";
+import { useSafeRouter } from "@/lib/auth/safe-router-nav.client";
 import AuthMobileShell from "@/components/auth/AuthMobileShell";
 import NfcLoginForm from "@/components/nfc/NfcLoginForm";
 import { checkNfcAutoLoginAction } from "@/lib/actions/nfc-email-auth";
@@ -16,7 +16,7 @@ type EntryState = "loading" | "login" | "error";
 
 /** NFC okutma → oturum varsa panele; yoksa e-posta + şifre girişi */
 export default function NfcCardEntryPage() {
-  const { router } = useSafeRouter();
+  const { safeReplace, isRouterReady } = useSafeRouter();
   const params = useParams<{ unique_id: string }>();
   const uniqueId = params.unique_id
     ? normalizeNfcUniqueId(params.unique_id)
@@ -27,7 +27,7 @@ export default function NfcCardEntryPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!uniqueId || startedRef.current) {
+    if (!uniqueId || startedRef.current || !isRouterReady) {
       return;
     }
 
@@ -36,7 +36,7 @@ export default function NfcCardEntryPage() {
     void (async () => {
       try {
         if (await isPrivateBrowsingMode()) {
-          await safeRouterReplace(router, PRIVATE_MODE_PATH);
+          await safeReplace(PRIVATE_MODE_PATH);
           return;
         }
 
@@ -72,7 +72,7 @@ export default function NfcCardEntryPage() {
         setState("error");
       }
     })();
-  }, [uniqueId, router]);
+  }, [uniqueId, isRouterReady, safeReplace]);
 
   if (state === "loading") {
     return (
@@ -87,7 +87,7 @@ export default function NfcCardEntryPage() {
       <AuthMobileShell title="Hata" subtitle={error ?? "Bilinmeyen hata"}>
         <button
           type="button"
-          onClick={() => void safeRouterReplace(router, HOME_PATH)}
+          onClick={() => void safeReplace(HOME_PATH)}
           className="flex min-h-[48px] w-full items-center justify-center rounded-2xl border border-white/15 text-xs uppercase tracking-widest text-white/60"
         >
           Ana sayfa

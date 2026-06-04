@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
-import { safeRouterReplace, useSafeRouter } from "@/lib/auth/safe-router-nav.client";
+import { useEffect, useRef, useState } from "react";
+import { useSafeRouter } from "@/lib/auth/safe-router-nav.client";
 import { motion } from "framer-motion";
 import Starfield from "@/components/Starfield";
 import ProfileCompleteForm from "@/components/profile/ProfileCompleteForm";
@@ -10,24 +10,72 @@ import { DASHBOARD_PATH, HOME_PATH } from "@/lib/nfc/constants";
 import { useUserProfile } from "@/lib/auth";
 
 export default function ProfileCompletePage() {
-  const { router } = useSafeRouter();
+  const { safeReplace, isRouterReady, isPending } = useSafeRouter();
   const { profileStatus, isLoading, userData, isAuthenticated } = useUserProfile();
+  const [sessionChecked, setSessionChecked] = useState(false);
+  const [sessionOk, setSessionOk] = useState(true);
+  const redirectStartedRef = useRef(false);
 
   useEffect(() => {
-    void checkNfcSessionAction().then((session) => {
-      if (!session.authenticated) {
-        void safeRouterReplace(router, HOME_PATH);
-      }
-    });
-  }, [router]);
-
-  useEffect(() => {
-    if (!isLoading && profileStatus === "ready" && userData) {
-      void safeRouterReplace(router, DASHBOARD_PATH);
+    if (!isRouterReady) {
+      return;
     }
-  }, [isLoading, profileStatus, userData, router]);
 
-  if (isLoading || !isAuthenticated || (profileStatus === "ready" && userData)) {
+    let cancelled = false;
+
+    void (async () => {
+      const session = await checkNfcSessionAction();
+      if (cancelled) {
+        return;
+      }
+
+      setSessionOk(session.authenticated);
+      setSessionChecked(true);
+
+      if (!session.authenticated && !redirectStartedRef.current) {
+        redirectStartedRef.current = true;
+        await safeReplace(HOME_PATH);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isRouterReady, safeReplace]);
+
+  useEffect(() => {
+    if (
+      !isRouterReady ||
+      !sessionChecked ||
+      !sessionOk ||
+      isLoading ||
+      profileStatus !== "ready" ||
+      !userData ||
+      redirectStartedRef.current
+    ) {
+      return;
+    }
+
+    redirectStartedRef.current = true;
+
+    void safeReplace(DASHBOARD_PATH);
+  }, [
+    isRouterReady,
+    sessionChecked,
+    sessionOk,
+    isLoading,
+    profileStatus,
+    userData,
+    safeReplace,
+  ]);
+
+  const showRedirectShell =
+    isPending ||
+    !sessionChecked ||
+    !sessionOk ||
+    (profileStatus === "ready" && Boolean(userData));
+
+  if (showRedirectShell || isLoading || !isAuthenticated) {
     return (
       <main className="relative min-h-dvh">
         <Starfield />

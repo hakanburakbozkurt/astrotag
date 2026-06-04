@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
-import { safeRouterReplace, useSafeRouter } from "@/lib/auth/safe-router-nav.client";
+import { useSafeRouter } from "@/lib/auth/safe-router-nav.client";
 import { confirmStorageAccessAction } from "@/lib/actions/nfc-auth";
 import {
   CARD_ENTRY_PREFIX,
@@ -36,12 +36,12 @@ function shouldRunStorageCheck(pathname: string): boolean {
 }
 
 export default function SecurityBootstrap() {
-  const { router } = useSafeRouter();
+  const { safeReplace, isRouterReady } = useSafeRouter();
   const pathname = usePathname();
   const checkedRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!shouldRunStorageCheck(pathname)) {
+    if (!shouldRunStorageCheck(pathname) || !isRouterReady) {
       return;
     }
 
@@ -53,13 +53,13 @@ export default function SecurityBootstrap() {
 
     void (async () => {
       if (await isPrivateBrowsingMode()) {
-        await safeRouterReplace(router, PRIVATE_MODE_PATH);
+        await safeReplace(PRIVATE_MODE_PATH);
         return;
       }
 
       await confirmStorageAccessAction();
     })();
-  }, [pathname, router]);
+  }, [pathname, isRouterReady, safeReplace]);
 
   return null;
 }

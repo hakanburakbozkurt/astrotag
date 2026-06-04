@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { safeRouterPush, useSafeRouter } from "@/lib/auth/safe-router-nav.client";
+import { useSafeRouter } from "@/lib/auth/safe-router-nav.client";
 import {
   logNfcAuthSupabaseError,
   logNfcAuthTrace,
@@ -23,11 +23,12 @@ type AuthToast = {
 };
 
 export default function NfcLoginForm({ uniqueId }: NfcLoginFormProps) {
-  const { router } = useSafeRouter();
+  const { safePush, isRouterReady, isPending: routerPending } = useSafeRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const isPending = loading || routerPending;
   const [toast, setToast] = useState<AuthToast | null>(null);
 
   const showToast = useCallback((message: string, variant: AuthToast["variant"] = "error") => {
@@ -84,7 +85,11 @@ export default function NfcLoginForm({ uniqueId }: NfcLoginFormProps) {
         return;
       }
 
-      await safeRouterPush(router, result.redirectTo);
+      if (!isRouterReady) {
+        throw new Error("Router henüz hazır değil. Lütfen tekrar deneyin.");
+      }
+
+      await safePush(result.redirectTo);
     } catch (cause) {
       logNfcAuthTrace("Hata yakalandı", { source: "NfcLoginForm.catch", uniqueId });
       logNfcAuthSupabaseError("NfcLoginForm.catch", cause, { uniqueId });
@@ -162,10 +167,10 @@ export default function NfcLoginForm({ uniqueId }: NfcLoginFormProps) {
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={isPending}
           className={`${authPrimaryButtonClassName} mt-2`}
         >
-          {loading ? "İşleniyor..." : "Kaydol / Giriş Yap"}
+          {isPending ? "İşleniyor..." : "Kaydol / Giriş Yap"}
         </button>
       </form>
 

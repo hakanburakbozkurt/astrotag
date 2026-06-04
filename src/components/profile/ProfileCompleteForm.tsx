@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { safeRouterReplace, useSafeRouter } from "@/lib/auth/safe-router-nav.client";
+import { useSafeRouter } from "@/lib/auth/safe-router-nav.client";
 import { completeUserProfile } from "@/lib/actions/profile-complete";
 
 const fieldClass =
@@ -14,7 +14,7 @@ type ProfileCompleteFormProps = {
 export default function ProfileCompleteForm({
   submitLabel = "Profili Tamamla",
 }: ProfileCompleteFormProps) {
-  const { router } = useSafeRouter();
+  const { safeReplace, isRouterReady } = useSafeRouter();
   const [name, setName] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [birthTime, setBirthTime] = useState("");
@@ -47,7 +47,14 @@ export default function ProfileCompleteForm({
       return;
     }
 
-    await safeRouterReplace(router, "/dashboard");
+    if (!isRouterReady) {
+      setError("Yönlendirme hazırlanıyor, lütfen tekrar deneyin.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    await safeReplace("/dashboard");
+    setIsSubmitting(false);
   };
 
   return (

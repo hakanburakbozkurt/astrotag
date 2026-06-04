@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { safeRouterReplace } from "@/lib/auth/safe-router-nav.client";
+import { useEffect, useRef, useState } from "react";
 import { useSafeRouter } from "@/lib/auth/safe-router-nav.client";
 import { checkNfcSessionAction } from "@/lib/actions/nfc-auth";
 import { getUserProfile } from "@/lib/supabase-actions";
@@ -49,16 +48,34 @@ export function useAuth() {
 
 /** Oturum yoksa ana sayfaya (public); giriş sonrası hedef ayrıca dashboard */
 export function useRequireAuth(redirectTo: string = HOME_PATH) {
-  const { router } = useSafeRouter();
+  const { safeReplace, isRouterReady, isNavigating } = useSafeRouter();
   const auth = useAuth();
+  const redirectStartedRef = useRef(false);
 
   useEffect(() => {
-    if (!auth.isLoading && !auth.isAuthenticated) {
-      void safeRouterReplace(router, redirectTo);
+    if (
+      auth.isLoading ||
+      auth.isAuthenticated ||
+      !isRouterReady ||
+      redirectStartedRef.current
+    ) {
+      return;
     }
-  }, [auth.isAuthenticated, auth.isLoading, router, redirectTo]);
 
-  return auth;
+    redirectStartedRef.current = true;
+    void safeReplace(redirectTo);
+  }, [
+    auth.isAuthenticated,
+    auth.isLoading,
+    isRouterReady,
+    safeReplace,
+    redirectTo,
+  ]);
+
+  return {
+    ...auth,
+    isAuthPending: auth.isLoading || isNavigating || (!auth.isAuthenticated && !auth.isLoading && !isRouterReady),
+  };
 }
 
 export function useUserProfile() {

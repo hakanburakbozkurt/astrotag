@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { safeRouterReplace, useSafeRouter } from "@/lib/auth/safe-router-nav.client";
+import { useSafeRouter } from "@/lib/auth/safe-router-nav.client";
 import AuthMobileShell from "@/components/auth/AuthMobileShell";
 import {
   authInputClassName,
@@ -17,7 +17,7 @@ import { cardEntryPathForUniqueId } from "@/lib/nfc/card-paths";
 import { navigateAfterNfcAuth } from "@/lib/nfc/post-auth-nav.client";
 
 function VerifyOtpContent() {
-  const { router } = useSafeRouter();
+  const { safeReplace } = useSafeRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email")?.trim() ?? "";
   const uniqueId = searchParams.get("nfc")?.trim() ?? "";
@@ -36,7 +36,7 @@ function VerifyOtpContent() {
       >
         <button
           type="button"
-          onClick={() => void safeRouterReplace(router, "/")}
+          onClick={() => void safeReplace("/")}
           className={authSecondaryButtonClassName}
         >
           Ana sayfa
@@ -135,7 +135,7 @@ function VerifyOtpContent() {
         <button
           type="button"
           onClick={() =>
-            void safeRouterReplace(router, cardEntryPathForUniqueId(uniqueId))
+            void safeReplace(cardEntryPathForUniqueId(uniqueId))
           }
           className="text-center text-[10px] uppercase tracking-widest text-white/40 hover:text-white/60"
         >

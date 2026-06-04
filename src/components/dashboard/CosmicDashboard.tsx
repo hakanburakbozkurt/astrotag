@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useSafeRouter } from "@/lib/auth/safe-router-nav.client";
 import { motion, AnimatePresence } from "framer-motion";
 import type { UserData } from "@/types/user";
 import ModuleCard from "./ModuleCard";
@@ -60,8 +60,9 @@ function ModulePlaceholder({
 }
 
 export default function CosmicDashboard({ user }: CosmicDashboardProps) {
-  const router = useRouter();
+  const { safePush, isRouterReady } = useSafeRouter();
   const [isMounted, setIsMounted] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
   const [activeModule, setActiveModule] = useState<DashboardModule | null>(null);
 
   useEffect(() => {
@@ -70,7 +71,12 @@ export default function CosmicDashboard({ user }: CosmicDashboardProps) {
 
   const handleModuleSelect = (module: DashboardModule) => {
     if (module.href) {
-      router.push(module.href);
+      if (!isRouterReady || isNavigating) {
+        return;
+      }
+
+      setIsNavigating(true);
+      void safePush(module.href).finally(() => setIsNavigating(false));
       return;
     }
 
