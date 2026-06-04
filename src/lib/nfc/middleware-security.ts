@@ -1,9 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { NextRequest } from "next/server";
+import { nfcAuthSignupPath } from "@/lib/nfc/auth-paths";
 import { nfcPairingPathForUniqueId } from "@/lib/nfc/card-paths";
 import {
   AUTH_CALLBACK_PATH,
   AUTH_LOGIN_PATH,
+  AUTH_MSG_CARD_NOT_ACTIVE,
   AUTH_SIGNUP_PATH,
   CARD_ENTRY_PREFIX,
   DASHBOARD_PATH,
@@ -160,6 +162,10 @@ function sessionMissingRedirect(request: NextRequest): string {
   return HOME_PATH;
 }
 
+function inactiveCardAuthRedirect(uniqueId: string): string {
+  return nfcAuthSignupPath(uniqueId, { msg: AUTH_MSG_CARD_NOT_ACTIVE });
+}
+
 async function validateNfcCard(
   supabase: SupabaseClient,
   uniqueId: string
@@ -276,10 +282,13 @@ export async function runSecurityGate(
       const uniqueId = pathname.slice(`${prefix}/`.length).split("/")[0];
 
       if (!uniqueId || !supabase) {
+        const redirectTo = uniqueId
+          ? inactiveCardAuthRedirect(uniqueId)
+          : HOME_PATH;
         const deny = {
           allowed: false as const,
           reason: "nfc_card_inactive" as const,
-          redirectTo: HOME_PATH,
+          redirectTo,
         };
         logGateDeny(request, deny.reason, deny.redirectTo, {
           uniqueId: uniqueId ?? null,
@@ -293,7 +302,7 @@ export async function runSecurityGate(
         const deny = {
           allowed: false as const,
           reason: "nfc_card_inactive" as const,
-          redirectTo: HOME_PATH,
+          redirectTo: inactiveCardAuthRedirect(uniqueId),
         };
         logGateDeny(request, deny.reason, deny.redirectTo, { uniqueId });
         return deny;

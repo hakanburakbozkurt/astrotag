@@ -41,6 +41,8 @@ export const VERIFY_OTP_PATH = "/verify-otp";
 export const AUTH_CALLBACK_PATH = "/auth/callback";
 export const AUTH_SIGNUP_PATH = "/auth/signup";
 export const AUTH_LOGIN_PATH = "/auth/login";
+/** auth/signup|login ?msg= — pasif kart acil giriş */
+export const AUTH_MSG_CARD_NOT_ACTIVE = "card_not_active";
 
 export const PUBLIC_PATHS = new Set([
   HOME_PATH,

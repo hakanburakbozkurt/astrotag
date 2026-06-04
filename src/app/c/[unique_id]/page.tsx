@@ -9,7 +9,7 @@ import { checkNfcAutoLoginAction } from "@/lib/actions/nfc-email-auth";
 import { nfcAuthSignupPath } from "@/lib/nfc/auth-paths";
 import { confirmStorageAccessAction } from "@/lib/actions/nfc-auth";
 import { isPrivateBrowsingMode } from "@/lib/nfc/private-mode";
-import { HOME_PATH, PRIVATE_MODE_PATH } from "@/lib/nfc/constants";
+import { AUTH_MSG_CARD_NOT_ACTIVE, HOME_PATH, PRIVATE_MODE_PATH } from "@/lib/nfc/constants";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 import { navigateAfterNfcAuth } from "@/lib/nfc/post-auth-nav.client";
 
@@ -56,7 +56,14 @@ export default function NfcCardEntryPage() {
         }
 
         if (result.status === "auth_required") {
-          await safeReplace(nfcAuthSignupPath(uniqueId));
+          await safeReplace(
+            nfcAuthSignupPath(
+              uniqueId,
+              result.cardInactive
+                ? { msg: AUTH_MSG_CARD_NOT_ACTIVE }
+                : undefined
+            )
+          );
           return;
         }
 

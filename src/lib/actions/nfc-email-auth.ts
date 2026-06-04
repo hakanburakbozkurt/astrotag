@@ -15,6 +15,7 @@ import {
 } from "@/lib/actions/nfc-auth-core";
 import {
   AUTH_CALLBACK_PATH,
+  AUTH_MSG_CARD_NOT_ACTIVE,
   NFC_CARD_OWNED_BY_OTHER_MESSAGE,
   SITE_URL,
   VERIFY_OTP_PATH,
@@ -27,7 +28,11 @@ import {
 import { canBindClaimedCard } from "@/lib/nfc/nfc-ownership.server";
 import { nfcCardValidationErrorMessage } from "@/lib/nfc/card-validation-messages";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
-import { validateNfcCardActive } from "@/lib/nfc/session.server";
+import {
+  resolveNfcCardForAuth,
+  type NfcCardAuthEntry,
+  type NfcCardAuthLookupFailure,
+} from "@/lib/nfc/session.server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import {
   authErrorMessage,
@@ -64,6 +69,31 @@ export type NfcAuthActionSuccess = {
   skipOtp?: boolean;
 };
 
+function authLookupFailureMessage(
+  reason: NfcCardAuthLookupFailure["reason"]
+): string {
+  return nfcCardValidationErrorMessage(
+    reason === "not_found" ? "not_found" : reason === "db_error" ? "db_error" : "config_error"
+  );
+}
+
+async function loadNfcCardForAuthFlow(
+  uniqueId: string
+): Promise<
+  | { ok: true; card: NfcCardAuthEntry }
+  | { ok: false; error: string }
+> {
+  const card = await resolveNfcCardForAuth(uniqueId);
+  if (!card.ok) {
+    return { ok: false, error: authLookupFailureMessage(card.reason) };
+  }
+  return { ok: true, card };
+}
+
+function authOnlyRedirectForInactiveCard(uniqueId: string): string {
+  return nfcAuthLoginPath(uniqueId, { msg: AUTH_MSG_CARD_NOT_ACTIVE });
+}
+
 function buildVerifyOtpUrl(email: string, uniqueId: string): string {
   const params = new URLSearchParams({
     email: email.trim().toLowerCase(),
@@ -80,7 +110,7 @@ export async function checkNfcAutoLoginAction(
   device: DeviceContext
 ): Promise<
   | { status: "logged_in"; redirectTo: string }
-  | { status: "auth_required" }
+  | { status: "auth_required"; cardInactive?: boolean }
   | { status: "error"; error: string }
 > {
   const normalizedId = normalizeNfcUniqueId(uniqueId);
@@ -88,12 +118,20 @@ export async function checkNfcAutoLoginAction(
 
   try {
     return await withNfcAction(handler, async () => {
-      const card = await validateNfcCardActive(normalizedId);
+      const card = await resolveNfcCardForAuth(normalizedId);
       if (!card.ok) {
         return {
           status: "error",
-          error: nfcCardValidationErrorMessage(card.reason),
+          error: authLookupFailureMessage(card.reason),
         };
+      }
+
+      if (!card.isActive) {
+        logNfcAuthTrace("Acil auth yolu — kart pasif", {
+          handler,
+          uniqueId: normalizedId,
+        });
+        return { status: "auth_required", cardInactive: true };
       }
 
       const supabase = await createServerSupabaseClient();
@@ -206,19 +244,22 @@ export async function startNfcSignupAction(params: {
         return { success: false, error: passwordError };
       }
 
-      const card = await validateNfcCardActive(params.uniqueId);
-      if (!card.ok) {
-        return {
-          success: false,
-          error: nfcCardValidationErrorMessage(card.reason),
-        };
+      const loaded = await loadNfcCardForAuthFlow(params.uniqueId);
+      if (!loaded.ok) {
+        return { success: false, error: loaded.error };
       }
+
+      const { card } = loaded;
+      const cardInactive = !card.isActive;
 
       await setPendingNfcCardCookie(params.uniqueId);
 
       const supabase = await createServerSupabaseClient();
 
-      logNfcAuthTrace("signUp çağrılıyor", { email: normalizedEmail });
+      logNfcAuthTrace("signUp çağrılıyor", {
+        email: normalizedEmail,
+        cardInactive,
+      });
 
       const signUp = await supabase.auth.signUp({
         email: normalizedEmail,
@@ -251,6 +292,14 @@ export async function startNfcSignupAction(params: {
       }
 
       if (signUp.data.user?.id && signUp.data.session) {
+        if (cardInactive) {
+          return {
+            success: true,
+            skipOtp: true,
+            redirectTo: authOnlyRedirectForInactiveCard(params.uniqueId),
+          };
+        }
+
         if (
           card.isClaimed &&
           card.ownerId &&
@@ -351,13 +400,13 @@ export async function startNfcLoginAction(params: {
         return { success: false, error: passwordError };
       }
 
-      const card = await validateNfcCardActive(params.uniqueId);
-      if (!card.ok) {
-        return {
-          success: false,
-          error: nfcCardValidationErrorMessage(card.reason),
-        };
+      const loaded = await loadNfcCardForAuthFlow(params.uniqueId);
+      if (!loaded.ok) {
+        return { success: false, error: loaded.error };
       }
+
+      const { card } = loaded;
+      const cardInactive = !card.isActive;
 
       await setPendingNfcCardCookie(params.uniqueId);
 
@@ -401,6 +450,14 @@ export async function startNfcLoginAction(params: {
         return {
           success: false,
           error: "Oturum oluşturulamadı. Lütfen tekrar deneyin.",
+        };
+      }
+
+      if (cardInactive) {
+        return {
+          success: true,
+          skipOtp: true,
+          redirectTo: authOnlyRedirectForInactiveCard(params.uniqueId),
         };
       }
 
@@ -453,12 +510,9 @@ export async function resendNfcOtpAction(
       return { success: false, error: "E-posta adresi gerekli." };
     }
 
-    const card = await validateNfcCardActive(uniqueId);
-    if (!card.ok) {
-      return {
-        success: false,
-        error: nfcCardValidationErrorMessage(card.reason),
-      };
+    const loaded = await loadNfcCardForAuthFlow(uniqueId);
+    if (!loaded.ok) {
+      return { success: false, error: loaded.error };
     }
 
     const supabase = await createServerSupabaseClient();
@@ -508,13 +562,13 @@ export async function verifyNfcOtpAndEnterAction(params: {
       return { success: false, error: "6 haneli kodu eksiksiz girin." };
     }
 
-    const card = await validateNfcCardActive(params.uniqueId);
-    if (!card.ok) {
-      return {
-        success: false,
-        error: nfcCardValidationErrorMessage(card.reason),
-      };
+    const loaded = await loadNfcCardForAuthFlow(params.uniqueId);
+    if (!loaded.ok) {
+      return { success: false, error: loaded.error };
     }
+
+    const { card } = loaded;
+    const cardInactive = !card.isActive;
 
     await setPendingNfcCardCookie(params.uniqueId);
 
@@ -543,6 +597,14 @@ export async function verifyNfcOtpAndEnterAction(params: {
       return {
         success: false,
         error: "Doğrulama kodu geçersiz veya süresi dolmuş.",
+      };
+    }
+
+    if (cardInactive) {
+      await clearAuthPendingCookie();
+      return {
+        success: true,
+        redirectTo: authOnlyRedirectForInactiveCard(params.uniqueId),
       };
     }
 

@@ -324,3 +324,62 @@ export async function validateNfcCardActive(
     ownerId: data.owner_id ?? null,
   };
 }
+
+export type NfcCardAuthEntry = NfcCardActive & {
+  isActive: boolean;
+};
+
+export type NfcCardAuthLookupFailure = {
+  ok: false;
+  reason: "config_error" | "db_error" | "not_found";
+};
+
+/**
+ * Kayıt / giriş acil çıkışı — kart pasif olsa da DB kaydı varsa döner.
+ */
+export async function resolveNfcCardForAuth(
+  uniqueId: string
+): Promise<({ ok: true } & NfcCardAuthEntry) | NfcCardAuthLookupFailure> {
+  const ctx = { layer: "action" as const, handler: "resolveNfcCardForAuth" };
+  const normalizedId = normalizeNfcUniqueId(uniqueId);
+
+  let supabase;
+  try {
+    supabase = createSupabaseServiceClient();
+  } catch (error) {
+    logNfcError(ctx, error, { uniqueId: normalizedId, step: "service_client" });
+    return { ok: false, reason: "config_error" };
+  }
+
+  const { data, error } = await supabase
+    .from("nfc_cards")
+    .select("id, is_active, profile_id, is_claimed, owner_id")
+    .eq("unique_id", normalizedId)
+    .maybeSingle();
+
+  if (error) {
+    logNfcError(ctx, error, { uniqueId: normalizedId, step: "nfc_cards.select" });
+    return { ok: false, reason: "db_error" };
+  }
+
+  if (!data) {
+    logNfcEvent("warn", ctx, "NFC kartı bulunamadı", { uniqueId: normalizedId });
+    return { ok: false, reason: "not_found" };
+  }
+
+  if (!data.is_active) {
+    logNfcEvent("warn", ctx, "NFC kartı pasif — acil auth yolu", {
+      uniqueId: normalizedId,
+      nfcId: data.id,
+    });
+  }
+
+  return {
+    ok: true,
+    nfcId: data.id,
+    profileId: data.profile_id ?? null,
+    isClaimed: Boolean(data.is_claimed),
+    ownerId: data.owner_id ?? null,
+    isActive: Boolean(data.is_active),
+  };
+}

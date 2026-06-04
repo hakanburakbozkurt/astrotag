@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useSafeRouter } from "@/lib/auth/safe-router-nav.client";
+import { authQueryMessageText } from "@/lib/auth/auth-query-messages";
 import { logNfcAuthTrace } from "@/lib/auth/nfc-auth-debug";
 import { startNfcLoginAction } from "@/lib/actions/nfc-email-auth";
 import { nfcAuthSignupPath } from "@/lib/nfc/auth-paths";
@@ -34,8 +35,9 @@ export default function NfcLoginForm() {
   }, [emailFromQuery]);
 
   useEffect(() => {
-    if (msgFromQuery) {
-      setToast({ message: msgFromQuery, variant: "info" });
+    const text = authQueryMessageText(msgFromQuery);
+    if (text) {
+      setToast({ message: text, variant: "info" });
     }
   }, [msgFromQuery]);
 
