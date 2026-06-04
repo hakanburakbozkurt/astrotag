@@ -35,6 +35,7 @@ import {
   logRawAuthErrorDetail,
 } from "@/lib/auth/nfc-auth-debug";
 import { logSupabasePublicEnvCheck } from "@/lib/supabase/public-env";
+import { ensureProfileForAuthUser } from "@/lib/nfc/ensure-profile.server";
 import { logNfcError } from "@/lib/nfc/error-logger";
 import { withNfcAction } from "@/lib/nfc/with-nfc-action.server";
 
@@ -103,11 +104,16 @@ export async function checkNfcAutoLoginAction(
         return { status: "error", error: NFC_CARD_OWNED_BY_OTHER_MESSAGE };
       }
 
+      const { profileId: ensuredProfileId } = await ensureProfileForAuthUser(
+        user.id,
+        normalizedId
+      );
+
       try {
         const resumed = await tryResumeNfcSessionForUser({
           uniqueId: normalizedId,
           nfcCardUuid: card.nfcId,
-          profileId: card.profileId,
+          profileId: card.profileId ?? ensuredProfileId,
           userId: user.id,
           device,
         });
@@ -446,11 +452,16 @@ export async function verifyNfcOtpAndEnterAction(params: {
       return { success: false, error: NFC_CARD_OWNED_BY_OTHER_MESSAGE };
     }
 
+    const { profileId: ensuredProfileId } = await ensureProfileForAuthUser(
+      verifyResult.data.user.id,
+      params.uniqueId
+    );
+
     const paired = await pairNfcCardAndCreateSession({
       uniqueId: params.uniqueId,
       userId: verifyResult.data.user.id,
       nfcCardUuid: card.nfcId,
-      profileId: card.profileId,
+      profileId: card.profileId ?? ensuredProfileId,
       device: params.device,
     });
 
