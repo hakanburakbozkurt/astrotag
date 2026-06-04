@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { NextRequest } from "next/server";
 import { nfcPairingPathForUniqueId } from "@/lib/nfc/card-paths";
 import {
+  AUTH_CALLBACK_PATH,
   CARD_ENTRY_PREFIX,
   DASHBOARD_PATH,
   HOME_PATH,
@@ -65,6 +66,13 @@ function isPublicProfilePath(pathname: string): boolean {
 
 function isWarningPath(pathname: string): boolean {
   return pathname.startsWith(PRIVATE_MODE_PATH);
+}
+
+function isAuthCallbackPath(pathname: string): boolean {
+  return (
+    pathname === AUTH_CALLBACK_PATH ||
+    pathname.startsWith(`${AUTH_CALLBACK_PATH}/`)
+  );
 }
 
 export function isProtectedPath(pathname: string): boolean {
@@ -240,6 +248,10 @@ export async function runSecurityGate(
 ): Promise<SecurityGateResult> {
   try {
     const { pathname } = request.nextUrl;
+
+    if (isAuthCallbackPath(pathname)) {
+      return { allowed: true };
+    }
 
     if (shouldRedirectUnknownToHome(pathname)) {
       const deny = {

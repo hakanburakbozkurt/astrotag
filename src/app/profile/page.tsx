@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { safeRouterReplace, useSafeRouter } from "@/lib/auth/safe-router-nav.client";
 
 /** Eski /profile rotası → /dashboard yönlendirmesi */
 export default function ProfileRedirectPage() {
-  const router = useRouter();
+  const { router } = useSafeRouter();
 
   useEffect(() => {
-    router.replace("/profile/complete");
+    void safeRouterReplace(router, "/profile/complete");
   }, [router]);
 
   return null;

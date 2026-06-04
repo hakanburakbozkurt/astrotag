@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
+import { safeRouterReplace, useSafeRouter } from "@/lib/auth/safe-router-nav.client";
 import AuthMobileShell from "@/components/auth/AuthMobileShell";
 import NfcLoginForm from "@/components/nfc/NfcLoginForm";
 import { checkNfcAutoLoginAction } from "@/lib/actions/nfc-email-auth";
@@ -15,7 +16,7 @@ type EntryState = "loading" | "login" | "error";
 
 /** NFC okutma → oturum varsa panele; yoksa e-posta + şifre girişi */
 export default function NfcCardEntryPage() {
-  const router = useRouter();
+  const { router } = useSafeRouter();
   const params = useParams<{ unique_id: string }>();
   const uniqueId = params.unique_id
     ? normalizeNfcUniqueId(params.unique_id)
@@ -35,7 +36,7 @@ export default function NfcCardEntryPage() {
     void (async () => {
       try {
         if (await isPrivateBrowsingMode()) {
-          router.replace(PRIVATE_MODE_PATH);
+          await safeRouterReplace(router, PRIVATE_MODE_PATH);
           return;
         }
 
@@ -86,7 +87,7 @@ export default function NfcCardEntryPage() {
       <AuthMobileShell title="Hata" subtitle={error ?? "Bilinmeyen hata"}>
         <button
           type="button"
-          onClick={() => router.replace(HOME_PATH)}
+          onClick={() => void safeRouterReplace(router, HOME_PATH)}
           className="flex min-h-[48px] w-full items-center justify-center rounded-2xl border border-white/15 text-xs uppercase tracking-widest text-white/60"
         >
           Ana sayfa

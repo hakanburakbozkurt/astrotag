@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { safeRouterReplace } from "@/lib/auth/safe-router-nav.client";
+import { useSafeRouter } from "@/lib/auth/safe-router-nav.client";
 import { checkNfcSessionAction } from "@/lib/actions/nfc-auth";
 import { getUserProfile } from "@/lib/supabase-actions";
 import { DASHBOARD_PATH, HOME_PATH } from "@/lib/nfc/constants";
@@ -48,12 +49,12 @@ export function useAuth() {
 
 /** Oturum yoksa ana sayfaya (public); giriş sonrası hedef ayrıca dashboard */
 export function useRequireAuth(redirectTo: string = HOME_PATH) {
-  const router = useRouter();
+  const { router } = useSafeRouter();
   const auth = useAuth();
 
   useEffect(() => {
     if (!auth.isLoading && !auth.isAuthenticated) {
-      router.replace(redirectTo);
+      void safeRouterReplace(router, redirectTo);
     }
   }, [auth.isAuthenticated, auth.isLoading, router, redirectTo]);
 

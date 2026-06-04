@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { safeRouterReplace, useSafeRouter } from "@/lib/auth/safe-router-nav.client";
 import { confirmStorageAccessAction } from "@/lib/actions/nfc-auth";
 import {
   CARD_ENTRY_PREFIX,
@@ -9,6 +10,7 @@ import {
   PRIVATE_MODE_PATH,
   PUBLIC_PROFILE_PREFIX,
   VERIFY_OTP_PATH,
+  AUTH_CALLBACK_PATH,
 } from "@/lib/nfc/constants";
 import { isPrivateBrowsingMode } from "@/lib/nfc/private-mode";
 
@@ -24,7 +26,8 @@ function shouldRunStorageCheck(pathname: string): boolean {
   if (
     pathname.startsWith(CARD_ENTRY_PREFIX) ||
     pathname.startsWith(PUBLIC_PROFILE_PREFIX) ||
-    pathname === VERIFY_OTP_PATH
+    pathname === VERIFY_OTP_PATH ||
+    pathname.startsWith(AUTH_CALLBACK_PATH)
   ) {
     return false;
   }
@@ -33,7 +36,7 @@ function shouldRunStorageCheck(pathname: string): boolean {
 }
 
 export default function SecurityBootstrap() {
-  const router = useRouter();
+  const { router } = useSafeRouter();
   const pathname = usePathname();
   const checkedRef = useRef<string | null>(null);
 
@@ -50,7 +53,7 @@ export default function SecurityBootstrap() {
 
     void (async () => {
       if (await isPrivateBrowsingMode()) {
-        router.replace(PRIVATE_MODE_PATH);
+        await safeRouterReplace(router, PRIVATE_MODE_PATH);
         return;
       }
 

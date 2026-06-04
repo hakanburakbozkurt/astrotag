@@ -36,11 +36,13 @@ export const NFC_SHOP_URL =
 export const SITE_HOST = "astrotag.app";
 
 export const VERIFY_OTP_PATH = "/verify-otp";
+export const AUTH_CALLBACK_PATH = "/auth/callback";
 
 export const PUBLIC_PATHS = new Set([
   HOME_PATH,
   PRIVATE_MODE_PATH,
   VERIFY_OTP_PATH,
+  AUTH_CALLBACK_PATH,
   "/manifest.json",
   "/sw.js",
 ]);

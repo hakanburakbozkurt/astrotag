@@ -1,6 +1,7 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 import {
+  AUTH_CALLBACK_PATH,
   HOME_PATH,
   NFC_FINGERPRINT_COOKIE,
   NFC_SESSION_COOKIE,
@@ -14,7 +15,7 @@ import {
 } from "@/lib/nfc/error-logger";
 import { runSecurityGate } from "@/lib/nfc/middleware-security";
 
-function getServiceClient() {
+function getServiceClient(): SupabaseClient | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -56,13 +57,32 @@ function buildDeniedResponse(
   return response;
 }
 
-export async function middleware(request: NextRequest) {
+/**
+ * Next.js 16 proxy — istek güvenlik kapısı (eski middleware.ts mantığı).
+ */
+function isAuthCallbackPath(pathname: string): boolean {
+  return (
+    pathname === AUTH_CALLBACK_PATH ||
+    pathname.startsWith(`${AUTH_CALLBACK_PATH}/`)
+  );
+}
+
+export async function handleProxyRequest(
+  request: NextRequest
+): Promise<NextResponse> {
   const context = {
     layer: "middleware" as const,
-    handler: "middleware",
+    handler: "proxy",
     pathname: request.nextUrl.pathname,
     method: request.method,
   };
+
+  if (isAuthCallbackPath(request.nextUrl.pathname)) {
+    if (request.method !== "GET") {
+      return new NextResponse("Method Not Allowed", { status: 405 });
+    }
+    return NextResponse.next();
+  }
 
   try {
     const supabase = getServiceClient();
@@ -71,10 +91,10 @@ export async function middleware(request: NextRequest) {
     if (!gate.allowed) {
       const pairingRedirect = gate.redirectTo.includes("pair=1");
       const clearSession =
-        (gate.reason === "session_expired" ||
-          gate.reason === "fingerprint_mismatch" ||
-          gate.reason === "nfc_card_inactive" ||
-          gate.reason === "unauthorized_route") ||
+        gate.reason === "session_expired" ||
+        gate.reason === "fingerprint_mismatch" ||
+        gate.reason === "nfc_card_inactive" ||
+        gate.reason === "unauthorized_route" ||
         (gate.reason === "session_missing" && !pairingRedirect);
 
       return buildDeniedResponse(request, gate.redirectTo, clearSession);
@@ -102,9 +122,3 @@ export async function middleware(request: NextRequest) {
     return buildDeniedResponse(request, HOME_PATH, true);
   }
 }
-
-export const config = {
-  matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|se1)$).*)",
-  ],
-};

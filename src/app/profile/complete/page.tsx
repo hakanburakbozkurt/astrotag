@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { safeRouterReplace, useSafeRouter } from "@/lib/auth/safe-router-nav.client";
 import { motion } from "framer-motion";
 import Starfield from "@/components/Starfield";
 import ProfileCompleteForm from "@/components/profile/ProfileCompleteForm";
@@ -10,20 +10,20 @@ import { DASHBOARD_PATH, HOME_PATH } from "@/lib/nfc/constants";
 import { useUserProfile } from "@/lib/auth";
 
 export default function ProfileCompletePage() {
-  const router = useRouter();
+  const { router } = useSafeRouter();
   const { profileStatus, isLoading, userData, isAuthenticated } = useUserProfile();
 
   useEffect(() => {
     void checkNfcSessionAction().then((session) => {
       if (!session.authenticated) {
-        router.replace(HOME_PATH);
+        void safeRouterReplace(router, HOME_PATH);
       }
     });
   }, [router]);
 
   useEffect(() => {
     if (!isLoading && profileStatus === "ready" && userData) {
-      router.replace(DASHBOARD_PATH);
+      void safeRouterReplace(router, DASHBOARD_PATH);
     }
   }, [isLoading, profileStatus, userData, router]);
 

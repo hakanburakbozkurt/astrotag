@@ -13,7 +13,9 @@ import {
   tryResumeNfcSessionForUser,
 } from "@/lib/actions/nfc-auth-core";
 import {
+  AUTH_CALLBACK_PATH,
   NFC_CARD_OWNED_BY_OTHER_MESSAGE,
+  SITE_URL,
   VERIFY_OTP_PATH,
 } from "@/lib/nfc/constants";
 import { cardEntryPathForUniqueId } from "@/lib/nfc/card-paths";
@@ -233,7 +235,10 @@ export async function startNfcEmailAuthAction(params: {
 
     const { error: otpError } = await supabase.auth.signInWithOtp({
       email: normalizedEmail,
-      options: { shouldCreateUser: false },
+      options: {
+        shouldCreateUser: false,
+        emailRedirectTo: `${SITE_URL}${AUTH_CALLBACK_PATH}`,
+      },
     });
 
     if (otpError) {
@@ -276,7 +281,10 @@ export async function resendNfcOtpAction(
     const supabase = await createServerSupabaseClient();
     const { error } = await supabase.auth.signInWithOtp({
       email: normalizedEmail,
-      options: { shouldCreateUser: false },
+      options: {
+        shouldCreateUser: false,
+        emailRedirectTo: `${SITE_URL}${AUTH_CALLBACK_PATH}`,
+      },
     });
 
     if (error) {

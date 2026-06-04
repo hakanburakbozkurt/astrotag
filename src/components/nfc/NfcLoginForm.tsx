@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { safeRouterPush, useSafeRouter } from "@/lib/auth/safe-router-nav.client";
 import { startNfcEmailAuthAction } from "@/lib/actions/nfc-email-auth";
 import { navigateAfterNfcAuth } from "@/lib/nfc/post-auth-nav.client";
 import {
@@ -14,7 +14,7 @@ type NfcLoginFormProps = {
 };
 
 export default function NfcLoginForm({ uniqueId }: NfcLoginFormProps) {
-  const router = useRouter();
+  const { router } = useSafeRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -50,7 +50,7 @@ export default function NfcLoginForm({ uniqueId }: NfcLoginFormProps) {
         return;
       }
 
-      router.push(result.redirectTo);
+      await safeRouterPush(router, result.redirectTo);
     } catch (cause) {
       console.error("[NfcLoginForm]", cause);
       setError(
