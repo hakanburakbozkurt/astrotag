@@ -1,6 +1,6 @@
 "use client";
 
-import { useSafeRouter } from "@/lib/auth/safe-router-nav.client";
+import { clientRedirect } from "@/lib/auth/client-redirect.client";
 import { useState } from "react";
 import { LogOut } from "lucide-react";
 import { signOutNfcSessionAction } from "@/lib/actions/nfc-auth";
@@ -14,7 +14,6 @@ export default function SignOutButton({
   className = "",
   compact = false,
 }: SignOutButtonProps) {
-  const { safeReplace, isRouterReady } = useSafeRouter();
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const handleSignOut = async () => {
@@ -25,12 +24,7 @@ export default function SignOutButton({
     setIsSigningOut(true);
     try {
       await signOutNfcSessionAction();
-
-      if (isRouterReady) {
-        await safeReplace("/");
-      } else {
-        window.location.assign("/");
-      }
+      clientRedirect("/");
     } catch {
       setIsSigningOut(false);
     }

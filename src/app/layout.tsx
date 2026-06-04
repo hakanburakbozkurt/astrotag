@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { RouterReadyProvider } from "@/lib/auth/router-ready-context.client";
 import PwaRegister from "@/components/PwaRegister";
 import SecurityBootstrap from "@/components/SecurityBootstrap";
 import SessionActivityGuard from "@/components/SessionActivityGuard";
@@ -68,10 +69,12 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
       </head>
       <body className="flex min-h-dvh flex-col overflow-y-auto bg-[#070b14] text-white">
-        <PwaRegister />
-        <SecurityBootstrap />
-        <SessionActivityGuard />
-        {children}
+        <RouterReadyProvider>
+          <PwaRegister />
+          <SecurityBootstrap />
+          <SessionActivityGuard />
+          {children}
+        </RouterReadyProvider>
       </body>
     </html>
   );

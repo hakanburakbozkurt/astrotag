@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useSafeRouter } from "@/lib/auth/safe-router-nav.client";
+import { clientRedirect } from "@/lib/auth/client-redirect.client";
+import { useAppRouter } from "@/lib/auth/router-ready-context.client";
 import { motion } from "framer-motion";
 import Starfield from "@/components/Starfield";
 import ProfileCompleteForm from "@/components/profile/ProfileCompleteForm";
@@ -10,14 +11,14 @@ import { DASHBOARD_PATH, HOME_PATH } from "@/lib/nfc/constants";
 import { useUserProfile } from "@/lib/auth";
 
 export default function ProfileCompletePage() {
-  const { safeReplace, isRouterReady, isPending } = useSafeRouter();
+  const { isMounted, isPending } = useAppRouter();
   const { profileStatus, isLoading, userData, isAuthenticated } = useUserProfile();
   const [sessionChecked, setSessionChecked] = useState(false);
   const [sessionOk, setSessionOk] = useState(true);
   const redirectStartedRef = useRef(false);
 
   useEffect(() => {
-    if (!isRouterReady) {
+    if (!isMounted) {
       return;
     }
 
@@ -34,18 +35,18 @@ export default function ProfileCompletePage() {
 
       if (!session.authenticated && !redirectStartedRef.current) {
         redirectStartedRef.current = true;
-        await safeReplace(HOME_PATH);
+        clientRedirect(HOME_PATH);
       }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [isRouterReady, safeReplace]);
+  }, [isMounted]);
 
   useEffect(() => {
     if (
-      !isRouterReady ||
+      !isMounted ||
       !sessionChecked ||
       !sessionOk ||
       isLoading ||
@@ -57,17 +58,8 @@ export default function ProfileCompletePage() {
     }
 
     redirectStartedRef.current = true;
-
-    void safeReplace(DASHBOARD_PATH);
-  }, [
-    isRouterReady,
-    sessionChecked,
-    sessionOk,
-    isLoading,
-    profileStatus,
-    userData,
-    safeReplace,
-  ]);
+    clientRedirect(DASHBOARD_PATH);
+  }, [isMounted, sessionChecked, sessionOk, isLoading, profileStatus, userData]);
 
   const showRedirectShell =
     isPending ||

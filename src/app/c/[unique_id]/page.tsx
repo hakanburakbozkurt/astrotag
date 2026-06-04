@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
+import { clientRedirect } from "@/lib/auth/client-redirect.client";
+import { useAppRouter } from "@/lib/auth/router-ready-context.client";
 import { useSafeRouter } from "@/lib/auth/safe-router-nav.client";
 import AuthMobileShell from "@/components/auth/AuthMobileShell";
 import NfcLoginForm from "@/components/nfc/NfcLoginForm";
@@ -16,7 +18,8 @@ type EntryState = "loading" | "login" | "error";
 
 /** NFC okutma → oturum varsa panele; yoksa e-posta + şifre girişi */
 export default function NfcCardEntryPage() {
-  const { safeReplace, isRouterReady } = useSafeRouter();
+  const { isMounted } = useAppRouter();
+  const { safeReplace } = useSafeRouter();
   const params = useParams<{ unique_id: string }>();
   const uniqueId = params.unique_id
     ? normalizeNfcUniqueId(params.unique_id)
@@ -27,7 +30,7 @@ export default function NfcCardEntryPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!uniqueId || startedRef.current || !isRouterReady) {
+    if (!uniqueId || startedRef.current || !isMounted) {
       return;
     }
 
@@ -72,7 +75,7 @@ export default function NfcCardEntryPage() {
         setState("error");
       }
     })();
-  }, [uniqueId, isRouterReady, safeReplace]);
+  }, [uniqueId, isMounted]);
 
   if (state === "loading") {
     return (

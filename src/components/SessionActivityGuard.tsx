@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
-import { useSafeRouter } from "@/lib/auth/safe-router-nav.client";
+import { clientRedirect } from "@/lib/auth/client-redirect.client";
 import { endNfcSessionAction } from "@/lib/actions/nfc-auth";
 import {
   CARD_ENTRY_PREFIX,
@@ -36,7 +36,6 @@ function isGuardedPath(pathname: string): boolean {
  * 10 dk etkileşimsizlik veya 5 dk arka plan → oturumu sonlandır, ana sayfaya yönlendir.
  */
 export default function SessionActivityGuard() {
-  const { safeReplace, isRouterReady } = useSafeRouter();
   const pathname = usePathname();
   const lastActivityRef = useRef(Date.now());
   const hiddenAtRef = useRef<number | null>(null);
@@ -55,12 +54,8 @@ export default function SessionActivityGuard() {
       // Cookie temizliği başarısız olsa da ana sayfaya dön.
     }
 
-    if (!isRouterReady) {
-      return;
-    }
-
-    await safeReplace(HOME_PATH);
-  }, [isRouterReady, safeReplace]);
+    clientRedirect(HOME_PATH);
+  }, []);
 
   const bumpActivity = useCallback(() => {
     lastActivityRef.current = Date.now();

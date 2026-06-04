@@ -2,7 +2,6 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Starfield from "@/components/Starfield";
 import { useRequireAuth, useUserProfile } from "@/lib/auth";
@@ -42,7 +41,6 @@ function HorarySpinner() {
 
 export default function HoraryPage() {
   useRequireAuth();
-  const router = useRouter();
   const { userData, profileStatus, isLoading: profileLoading, error: profileError } =
     useUserProfile();
   const [question, setQuestion] = useState("");

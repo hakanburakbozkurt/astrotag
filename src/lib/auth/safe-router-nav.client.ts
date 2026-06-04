@@ -1,19 +1,13 @@
 "use client";
 
-import { startTransition, useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-
-type AppRouter = ReturnType<typeof useRouter>;
-
-let routerReadyResolve: (() => void) | null = null;
-const routerReadyPromise = new Promise<void>((resolve) => {
-  routerReadyResolve = resolve;
-});
+import { useCallback, useEffect, useRef, useState } from "react";
+import { clientRedirect } from "@/lib/auth/client-redirect.client";
+import { useAppRouter } from "@/lib/auth/router-ready-context.client";
 
 /**
  * App Router dispatch kuyruğu hazır olana kadar bekler (hydration race önler).
  */
-export function waitForAppRouterReady(minDelayMs = 120): Promise<void> {
+export function waitForAppRouterReady(minDelayMs = 200): Promise<void> {
   if (typeof window === "undefined") {
     return Promise.resolve();
   }
@@ -29,10 +23,7 @@ export function waitForAppRouterReady(minDelayMs = 120): Promise<void> {
       }
 
       requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          routerReadyResolve?.();
-          resolve();
-        });
+        requestAnimationFrame(() => resolve());
       });
     };
 
@@ -44,118 +35,66 @@ export function waitForAppRouterReady(minDelayMs = 120): Promise<void> {
   });
 }
 
-function hardNavigate(href: string): void {
-  window.location.assign(href);
+/**
+ * Otomatik yönlendirme (useEffect / guard) — asla router.push kullanmaz.
+ */
+export function redirectWhenReady(href: string): void {
+  void waitForAppRouterReady().then(() => {
+    clientRedirect(href);
+  });
 }
 
-async function runRouterNav(
-  router: AppRouter,
-  href: string,
-  mode: "push" | "replace"
-): Promise<void> {
-  await routerReadyPromise;
-  await waitForAppRouterReady();
-
-  let lastError: unknown;
-
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      await new Promise<void>((resolve, reject) => {
-        startTransition(() => {
-          try {
-            if (mode === "push") {
-              router.push(href);
-            } else {
-              router.replace(href);
-            }
-            resolve();
-          } catch (cause) {
-            reject(cause);
-          }
-        });
-      });
-      return;
-    } catch (cause) {
-      lastError = cause;
-      await waitForAppRouterReady(80 * (attempt + 1));
-    }
-  }
-
-  console.warn("[safeRouterNav] soft nav failed, hard redirect:", lastError);
-  hardNavigate(href);
-}
-
+/** @deprecated navigateAfterNfcAuth ile aynı — tam sayfa geçişi */
 export async function safeRouterPush(
-  router: AppRouter,
+  _router: unknown,
   href: string
 ): Promise<void> {
-  return runRouterNav(router, href, "push");
+  clientRedirect(href);
 }
 
 export async function safeRouterReplace(
-  router: AppRouter,
+  _router: unknown,
   href: string
 ): Promise<void> {
-  return runRouterNav(router, href, "replace");
+  clientRedirect(href);
 }
 
-/** Hydration sonrası güvenli router.push / replace */
+/**
+ * Context üzerinden güvenli navigasyon (useRouter burada çağrılmaz).
+ */
 export function useSafeRouter() {
-  const router = useRouter();
-  const [isRouterReady, setIsRouterReady] = useState(false);
+  const { push, replace, isMounted, isRouterReady, isPending } = useAppRouter();
   const [isNavigating, setIsNavigating] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    void waitForAppRouterReady().then(() => {
-      if (!cancelled) {
-        setIsRouterReady(true);
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const runSafeNav = useCallback(
+  const runNav = useCallback(
     async (href: string, mode: "push" | "replace") => {
-      if (!isRouterReady) {
-        await waitForAppRouterReady();
-      }
-
       setIsNavigating(true);
       try {
         if (mode === "push") {
-          await safeRouterPush(router, href);
+          await push(href);
         } else {
-          await safeRouterReplace(router, href);
+          await replace(href);
         }
       } finally {
         setIsNavigating(false);
       }
     },
-    [router, isRouterReady]
+    [push, replace]
   );
 
-  const safePush = useCallback(
-    (href: string) => runSafeNav(href, "push"),
-    [runSafeNav]
-  );
-
+  const safePush = useCallback((href: string) => runNav(href, "push"), [runNav]);
   const safeReplace = useCallback(
-    (href: string) => runSafeNav(href, "replace"),
-    [runSafeNav]
+    (href: string) => runNav(href, "replace"),
+    [runNav]
   );
 
   return {
-    router,
+    router: null,
     safePush,
     safeReplace,
+    isMounted,
     isRouterReady,
-    /** Router hazır değil veya yönlendirme sürüyor */
-    isPending: !isRouterReady || isNavigating,
+    isPending: isPending || isNavigating,
     isNavigating,
   };
 }
@@ -166,42 +105,26 @@ type RedirectWhenReadyOptions = {
 };
 
 /**
- * Koşul sağlandığında ve router hazır olduğunda tek seferlik yönlendirme.
+ * İlk yüklemede tek seferlik tam sayfa yönlendirme (router.push yok).
  */
 export function useRedirectWhenReady(
   href: string,
   shouldRedirect: boolean,
   options?: RedirectWhenReadyOptions
 ): { isRedirecting: boolean } {
-  const { safePush, safeReplace, isRouterReady, isNavigating } = useSafeRouter();
   const redirectedRef = useRef(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const enabled = options?.enabled ?? true;
 
   useEffect(() => {
-    if (!enabled || !shouldRedirect || !isRouterReady || redirectedRef.current) {
+    if (!enabled || !shouldRedirect || redirectedRef.current) {
       return;
     }
 
     redirectedRef.current = true;
     setIsRedirecting(true);
+    redirectWhenReady(href);
+  }, [enabled, shouldRedirect, href]);
 
-    const navigate = options?.replace ? safeReplace : safePush;
-
-    void navigate(href).finally(() => {
-      setIsRedirecting(false);
-    });
-  }, [
-    enabled,
-    shouldRedirect,
-    isRouterReady,
-    href,
-    safePush,
-    safeReplace,
-    options?.replace,
-  ]);
-
-  return {
-    isRedirecting: isRedirecting || isNavigating || (shouldRedirect && !isRouterReady),
-  };
+  return { isRedirecting };
 }
