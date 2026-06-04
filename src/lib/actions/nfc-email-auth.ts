@@ -32,7 +32,9 @@ import {
   authErrorMessage,
   logNfcAuthSupabaseError,
   logNfcAuthTrace,
+  logRawAuthErrorDetail,
 } from "@/lib/auth/nfc-auth-debug";
+import { logSupabasePublicEnvCheck } from "@/lib/supabase/public-env";
 import { logNfcError } from "@/lib/nfc/error-logger";
 import { withNfcAction } from "@/lib/nfc/with-nfc-action.server";
 
@@ -154,11 +156,13 @@ export async function startNfcEmailAuthAction(params: {
   | { success: true; redirectTo: string; skipOtp?: boolean }
   | { success: false; error: string }
 > {
-  return withNfcAction("startNfcEmailAuthAction", async () => {
+  try {
+    return await withNfcAction("startNfcEmailAuthAction", async () => {
     logNfcAuthTrace("Tetiklendi", {
       handler: "startNfcEmailAuthAction",
       uniqueId: params.uniqueId,
     });
+    logSupabasePublicEnvCheck("startNfcEmailAuthAction");
 
     const normalizedEmail = params.email.trim().toLowerCase();
     const passwordError = validatePasswordPair(
@@ -273,7 +277,8 @@ export async function startNfcEmailAuthAction(params: {
     const { error: otpError } = await supabase.auth.signInWithOtp({
       email: normalizedEmail,
       options: {
-        shouldCreateUser: false,
+        // signUp sonrası kullanıcı zaten var; OTP yine gönderilir
+        shouldCreateUser: true,
         emailRedirectTo: `${SITE_URL}${AUTH_CALLBACK_PATH}`,
       },
     });
@@ -305,7 +310,22 @@ export async function startNfcEmailAuthAction(params: {
       success: true,
       redirectTo: buildVerifyOtpUrl(normalizedEmail, params.uniqueId),
     };
-  });
+    });
+  } catch (error) {
+    logNfcAuthTrace("Hata yakalandı", {
+      handler: "startNfcEmailAuthAction",
+      layer: "catch",
+    });
+    logRawAuthErrorDetail(error);
+    logNfcAuthSupabaseError("startNfcEmailAuthAction/catch", error, {
+      uniqueId: params.uniqueId,
+    });
+    const detail =
+      error instanceof Error
+        ? error.message
+        : authErrorMessage(error, "Kayıt işlemi başarısız.");
+    return { success: false, error: detail };
+  }
 }
 
 export async function resendNfcOtpAction(

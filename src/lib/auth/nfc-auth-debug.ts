@@ -50,6 +50,27 @@ export function logNfcAuthTrace(
   console.log(`NFC_AUTH: ${step}${suffix}`);
 }
 
+/** AuthApiError / AuthSessionMissingError — status, message, name */
+export function logRawAuthErrorDetail(error: unknown): void {
+  if (error && typeof error === "object") {
+    const record = error as {
+      status?: unknown;
+      message?: unknown;
+      name?: unknown;
+    };
+    console.error(
+      "RAW_ERROR_DETAIL:",
+      record.status,
+      record.message,
+      record.name
+    );
+    console.error(JSON.stringify(error, null, 2));
+    return;
+  }
+
+  console.error("RAW_ERROR_DETAIL:", error);
+}
+
 /** Supabase auth hatası — terminal + tarayıcı (client'tan çağrılırsa) */
 export function logNfcAuthSupabaseError(
   step: string,
@@ -59,6 +80,7 @@ export function logNfcAuthSupabaseError(
   const payload = serializeSupabaseAuthError(error);
 
   console.error(`NFC_AUTH: Hata yakalandı — ${step}`);
+  logRawAuthErrorDetail(error);
   console.error(JSON.stringify(payload, null, 2));
 
   if (context && Object.keys(context).length > 0) {
