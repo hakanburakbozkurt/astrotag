@@ -1,109 +1,26 @@
-"use client";
-
-import { useEffect, useRef, useState } from "react";
-import { useParams } from "next/navigation";
-import { useAppRouter } from "@/lib/auth/router-ready-context.client";
-import { useSafeRouter } from "@/lib/auth/safe-router-nav.client";
-import AuthMobileShell from "@/components/auth/AuthMobileShell";
-import { checkNfcAutoLoginAction } from "@/lib/actions/nfc-email-auth";
+import { redirect } from "next/navigation";
 import { nfcAuthSignupPath } from "@/lib/nfc/auth-paths";
-import { confirmStorageAccessAction } from "@/lib/actions/nfc-auth";
-import { isPrivateBrowsingMode } from "@/lib/nfc/private-mode";
-import { AUTH_MSG_CARD_NOT_ACTIVE, HOME_PATH, PRIVATE_MODE_PATH } from "@/lib/nfc/constants";
+import { AUTH_MSG_CARD_NOT_ACTIVE } from "@/lib/nfc/constants";
+import { resolveNfcCardForAuth } from "@/lib/nfc/session.server";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
-import { navigateAfterNfcAuth } from "@/lib/nfc/post-auth-nav.client";
+import NfcCardEntryClient from "@/app/c/[unique_id]/NfcCardEntryClient";
 
-type EntryState = "loading" | "error";
+type PageProps = {
+  params: Promise<{ unique_id: string }>;
+};
 
-/** NFC okutma → oturum varsa panele; yoksa e-posta + şifre girişi */
-export default function NfcCardEntryPage() {
-  const { isMounted } = useAppRouter();
-  const { safeReplace } = useSafeRouter();
-  const params = useParams<{ unique_id: string }>();
-  const uniqueId = params.unique_id
-    ? normalizeNfcUniqueId(params.unique_id)
-    : undefined;
-  const startedRef = useRef(false);
+/** NFC okutma — pasif kartta sunucu redirect; aktif kartta istemci akışı */
+export default async function NfcCardEntryPage({ params }: PageProps) {
+  const { unique_id: rawId } = await params;
+  const uniqueId = normalizeNfcUniqueId(rawId);
 
-  const [state, setState] = useState<EntryState>("loading");
-  const [error, setError] = useState<string | null>(null);
+  const card = await resolveNfcCardForAuth(uniqueId);
 
-  useEffect(() => {
-    if (!uniqueId || startedRef.current || !isMounted) {
-      return;
-    }
-
-    startedRef.current = true;
-
-    void (async () => {
-      try {
-        if (await isPrivateBrowsingMode()) {
-          await safeReplace(PRIVATE_MODE_PATH);
-          return;
-        }
-
-        await confirmStorageAccessAction();
-
-        const result = await checkNfcAutoLoginAction(uniqueId, {
-          screenWidth: window.screen.width,
-          screenHeight: window.screen.height,
-          userAgent: navigator.userAgent,
-        });
-
-        if (result.status === "logged_in") {
-          navigateAfterNfcAuth(result.redirectTo);
-          return;
-        }
-
-        if (result.status === "auth_required") {
-          await safeReplace(
-            nfcAuthSignupPath(
-              uniqueId,
-              result.cardInactive
-                ? { msg: AUTH_MSG_CARD_NOT_ACTIVE }
-                : undefined
-            )
-          );
-          return;
-        }
-
-        setError(result.error);
-        setState("error");
-      } catch (cause) {
-        console.error("[NfcCardEntry] client catch:", cause);
-        const detail =
-          cause instanceof Error ? cause.message : String(cause);
-        setError(
-          process.env.NODE_ENV === "development"
-            ? `Bağlantı kurulamadı: ${detail}`
-            : "Bağlantı kurulamadı. Lütfen tekrar deneyin."
-        );
-        setState("error");
-      }
-    })();
-  }, [uniqueId, isMounted, safeReplace]);
-
-  if (state === "loading") {
-    return (
-      <AuthMobileShell title="Hoş geldin" subtitle="Kartınız doğrulanıyor...">
-        <div className="h-14 animate-pulse rounded-2xl bg-white/10" />
-      </AuthMobileShell>
+  if (card.ok && !card.isActive) {
+    redirect(
+      nfcAuthSignupPath(uniqueId, { msg: AUTH_MSG_CARD_NOT_ACTIVE })
     );
   }
 
-  if (state === "error") {
-    return (
-      <AuthMobileShell title="Hata" subtitle={error ?? "Bilinmeyen hata"}>
-        <button
-          type="button"
-          onClick={() => void safeReplace(HOME_PATH)}
-          className="flex min-h-[48px] w-full items-center justify-center rounded-2xl border border-white/15 text-xs uppercase tracking-widest text-white/60"
-        >
-          Ana sayfa
-        </button>
-      </AuthMobileShell>
-    );
-  }
-
-  return null;
+  return <NfcCardEntryClient uniqueId={uniqueId} />;
 }

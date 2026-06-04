@@ -29,3 +29,10 @@ export function nfcAuthSignupPath(uniqueId: string, query?: AuthPathQuery): stri
 export function nfcAuthLoginPath(uniqueId: string, query?: AuthPathQuery): string {
   return `${AUTH_LOGIN_PATH}?${buildAuthQuery(uniqueId, query)}`;
 }
+
+/** URL'de NFC kart kimliği var mı (signup/login döngüsünü önlemek için) */
+export function hasNfcQueryParam(
+  searchParams: URLSearchParams | { get(name: string): string | null }
+): boolean {
+  return Boolean(searchParams.get("nfc")?.trim());
+}

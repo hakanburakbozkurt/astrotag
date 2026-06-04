@@ -114,14 +114,18 @@ export function isProtectedPath(pathname: string): boolean {
   );
 }
 
-function isAuthPublicPath(pathname: string): boolean {
+/** Kayıt / giriş / OTP — URL'deki ?nfc= ile çalışır; /c/ rotasına yönlendirilmez */
+function isAuthFormPath(pathname: string): boolean {
   return (
-    isCardEntryPath(pathname) ||
-    isPublicProfilePath(pathname) ||
-    pathname === VERIFY_OTP_PATH ||
     pathname === AUTH_SIGNUP_PATH ||
-    pathname === AUTH_LOGIN_PATH
+    pathname === AUTH_LOGIN_PATH ||
+    pathname === VERIFY_OTP_PATH
   );
+}
+
+/** Yalnızca /c/ ve /p/ — kart is_active middleware kontrolü */
+function isNfcCardRoutePath(pathname: string): boolean {
+  return isCardEntryPath(pathname) || isPublicProfilePath(pathname);
 }
 
 export function shouldRedirectUnknownToHome(pathname: string): boolean {
@@ -129,7 +133,7 @@ export function shouldRedirectUnknownToHome(pathname: string): boolean {
     return false;
   }
 
-  if (isAuthPublicPath(pathname) || isWarningPath(pathname)) {
+  if (isNfcCardRoutePath(pathname) || isAuthFormPath(pathname) || isWarningPath(pathname)) {
     return false;
   }
 
@@ -275,7 +279,11 @@ export async function runSecurityGate(
       return deny;
     }
 
-    if (isAuthPublicPath(pathname)) {
+    if (isAuthFormPath(pathname)) {
+      return { allowed: true };
+    }
+
+    if (isNfcCardRoutePath(pathname)) {
       const prefix = isCardEntryPath(pathname)
         ? CARD_ENTRY_PREFIX
         : PUBLIC_PROFILE_PREFIX;

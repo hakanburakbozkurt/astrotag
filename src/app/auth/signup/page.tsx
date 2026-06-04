@@ -1,18 +1,18 @@
-"use client";
-
 import { Suspense } from "react";
 import AuthMobileShell from "@/components/auth/AuthMobileShell";
 import NfcSignupForm from "@/components/nfc/NfcSignupForm";
 
-function SignupContent() {
-  return (
-    <div className="rounded-[28px] border border-white/10 bg-[#0f172a]/90 p-6 backdrop-blur-xl sm:p-8">
-      <NfcSignupForm />
-    </div>
-  );
-}
+type PageProps = {
+  searchParams: Promise<{ nfc?: string; msg?: string }>;
+};
 
-export default function AuthSignupPage() {
+/**
+ * Kayıt sayfası — NFC akışı yalnızca ?nfc= query ile bağlanır.
+ * Bu sayfa /c/ rotasına geri yönlendirme yapmaz (döngü önlenir).
+ */
+export default async function AuthSignupPage({ searchParams }: PageProps) {
+  await searchParams;
+
   return (
     <AuthMobileShell
       title="Kayıt Ol"
@@ -23,7 +23,9 @@ export default function AuthSignupPage() {
           <div className="h-40 animate-pulse rounded-2xl bg-white/10" />
         }
       >
-        <SignupContent />
+        <div className="rounded-[28px] border border-white/10 bg-[#0f172a]/90 p-6 backdrop-blur-xl sm:p-8">
+          <NfcSignupForm />
+        </div>
       </Suspense>
     </AuthMobileShell>
   );
