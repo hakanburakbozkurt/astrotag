@@ -9,7 +9,9 @@ type PageProps = {
 };
 
 export default async function PublicNfcProfilePage({ params }: PageProps) {
-  const { unique_id: uniqueId } = await params;
+  const { unique_id: rawId } = await params;
+  const { normalizeNfcUniqueId } = await import("@/lib/nfc/unique-id");
+  const uniqueId = normalizeNfcUniqueId(rawId);
   const result = await getPublicProfileByUniqueId(uniqueId);
 
   return (

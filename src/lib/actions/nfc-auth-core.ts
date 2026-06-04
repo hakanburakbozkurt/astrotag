@@ -2,9 +2,9 @@
 
 import { randomUUID } from "crypto";
 import { STARTING_ENERGY } from "@/lib/constants/cosmic";
+import { nfcCardValidationErrorMessage } from "@/lib/nfc/card-validation-messages";
 import {
   DASHBOARD_PATH,
-  NFC_CARD_INACTIVE_MESSAGE,
   NFC_CARD_OWNED_BY_OTHER_MESSAGE,
   PROFILE_COMPLETE_PATH,
 } from "@/lib/nfc/constants";
@@ -80,7 +80,10 @@ export async function pairNfcCardAndCreateSession(params: {
 > {
   const card = await validateNfcCardActive(params.uniqueId);
   if (!card.ok) {
-    return { success: false, error: NFC_CARD_INACTIVE_MESSAGE };
+    return {
+      success: false,
+      error: nfcCardValidationErrorMessage(card.reason),
+    };
   }
 
   if (

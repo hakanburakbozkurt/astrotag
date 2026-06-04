@@ -12,6 +12,8 @@ import {
   NFC_SESSION_TTL_MINUTES,
 } from "@/lib/nfc/constants";
 import { isValidFingerprintHash } from "@/lib/nfc/fingerprint.server";
+import { logNfcError, logNfcEvent } from "@/lib/nfc/error-logger";
+import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 
 export type NfcSessionRecord = {
   sessionId: string;
@@ -190,18 +192,49 @@ export type NfcCardActive = {
   ownerId: string | null;
 };
 
+export type NfcCardValidationFailure = {
+  ok: false;
+  reason: "config_error" | "db_error" | "not_found" | "inactive";
+};
+
 export async function validateNfcCardActive(
   uniqueId: string
-): Promise<{ ok: true } & NfcCardActive | { ok: false }> {
-  const supabase = createSupabaseServiceClient();
+): Promise<
+  ({ ok: true } & NfcCardActive) | NfcCardValidationFailure
+> {
+  const ctx = { layer: "action" as const, handler: "validateNfcCardActive" };
+  const normalizedId = normalizeNfcUniqueId(uniqueId);
+
+  let supabase;
+  try {
+    supabase = createSupabaseServiceClient();
+  } catch (error) {
+    logNfcError(ctx, error, { uniqueId: normalizedId, step: "service_client" });
+    return { ok: false, reason: "config_error" };
+  }
+
   const { data, error } = await supabase
     .from("nfc_cards")
     .select("id, is_active, profile_id, is_claimed, owner_id")
-    .eq("unique_id", uniqueId.trim())
+    .eq("unique_id", normalizedId)
     .maybeSingle();
 
-  if (error || !data?.is_active) {
-    return { ok: false };
+  if (error) {
+    logNfcError(ctx, error, { uniqueId: normalizedId, step: "nfc_cards.select" });
+    return { ok: false, reason: "db_error" };
+  }
+
+  if (!data) {
+    logNfcEvent("warn", ctx, "NFC kartı bulunamadı", { uniqueId: normalizedId });
+    return { ok: false, reason: "not_found" };
+  }
+
+  if (!data.is_active) {
+    logNfcEvent("warn", ctx, "NFC kartı pasif", {
+      uniqueId: normalizedId,
+      nfcId: data.id,
+    });
+    return { ok: false, reason: "inactive" };
   }
 
   return {

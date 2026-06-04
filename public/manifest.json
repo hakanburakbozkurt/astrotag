@@ -3,8 +3,8 @@
   "name": "AstroTag",
   "short_name": "AstroTag",
   "description": "NFC anahtarlığınızla Zero-Click kozmik danışmanlık",
-  "start_url": "https://astrotag.vercel.app/",
-  "scope": "https://astrotag.vercel.app/",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui", "browser"],
   "orientation": "portrait-primary",
@@ -33,7 +33,7 @@
     {
       "name": "Ana Sayfa",
       "short_name": "Ana Sayfa",
-      "url": "https://astrotag.vercel.app/",
+      "url": "/",
       "description": "AstroTag karşılama ekranı"
     }
   ],

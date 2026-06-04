@@ -3,7 +3,9 @@
 import { redirect } from "next/navigation";
 import { STARTING_ENERGY } from "@/lib/constants/cosmic";
 import { HOME_PATH } from "@/lib/nfc/constants";
+import { logNfcError } from "@/lib/nfc/error-logger";
 import { requireProtectedNfcAccess } from "@/lib/nfc/protected-access.server";
+import { withNfcAction } from "@/lib/nfc/with-nfc-action.server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import type { UserData } from "@/types/user";
 
@@ -18,6 +20,7 @@ export type CompleteProfileInput = {
 export async function completeUserProfile(
   input: CompleteProfileInput
 ): Promise<{ success: true; profile: UserData } | { success: false; error: string }> {
+  return withNfcAction("completeUserProfile", async () => {
   let profileId: string;
 
   try {
@@ -34,7 +37,14 @@ export async function completeUserProfile(
     return { success: false, error: "Tüm profil alanları zorunludur." };
   }
 
-  const supabase = createSupabaseServiceClient();
+  let supabase;
+  try {
+    supabase = createSupabaseServiceClient();
+  } catch (error) {
+    logNfcError({ layer: "action", handler: "completeUserProfile" }, error);
+    return { success: false, error: "Profil kaydedilemedi." };
+  }
+
   const { error } = await supabase
     .from("profiles")
     .update({
@@ -47,7 +57,11 @@ export async function completeUserProfile(
     .eq("id", profileId);
 
   if (error) {
-    console.error("PROFILE_COMPLETE_ERROR:", error.message);
+    logNfcError(
+      { layer: "action", handler: "completeUserProfile" },
+      error,
+      { profileId, step: "profiles.update" }
+    );
     return { success: false, error: "Profil kaydedilemedi." };
   }
 
@@ -79,4 +93,5 @@ export async function completeUserProfile(
   };
 
   return { success: true, profile };
+  });
 }

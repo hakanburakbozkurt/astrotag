@@ -1,7 +1,7 @@
 import "server-only";
 
 import { NFC_CARD_OWNED_BY_OTHER_MESSAGE } from "@/lib/nfc/constants";
-import { logNfcErrorAndThrow, toError } from "@/lib/nfc/error-logger";
+import { logNfcError, logNfcErrorAndThrow, toError } from "@/lib/nfc/error-logger";
 import { throwIfSupabaseError } from "@/lib/nfc/supabase-nfc.server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 
@@ -40,7 +40,13 @@ export async function claimNfcCard(
   nfcCardUuid: string,
   ownerId: string
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const supabase = createSupabaseServiceClient();
+  let supabase;
+  try {
+    supabase = createSupabaseServiceClient();
+  } catch (error) {
+    logNfcError(CLAIM_CTX, error, { nfcCardUuid, step: "service_client" });
+    return { ok: false, error: "Sunucu yapılandırması eksik." };
+  }
 
   const { data: card, error: fetchError } = await supabase
     .from("nfc_cards")

@@ -8,6 +8,7 @@ import { checkNfcAutoLoginAction } from "@/lib/actions/nfc-email-auth";
 import { confirmStorageAccessAction } from "@/lib/actions/nfc-auth";
 import { isPrivateBrowsingMode } from "@/lib/nfc/private-mode";
 import { HOME_PATH, PRIVATE_MODE_PATH } from "@/lib/nfc/constants";
+import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 import { navigateAfterNfcAuth } from "@/lib/nfc/post-auth-nav.client";
 
 type EntryState = "loading" | "login" | "error";
@@ -16,7 +17,9 @@ type EntryState = "loading" | "login" | "error";
 export default function NfcCardEntryPage() {
   const router = useRouter();
   const params = useParams<{ unique_id: string }>();
-  const uniqueId = params.unique_id;
+  const uniqueId = params.unique_id
+    ? normalizeNfcUniqueId(params.unique_id)
+    : undefined;
   const startedRef = useRef(false);
 
   const [state, setState] = useState<EntryState>("loading");
@@ -57,8 +60,14 @@ export default function NfcCardEntryPage() {
         setError(result.error);
         setState("error");
       } catch (cause) {
-        console.error("[NfcCardEntry]", cause);
-        setError("Bağlantı kurulamadı. Lütfen tekrar deneyin.");
+        console.error("[NfcCardEntry] client catch:", cause);
+        const detail =
+          cause instanceof Error ? cause.message : String(cause);
+        setError(
+          process.env.NODE_ENV === "development"
+            ? `Bağlantı kurulamadı: ${detail}`
+            : "Bağlantı kurulamadı. Lütfen tekrar deneyin."
+        );
         setState("error");
       }
     })();

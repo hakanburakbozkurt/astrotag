@@ -1,4 +1,5 @@
-export const SITE_URL = "https://astrotag.vercel.app";
+export const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://astrotag.app";
 
 export const HOME_PATH = "/";
 
@@ -30,7 +31,9 @@ export const PUBLIC_PROFILE_PREFIX = "/p";
 export const WELCOME_IMAGE_PATH = "/image_485027.png";
 
 export const NFC_SHOP_URL =
-  process.env.NEXT_PUBLIC_NFC_SHOP_URL ?? "https://astrotag.vercel.app";
+  process.env.NEXT_PUBLIC_NFC_SHOP_URL ?? "https://astrotag.app";
+
+export const SITE_HOST = "astrotag.app";
 
 export const VERIFY_OTP_PATH = "/verify-otp";
 

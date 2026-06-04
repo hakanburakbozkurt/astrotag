@@ -13,7 +13,6 @@ import {
   tryResumeNfcSessionForUser,
 } from "@/lib/actions/nfc-auth-core";
 import {
-  NFC_CARD_INACTIVE_MESSAGE,
   NFC_CARD_OWNED_BY_OTHER_MESSAGE,
   VERIFY_OTP_PATH,
 } from "@/lib/nfc/constants";
@@ -23,6 +22,8 @@ import {
   setPendingNfcCardCookie,
 } from "@/lib/nfc/device-cookies.server";
 import { canBindClaimedCard } from "@/lib/nfc/nfc-ownership.server";
+import { nfcCardValidationErrorMessage } from "@/lib/nfc/card-validation-messages";
+import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 import { validateNfcCardActive } from "@/lib/nfc/session.server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { logNfcError } from "@/lib/nfc/error-logger";
@@ -53,46 +54,84 @@ export async function checkNfcAutoLoginAction(
   | { status: "auth_required" }
   | { status: "error"; error: string }
 > {
-  return withNfcAction("checkNfcAutoLoginAction", async () => {
-    const card = await validateNfcCardActive(uniqueId);
-    if (!card.ok) {
-      return { status: "error", error: NFC_CARD_INACTIVE_MESSAGE };
-    }
+  const normalizedId = normalizeNfcUniqueId(uniqueId);
+  const handler = "checkNfcAutoLoginAction";
 
-    const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+  try {
+    return await withNfcAction(handler, async () => {
+      const card = await validateNfcCardActive(normalizedId);
+      if (!card.ok) {
+        return {
+          status: "error",
+          error: nfcCardValidationErrorMessage(card.reason),
+        };
+      }
 
-    if (!user?.id) {
-      return { status: "auth_required" };
-    }
+      const supabase = await createServerSupabaseClient();
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
 
-    if (
-      card.isClaimed &&
-      card.ownerId &&
-      !canBindClaimedCard(card.isClaimed, card.ownerId, user.id)
-    ) {
-      return { status: "error", error: NFC_CARD_OWNED_BY_OTHER_MESSAGE };
-    }
+      if (userError) {
+        logNfcError(
+          { layer: "action", handler },
+          userError,
+          { uniqueId: normalizedId, step: "auth.getUser" }
+        );
+        return { status: "auth_required" };
+      }
 
-    const resumed = await tryResumeNfcSessionForUser({
-      uniqueId,
-      nfcCardUuid: card.nfcId,
-      profileId: card.profileId,
-      userId: user.id,
-      device,
+      if (!user?.id) {
+        return { status: "auth_required" };
+      }
+
+      if (
+        card.isClaimed &&
+        card.ownerId &&
+        !canBindClaimedCard(card.isClaimed, card.ownerId, user.id)
+      ) {
+        return { status: "error", error: NFC_CARD_OWNED_BY_OTHER_MESSAGE };
+      }
+
+      try {
+        const resumed = await tryResumeNfcSessionForUser({
+          uniqueId: normalizedId,
+          nfcCardUuid: card.nfcId,
+          profileId: card.profileId,
+          userId: user.id,
+          device,
+        });
+
+        if (!resumed.ok) {
+          return { status: "auth_required" };
+        }
+
+        await clearPendingNfcCardCookie();
+        await clearAuthPendingCookie();
+
+        return { status: "logged_in", redirectTo: resumed.redirectTo };
+      } catch (resumeError) {
+        logNfcError(
+          { layer: "action", handler },
+          resumeError,
+          { uniqueId: normalizedId, step: "tryResumeNfcSessionForUser" }
+        );
+        return { status: "auth_required" };
+      }
     });
-
-    if (!resumed.ok) {
-      return { status: "auth_required" };
-    }
-
-    await clearPendingNfcCardCookie();
-    await clearAuthPendingCookie();
-
-    return { status: "logged_in", redirectTo: resumed.redirectTo };
-  });
+  } catch (error) {
+    logNfcError({ layer: "action", handler }, error, { uniqueId: normalizedId });
+    const detail =
+      error instanceof Error ? error.message : "Bilinmeyen sunucu hatası";
+    return {
+      status: "error",
+      error:
+        process.env.NODE_ENV === "development"
+          ? `Bağlantı kurulamadı: ${detail}`
+          : "Bağlantı kurulamadı. Lütfen tekrar deneyin.",
+    };
+  }
 }
 
 /**
@@ -125,7 +164,10 @@ export async function startNfcEmailAuthAction(params: {
 
     const card = await validateNfcCardActive(params.uniqueId);
     if (!card.ok) {
-      return { success: false, error: NFC_CARD_INACTIVE_MESSAGE };
+      return {
+        success: false,
+        error: nfcCardValidationErrorMessage(card.reason),
+      };
     }
 
     await setPendingNfcCardCookie(params.uniqueId);
@@ -225,7 +267,10 @@ export async function resendNfcOtpAction(
 
     const card = await validateNfcCardActive(uniqueId);
     if (!card.ok) {
-      return { success: false, error: NFC_CARD_INACTIVE_MESSAGE };
+      return {
+        success: false,
+        error: nfcCardValidationErrorMessage(card.reason),
+      };
     }
 
     const supabase = await createServerSupabaseClient();
@@ -267,7 +312,10 @@ export async function verifyNfcOtpAndEnterAction(params: {
 
     const card = await validateNfcCardActive(params.uniqueId);
     if (!card.ok) {
-      return { success: false, error: NFC_CARD_INACTIVE_MESSAGE };
+      return {
+        success: false,
+        error: nfcCardValidationErrorMessage(card.reason),
+      };
     }
 
     await setPendingNfcCardCookie(params.uniqueId);

@@ -12,7 +12,7 @@ export {
 
 export { signOutNfcAction } from "@/lib/actions/nfc-auth-signout";
 
-import { NFC_CARD_INACTIVE_MESSAGE } from "@/lib/nfc/constants";
+import { nfcCardValidationErrorMessage } from "@/lib/nfc/card-validation-messages";
 import { publicProfilePathForUniqueId } from "@/lib/nfc/card-paths";
 import { clearPendingNfcCardCookie } from "@/lib/nfc/device-cookies.server";
 import { validateNfcCardActive } from "@/lib/nfc/session.server";
@@ -37,7 +37,10 @@ export async function resolveNfcEntryAction(
 
     const card = await validateNfcCardActive(uniqueId);
     if (!card.ok) {
-      return { status: "error", error: NFC_CARD_INACTIVE_MESSAGE };
+      return {
+        status: "error",
+        error: nfcCardValidationErrorMessage(card.reason),
+      };
     }
 
     await clearPendingNfcCardCookie();
