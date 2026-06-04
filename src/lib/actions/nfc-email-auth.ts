@@ -31,9 +31,9 @@ import { validateNfcCardActive } from "@/lib/nfc/session.server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import {
   authErrorMessage,
+  logNfcActionCriticalCatch,
   logNfcAuthSupabaseError,
   logNfcAuthTrace,
-  logRawAuthErrorDetail,
 } from "@/lib/auth/nfc-auth-debug";
 import { logSupabasePublicEnvCheck } from "@/lib/supabase/public-env";
 import { authEmailExists } from "@/lib/auth/auth-email-exists.server";
@@ -146,6 +146,10 @@ export async function checkNfcAutoLoginAction(
 
         return { status: "logged_in", redirectTo: resumed.redirectTo };
       } catch (resumeError) {
+        logNfcActionCriticalCatch(
+          `${handler}/tryResumeNfcSessionForUser`,
+          resumeError
+        );
         logNfcError(
           { layer: "action", handler },
           resumeError,
@@ -155,6 +159,7 @@ export async function checkNfcAutoLoginAction(
       }
     });
   } catch (error) {
+    logNfcActionCriticalCatch(handler, error);
     logNfcError({ layer: "action", handler }, error, { uniqueId: normalizedId });
     const detail =
       error instanceof Error ? error.message : "Bilinmeyen sunucu hatası";
@@ -309,7 +314,7 @@ export async function startNfcSignupAction(params: {
       };
     });
   } catch (error) {
-    logRawAuthErrorDetail(error);
+    logNfcActionCriticalCatch("startNfcSignupAction/catch", error);
     const detail =
       error instanceof Error
         ? error.message
@@ -426,7 +431,7 @@ export async function startNfcLoginAction(params: {
       };
     });
   } catch (error) {
-    logRawAuthErrorDetail(error);
+    logNfcActionCriticalCatch("startNfcLoginAction/catch", error);
     const detail =
       error instanceof Error
         ? error.message

@@ -71,6 +71,15 @@ export function logRawAuthErrorDetail(error: unknown): void {
   console.error("RAW_ERROR_DETAIL:", error);
 }
 
+/**
+ * Server action dış catch — stack trace dahil tam hata dökümü (Vercel / terminal).
+ */
+export function logNfcActionCriticalCatch(handler: string, error: unknown): void {
+  console.error(`[NFC_DEBUG_CRITICAL]: ${handler} hatası:`, error);
+  console.error(error);
+  logRawAuthErrorDetail(error);
+}
+
 /** Supabase auth hatası — terminal + tarayıcı (client'tan çağrılırsa) */
 export function logNfcAuthSupabaseError(
   step: string,
