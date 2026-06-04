@@ -6,7 +6,10 @@ import {
   logNfcAuthSupabaseError,
   logNfcAuthTrace,
 } from "@/lib/auth/nfc-auth-debug";
-import { startNfcEmailAuthAction } from "@/lib/actions/nfc-email-auth";
+import {
+  startNfcEmailAuthAction,
+  type NfcEmailAuthMode,
+} from "@/lib/actions/nfc-email-auth";
 import { navigateAfterNfcAuth } from "@/lib/nfc/post-auth-nav.client";
 import {
   authInputClassName,
@@ -24,12 +27,15 @@ type AuthToast = {
 
 export default function NfcLoginForm({ uniqueId }: NfcLoginFormProps) {
   const { safePush, isRouterReady, isPending: routerPending } = useSafeRouter();
+  const [mode, setMode] = useState<NfcEmailAuthMode>("signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const isPending = loading || routerPending;
   const [toast, setToast] = useState<AuthToast | null>(null);
+
+  const isSignup = mode === "signup";
 
   const showToast = useCallback((message: string, variant: AuthToast["variant"] = "error") => {
     setToast({ message, variant });
@@ -44,19 +50,32 @@ export default function NfcLoginForm({ uniqueId }: NfcLoginFormProps) {
     return () => window.clearTimeout(timer);
   }, [toast]);
 
+  function switchMode(next: NfcEmailAuthMode) {
+    setMode(next);
+    setToast(null);
+    if (next === "login") {
+      setConfirmPassword("");
+    }
+  }
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setLoading(true);
     setToast(null);
 
-    logNfcAuthTrace("Tetiklendi", { source: "NfcLoginForm.submit", uniqueId });
+    logNfcAuthTrace("Tetiklendi", {
+      source: "NfcLoginForm.submit",
+      uniqueId,
+      mode,
+    });
 
     try {
       const result = await startNfcEmailAuthAction({
         email,
         password,
-        confirmPassword,
+        confirmPassword: isSignup ? confirmPassword : password,
         uniqueId,
+        mode,
         device: {
           screenWidth: window.screen.width,
           screenHeight: window.screen.height,
@@ -65,10 +84,18 @@ export default function NfcLoginForm({ uniqueId }: NfcLoginFormProps) {
       });
 
       if (!result.success) {
-        logNfcAuthTrace("Hata yakalandı", { source: "NfcLoginForm", uniqueId });
+        logNfcAuthTrace("Hata yakalandı", { source: "NfcLoginForm", uniqueId, mode });
+
+        if (result.switchToLogin) {
+          setMode("login");
+          showToast(result.error, "info");
+          setLoading(false);
+          return;
+        }
+
         console.error(
           "NFC_AUTH: [NfcLoginForm] action başarısız",
-          JSON.stringify({ error: result.error }, null, 2)
+          JSON.stringify({ error: result.error, mode }, null, 2)
         );
         showToast(result.error);
         setLoading(false);
@@ -78,6 +105,7 @@ export default function NfcLoginForm({ uniqueId }: NfcLoginFormProps) {
       logNfcAuthTrace("submit başarılı", {
         source: "NfcLoginForm",
         skipOtp: Boolean(result.skipOtp),
+        mode,
       });
 
       if (result.skipOtp) {
@@ -91,7 +119,7 @@ export default function NfcLoginForm({ uniqueId }: NfcLoginFormProps) {
 
       await safePush(result.redirectTo);
     } catch (cause) {
-      logNfcAuthTrace("Hata yakalandı", { source: "NfcLoginForm.catch", uniqueId });
+      logNfcAuthTrace("Hata yakalandı", { source: "NfcLoginForm.catch", uniqueId, mode });
       logNfcAuthSupabaseError("NfcLoginForm.catch", cause, { uniqueId });
       const message =
         cause instanceof Error ? cause.message : "İşlem tamamlanamadı.";
@@ -102,6 +130,19 @@ export default function NfcLoginForm({ uniqueId }: NfcLoginFormProps) {
 
   return (
     <div className="rounded-[28px] border border-white/10 bg-[#0f172a]/90 p-6 backdrop-blur-xl sm:p-8">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <p className="text-[11px] uppercase tracking-widest text-white/45">
+          {isSignup ? "Yeni hesap" : "Giriş yap"}
+        </p>
+        <button
+          type="button"
+          onClick={() => switchMode(isSignup ? "login" : "signup")}
+          className="text-[11px] font-medium text-amber-200/90 underline-offset-2 hover:text-amber-100 hover:underline"
+        >
+          {isSignup ? "Hesabın var mı? Giriş Yap" : "Yeni misin? Kayıt Ol"}
+        </button>
+      </div>
+
       {toast ? (
         <div
           role="alert"
@@ -113,9 +154,18 @@ export default function NfcLoginForm({ uniqueId }: NfcLoginFormProps) {
           }`}
         >
           <p className="font-mono text-[9px] uppercase tracking-widest opacity-70">
-            {toast.variant === "error" ? "Kayıt hatası" : "Bilgi"}
+            {toast.variant === "error" ? "İşlem hatası" : "Bilgi"}
           </p>
           <p className="mt-1">{toast.message}</p>
+          {toast.variant === "error" && isSignup ? (
+            <button
+              type="button"
+              onClick={() => switchMode("login")}
+              className="mt-3 text-[11px] font-medium text-amber-200 underline-offset-2 hover:underline"
+            >
+              Hesabın var mı? Giriş Yap
+            </button>
+          ) : null}
         </div>
       ) : null}
 
@@ -141,7 +191,7 @@ export default function NfcLoginForm({ uniqueId }: NfcLoginFormProps) {
         <input
           type="password"
           name="password"
-          autoComplete="new-password"
+          autoComplete={isSignup ? "new-password" : "current-password"}
           required
           minLength={8}
           value={password}
@@ -150,32 +200,42 @@ export default function NfcLoginForm({ uniqueId }: NfcLoginFormProps) {
           className={authInputClassName}
         />
 
-        <label className="text-[11px] uppercase tracking-widest text-white/45">
-          Şifre tekrar
-        </label>
-        <input
-          type="password"
-          name="confirmPassword"
-          autoComplete="new-password"
-          required
-          minLength={8}
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          placeholder="Şifrenizi tekrar girin"
-          className={authInputClassName}
-        />
+        {isSignup ? (
+          <>
+            <label className="text-[11px] uppercase tracking-widest text-white/45">
+              Şifre tekrar
+            </label>
+            <input
+              type="password"
+              name="confirmPassword"
+              autoComplete="new-password"
+              required
+              minLength={8}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Şifrenizi tekrar girin"
+              className={authInputClassName}
+            />
+          </>
+        ) : null}
 
         <button
           type="submit"
           disabled={isPending}
           className={`${authPrimaryButtonClassName} mt-2`}
         >
-          {isPending ? "İşleniyor..." : "Kaydol / Giriş Yap"}
+          {isPending
+            ? "İşleniyor..."
+            : isSignup
+              ? "Kayıt Ol"
+              : "Giriş Yap"}
         </button>
       </form>
 
       <p className="mt-4 text-center text-[11px] leading-relaxed text-white/40">
-        Yeni hesaplarda e-postanıza 6 haneli doğrulama kodu gönderilir.
+        {isSignup
+          ? "Yeni hesaplarda e-postanıza 6 haneli doğrulama kodu gönderilir."
+          : "Kayıtlı hesabınla giriş yaptığında kartın otomatik eşleştirilir."}
       </p>
     </div>
   );

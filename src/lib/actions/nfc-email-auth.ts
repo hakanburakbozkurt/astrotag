@@ -6,6 +6,7 @@ import {
 } from "@/lib/auth/auth-pending-cookie.server";
 import {
   normalizeOtpCode,
+  validatePasswordMin,
   validatePasswordPair,
 } from "@/lib/auth/password-rules";
 import {
@@ -44,6 +45,59 @@ type DeviceContext = {
   screenHeight: number;
   userAgent: string;
 };
+
+export type NfcEmailAuthMode = "signup" | "login";
+
+type NfcCardReady = {
+  nfcId: string;
+  profileId: string | null;
+  isClaimed: boolean;
+  ownerId: string | null;
+};
+
+function isUserAlreadyExistsError(error: {
+  code?: string;
+  message?: string;
+}): boolean {
+  const code = error.code?.toLowerCase() ?? "";
+  const msg = error.message?.toLowerCase() ?? "";
+
+  return (
+    code === "user_already_exists" ||
+    msg.includes("already") ||
+    msg.includes("registered")
+  );
+}
+
+async function finishNfcPasswordAuth(params: {
+  uniqueId: string;
+  userId: string;
+  card: NfcCardReady;
+  device: DeviceContext;
+}): Promise<
+  | { success: true; redirectTo: string }
+  | { success: false; error: string }
+> {
+  const { profileId: ensuredProfileId } = await ensureProfileForAuthUser(
+    params.userId,
+    params.uniqueId
+  );
+
+  const paired = await pairNfcCardAndCreateSession({
+    uniqueId: params.uniqueId,
+    userId: params.userId,
+    nfcCardUuid: params.card.nfcId,
+    profileId: params.card.profileId ?? ensuredProfileId,
+    device: params.device,
+  });
+
+  if (!paired.success) {
+    return { success: false, error: paired.error };
+  }
+
+  await clearAuthPendingCookie();
+  return { success: true, redirectTo: paired.redirectTo };
+}
 
 function buildVerifyOtpUrl(email: string, uniqueId: string): string {
   const params = new URLSearchParams({
@@ -157,28 +211,31 @@ export async function startNfcEmailAuthAction(params: {
   password: string;
   confirmPassword: string;
   uniqueId: string;
+  mode: NfcEmailAuthMode;
   device: DeviceContext;
 }): Promise<
   | { success: true; redirectTo: string; skipOtp?: boolean }
-  | { success: false; error: string }
+  | { success: false; error: string; switchToLogin?: boolean }
 > {
   try {
     return await withNfcAction("startNfcEmailAuthAction", async () => {
     logNfcAuthTrace("Tetiklendi", {
       handler: "startNfcEmailAuthAction",
       uniqueId: params.uniqueId,
+      mode: params.mode,
     });
     logSupabasePublicEnvCheck("startNfcEmailAuthAction");
 
     const normalizedEmail = params.email.trim().toLowerCase();
-    const passwordError = validatePasswordPair(
-      params.password,
-      params.confirmPassword
-    );
 
     if (!normalizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
       return { success: false, error: "Geçerli bir e-posta adresi girin." };
     }
+
+    const passwordError =
+      params.mode === "signup"
+        ? validatePasswordPair(params.password, params.confirmPassword)
+        : validatePasswordMin(params.password);
 
     if (passwordError) {
       return { success: false, error: passwordError };
@@ -196,23 +253,37 @@ export async function startNfcEmailAuthAction(params: {
 
     const supabase = await createServerSupabaseClient();
 
-    logNfcAuthTrace("signInWithPassword çağrılıyor", { email: normalizedEmail });
-
-    const signIn = await supabase.auth.signInWithPassword({
-      email: normalizedEmail,
-      password: params.password,
-    });
-
-    if (signIn.error) {
-      logNfcAuthTrace("signInWithPassword hata (kayıt akışına devam)", {
+    if (params.mode === "login") {
+      logNfcAuthTrace("signInWithPassword çağrılıyor", {
         email: normalizedEmail,
+        mode: "login",
       });
-      logNfcAuthSupabaseError("signInWithPassword", signIn.error, {
-        email: normalizedEmail,
-      });
-    }
 
-    if (signIn.data.user?.id && signIn.data.session) {
+      const signIn = await supabase.auth.signInWithPassword({
+        email: normalizedEmail,
+        password: params.password,
+      });
+
+      if (signIn.error) {
+        logNfcAuthSupabaseError("signInWithPassword", signIn.error, {
+          email: normalizedEmail,
+        });
+        return {
+          success: false,
+          error: authErrorMessage(
+            signIn.error,
+            "Giriş başarısız. E-posta veya şifreyi kontrol edin."
+          ),
+        };
+      }
+
+      if (!signIn.data.user?.id || !signIn.data.session) {
+        return {
+          success: false,
+          error: "Oturum oluşturulamadı. Lütfen tekrar deneyin.",
+        };
+      }
+
       if (
         card.isClaimed &&
         card.ownerId &&
@@ -222,27 +293,25 @@ export async function startNfcEmailAuthAction(params: {
         return { success: false, error: NFC_CARD_OWNED_BY_OTHER_MESSAGE };
       }
 
-      const paired = await pairNfcCardAndCreateSession({
+      const finished = await finishNfcPasswordAuth({
         uniqueId: params.uniqueId,
         userId: signIn.data.user.id,
-        nfcCardUuid: card.nfcId,
-        profileId: card.profileId,
+        card,
         device: params.device,
       });
 
-      if (!paired.success) {
-        return { success: false, error: paired.error };
+      if (!finished.success) {
+        return finished;
       }
 
-      await clearAuthPendingCookie();
       return {
         success: true,
         skipOtp: true,
-        redirectTo: paired.redirectTo,
+        redirectTo: finished.redirectTo,
       };
     }
 
-    logNfcAuthTrace("signUp çağrılıyor", { email: normalizedEmail });
+    logNfcAuthTrace("signUp çağrılıyor", { email: normalizedEmail, mode: "signup" });
 
     const signUp = await supabase.auth.signUp({
       email: normalizedEmail,
@@ -258,11 +327,11 @@ export async function startNfcEmailAuthAction(params: {
         { email: normalizedEmail, step: "signUp" }
       );
 
-      const msg = signUp.error.message.toLowerCase();
-      if (msg.includes("already") || msg.includes("registered")) {
+      if (isUserAlreadyExistsError(signUp.error)) {
         return {
           success: false,
-          error: "Bu e-posta kayıtlı. Şifrenizi kontrol edin veya sıfırlayın.",
+          switchToLogin: true,
+          error: "Zaten kayıtlısın, şimdi giriş yapıyorsun.",
         };
       }
 
@@ -278,13 +347,40 @@ export async function startNfcEmailAuthAction(params: {
       hasSession: Boolean(signUp.data.session),
     });
 
+    if (signUp.data.user?.id && signUp.data.session) {
+      if (
+        card.isClaimed &&
+        card.ownerId &&
+        !canBindClaimedCard(card.isClaimed, card.ownerId, signUp.data.user.id)
+      ) {
+        await supabase.auth.signOut();
+        return { success: false, error: NFC_CARD_OWNED_BY_OTHER_MESSAGE };
+      }
+
+      const finished = await finishNfcPasswordAuth({
+        uniqueId: params.uniqueId,
+        userId: signUp.data.user.id,
+        card,
+        device: params.device,
+      });
+
+      if (!finished.success) {
+        return finished;
+      }
+
+      return {
+        success: true,
+        skipOtp: true,
+        redirectTo: finished.redirectTo,
+      };
+    }
+
     logNfcAuthTrace("signInWithOtp çağrılıyor", { email: normalizedEmail });
 
     const { error: otpError } = await supabase.auth.signInWithOtp({
       email: normalizedEmail,
       options: {
-        // signUp sonrası kullanıcı zaten var; OTP yine gönderilir
-        shouldCreateUser: true,
+        shouldCreateUser: false,
         emailRedirectTo: `${SITE_URL}${AUTH_CALLBACK_PATH}`,
       },
     });
@@ -302,6 +398,15 @@ export async function startNfcEmailAuthAction(params: {
         otpError,
         { email: normalizedEmail, step: "signInWithOtp" }
       );
+
+      if (isUserAlreadyExistsError(otpError)) {
+        return {
+          success: false,
+          switchToLogin: true,
+          error: "Zaten kayıtlısın, şimdi giriş yapıyorsun.",
+        };
+      }
+
       return {
         success: false,
         error: authErrorMessage(otpError, "Doğrulama kodu gönderilemedi."),
