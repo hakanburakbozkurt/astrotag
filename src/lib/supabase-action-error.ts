@@ -1,4 +1,4 @@
-import { HOME_PATH } from "@/lib/nfc/constants";
+import { DASHBOARD_PATH } from "@/lib/nfc/constants";
 
 export class SupabaseActionError extends Error {
   constructor(message: string) {
@@ -9,7 +9,7 @@ export class SupabaseActionError extends Error {
 
 export function redirectToLogin(): void {
   if (typeof window !== "undefined") {
-    window.location.href = HOME_PATH;
+    window.location.href = DASHBOARD_PATH;
   }
 }
 

@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import Starfield from "@/components/Starfield";
 import ProfileCompleteForm from "@/components/profile/ProfileCompleteForm";
 import { checkNfcSessionAction } from "@/lib/actions/nfc-auth";
-import { HOME_PATH } from "@/lib/nfc/constants";
+import { DASHBOARD_PATH, HOME_PATH } from "@/lib/nfc/constants";
 import { useUserProfile } from "@/lib/auth";
 
 export default function ProfileCompletePage() {
@@ -23,7 +23,7 @@ export default function ProfileCompletePage() {
 
   useEffect(() => {
     if (!isLoading && profileStatus === "ready" && userData) {
-      router.replace("/dashboard");
+      router.replace(DASHBOARD_PATH);
     }
   }, [isLoading, profileStatus, userData, router]);
 

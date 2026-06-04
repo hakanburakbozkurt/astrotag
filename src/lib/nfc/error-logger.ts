@@ -117,6 +117,7 @@ export function getCookiePresence(
     "astrotag_fingerprint",
     "astrotag_storage_ok",
     "astrotag_pending_nfc",
+    "astrotag_auth_pending",
   ];
 
   const out: Record<string, string> = {};

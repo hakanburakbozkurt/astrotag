@@ -21,17 +21,23 @@ export const SESSION_EXPIRED_PATH = "/session-expired";
 export const PRIVATE_MODE_PATH = "/private-mode-warning";
 /** @deprecated */
 export const LOGIN_PATH = HOME_PATH;
+export const DASHBOARD_PATH = "/dashboard";
 export const PROFILE_COMPLETE_PATH = "/profile/complete";
 export const CARD_ENTRY_PREFIX = "/c";
+/** NFC ile açılan herkese açık profil */
+export const PUBLIC_PROFILE_PREFIX = "/p";
 
 export const WELCOME_IMAGE_PATH = "/image_485027.png";
 
 export const NFC_SHOP_URL =
   process.env.NEXT_PUBLIC_NFC_SHOP_URL ?? "https://astrotag.vercel.app";
 
+export const VERIFY_OTP_PATH = "/verify-otp";
+
 export const PUBLIC_PATHS = new Set([
   HOME_PATH,
   PRIVATE_MODE_PATH,
+  VERIFY_OTP_PATH,
   "/manifest.json",
   "/sw.js",
 ]);

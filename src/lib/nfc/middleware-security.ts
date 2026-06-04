@@ -3,13 +3,17 @@ import type { NextRequest } from "next/server";
 import { nfcPairingPathForUniqueId } from "@/lib/nfc/card-paths";
 import {
   CARD_ENTRY_PREFIX,
+  DASHBOARD_PATH,
   HOME_PATH,
   NFC_FINGERPRINT_COOKIE,
   NFC_SESSION_COOKIE,
   PENDING_NFC_COOKIE,
   PRIVATE_MODE_PATH,
+  PROFILE_COMPLETE_PATH,
   PUBLIC_PATHS,
+  PUBLIC_PROFILE_PREFIX,
   STORAGE_VERIFIED_COOKIE,
+  VERIFY_OTP_PATH,
 } from "@/lib/nfc/constants";
 import { isValidFingerprintHash } from "@/lib/nfc/fingerprint-utils";
 import {
@@ -55,6 +59,10 @@ function isCardEntryPath(pathname: string): boolean {
   return pathname.startsWith(`${CARD_ENTRY_PREFIX}/`);
 }
 
+function isPublicProfilePath(pathname: string): boolean {
+  return pathname.startsWith(`${PUBLIC_PROFILE_PREFIX}/`);
+}
+
 function isWarningPath(pathname: string): boolean {
   return pathname.startsWith(PRIVATE_MODE_PATH);
 }
@@ -64,7 +72,12 @@ export function isProtectedPath(pathname: string): boolean {
     return false;
   }
 
-  if (isCardEntryPath(pathname) || isWarningPath(pathname)) {
+  if (
+    isCardEntryPath(pathname) ||
+    isPublicProfilePath(pathname) ||
+    isWarningPath(pathname) ||
+    pathname === VERIFY_OTP_PATH
+  ) {
     return false;
   }
 
@@ -81,9 +94,17 @@ export function isProtectedPath(pathname: string): boolean {
   }
 
   return (
-    pathname.startsWith("/dashboard") ||
-    pathname.startsWith("/profile") ||
+    pathname.startsWith(DASHBOARD_PATH) ||
+    pathname === PROFILE_COMPLETE_PATH ||
     pathname.startsWith("/api/ai")
+  );
+}
+
+function isAuthPublicPath(pathname: string): boolean {
+  return (
+    isCardEntryPath(pathname) ||
+    isPublicProfilePath(pathname) ||
+    pathname === VERIFY_OTP_PATH
   );
 }
 
@@ -92,11 +113,7 @@ export function shouldRedirectUnknownToHome(pathname: string): boolean {
     return false;
   }
 
-  if (isCardEntryPath(pathname)) {
-    return false;
-  }
-
-  if (isWarningPath(pathname)) {
+  if (isAuthPublicPath(pathname) || isWarningPath(pathname)) {
     return false;
   }
 
@@ -234,10 +251,11 @@ export async function runSecurityGate(
       return deny;
     }
 
-    if (isCardEntryPath(pathname)) {
-      const uniqueId = pathname
-        .slice(`${CARD_ENTRY_PREFIX}/`.length)
-        .split("/")[0];
+    if (isAuthPublicPath(pathname)) {
+      const prefix = isCardEntryPath(pathname)
+        ? CARD_ENTRY_PREFIX
+        : PUBLIC_PROFILE_PREFIX;
+      const uniqueId = pathname.slice(`${prefix}/`.length).split("/")[0];
 
       if (!uniqueId || !supabase) {
         const deny = {

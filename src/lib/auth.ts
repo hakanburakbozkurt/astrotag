@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { checkNfcSessionAction } from "@/lib/actions/nfc-auth";
 import { getUserProfile } from "@/lib/supabase-actions";
-import { HOME_PATH } from "@/lib/nfc/constants";
+import { DASHBOARD_PATH, HOME_PATH } from "@/lib/nfc/constants";
 import type { UserData } from "@/types/user";
 
 export { HOME_PATH as LOGIN_PATH };
@@ -46,6 +46,7 @@ export function useAuth() {
   };
 }
 
+/** Oturum yoksa ana sayfaya (public); giriş sonrası hedef ayrıca dashboard */
 export function useRequireAuth(redirectTo: string = HOME_PATH) {
   const router = useRouter();
   const auth = useAuth();

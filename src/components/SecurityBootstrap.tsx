@@ -3,7 +3,13 @@
 import { useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { confirmStorageAccessAction } from "@/lib/actions/nfc-auth";
-import { CARD_ENTRY_PREFIX, HOME_PATH, PRIVATE_MODE_PATH } from "@/lib/nfc/constants";
+import {
+  CARD_ENTRY_PREFIX,
+  HOME_PATH,
+  PRIVATE_MODE_PATH,
+  PUBLIC_PROFILE_PREFIX,
+  VERIFY_OTP_PATH,
+} from "@/lib/nfc/constants";
 import { isPrivateBrowsingMode } from "@/lib/nfc/private-mode";
 
 function shouldRunStorageCheck(pathname: string): boolean {
@@ -15,7 +21,11 @@ function shouldRunStorageCheck(pathname: string): boolean {
     return false;
   }
 
-  if (pathname.startsWith(CARD_ENTRY_PREFIX)) {
+  if (
+    pathname.startsWith(CARD_ENTRY_PREFIX) ||
+    pathname.startsWith(PUBLIC_PROFILE_PREFIX) ||
+    pathname === VERIFY_OTP_PATH
+  ) {
     return false;
   }
 
