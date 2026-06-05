@@ -1,5 +1,6 @@
 "use server";
 
+import { cookies } from "next/headers";
 import {
   clearAuthPendingCookie,
   setAuthPendingCookie,
@@ -15,8 +16,8 @@ import {
 } from "@/lib/actions/nfc-auth-core";
 import {
   AUTH_CALLBACK_PATH,
-  AUTH_MSG_CARD_NOT_ACTIVE,
   NFC_CARD_OWNED_BY_OTHER_MESSAGE,
+  PENDING_NFC_COOKIE,
   SITE_URL,
   VERIFY_OTP_PATH,
 } from "@/lib/nfc/constants";
@@ -46,7 +47,8 @@ import {
   isUserAlreadyExistsError,
   isUserNotRegisteredError,
 } from "@/lib/auth/nfc-auth-errors";
-import { nfcAuthLoginPath, nfcAuthSignupPath } from "@/lib/nfc/auth-paths";
+import { authLoginPathClean, nfcAuthSignupPath } from "@/lib/nfc/auth-paths";
+import { resolvePostAuthDestination } from "@/lib/nfc/post-auth-redirect.server";
 import { ensureProfileForAuthUser } from "@/lib/nfc/ensure-profile.server";
 import {
   finishNfcPasswordAuth,
@@ -90,8 +92,14 @@ async function loadNfcCardForAuthFlow(
   return { ok: true, card };
 }
 
-function authOnlyRedirectForInactiveCard(uniqueId: string): string {
-  return nfcAuthLoginPath(uniqueId, { msg: AUTH_MSG_CARD_NOT_ACTIVE });
+async function finishAuthOnlySuccess(
+  userId: string,
+  uniqueId: string
+): Promise<string> {
+  await ensureProfileForAuthUser(userId, uniqueId);
+  await clearPendingNfcCardCookie();
+  await clearAuthPendingCookie();
+  return resolvePostAuthDestination(userId);
 }
 
 function buildVerifyOtpUrl(email: string, uniqueId: string): string {
@@ -275,10 +283,11 @@ export async function startNfcSignupAction(params: {
         );
 
         if (isUserAlreadyExistsError(signUp.error)) {
+          await setPendingNfcCardCookie(params.uniqueId);
           return {
             success: false,
             error: "Bu e-posta zaten kayıtlı. Giriş sayfasına yönlendiriliyorsunuz.",
-            redirectPath: nfcAuthLoginPath(params.uniqueId, {
+            redirectPath: authLoginPathClean({
               email: normalizedEmail,
               msg: "Zaten kayıtlısın, şimdi giriş yap.",
             }),
@@ -296,7 +305,10 @@ export async function startNfcSignupAction(params: {
           return {
             success: true,
             skipOtp: true,
-            redirectTo: authOnlyRedirectForInactiveCard(params.uniqueId),
+            redirectTo: await finishAuthOnlySuccess(
+              signUp.data.user.id,
+              params.uniqueId
+            ),
           };
         }
 
@@ -339,10 +351,11 @@ export async function startNfcSignupAction(params: {
         logNfcAuthSupabaseError("signInWithOtp", otpError, { email: normalizedEmail });
 
         if (isUserAlreadyExistsError(otpError)) {
+          await setPendingNfcCardCookie(params.uniqueId);
           return {
             success: false,
             error: "Bu e-posta zaten kayıtlı. Giriş sayfasına yönlendiriliyorsunuz.",
-            redirectPath: nfcAuthLoginPath(params.uniqueId, {
+            redirectPath: authLoginPathClean({
               email: normalizedEmail,
               msg: "Zaten kayıtlısın, şimdi giriş yap.",
             }),
@@ -457,7 +470,10 @@ export async function startNfcLoginAction(params: {
         return {
           success: true,
           skipOtp: true,
-          redirectTo: authOnlyRedirectForInactiveCard(params.uniqueId),
+          redirectTo: await finishAuthOnlySuccess(
+            signIn.data.user.id,
+            params.uniqueId
+          ),
         };
       }
 
@@ -601,10 +617,12 @@ export async function verifyNfcOtpAndEnterAction(params: {
     }
 
     if (cardInactive) {
-      await clearAuthPendingCookie();
       return {
         success: true,
-        redirectTo: authOnlyRedirectForInactiveCard(params.uniqueId),
+        redirectTo: await finishAuthOnlySuccess(
+          verifyResult.data.user.id,
+          params.uniqueId
+        ),
       };
     }
 
@@ -644,4 +662,23 @@ export async function verifyNfcOtpAndEnterAction(params: {
 
 export async function getNfcAuthBackPath(uniqueId: string): Promise<string> {
   return cardEntryPathForUniqueId(uniqueId);
+}
+
+/** Giriş sayfası URL'den nfc temizlendikten sonra kart kimliğini çerezden okur */
+export async function getPendingNfcIdAction(): Promise<string | null> {
+  const cookieStore = await cookies();
+  const pending = cookieStore.get(PENDING_NFC_COOKIE)?.value?.trim();
+
+  if (!pending) {
+    return null;
+  }
+
+  return normalizeNfcUniqueId(pending);
+}
+
+/** Giriş sayfasında nfc query çereze yazılır, URL temizlenir */
+export async function rememberPendingNfcForAuthAction(
+  uniqueId: string
+): Promise<void> {
+  await setPendingNfcCardCookie(uniqueId);
 }

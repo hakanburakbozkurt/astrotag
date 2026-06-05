@@ -11,25 +11,21 @@ import {
   PUBLIC_PROFILE_PREFIX,
   SESSION_BACKGROUND_MS,
   SESSION_INACTIVITY_MS,
-  VERIFY_OTP_PATH,
 } from "@/lib/nfc/constants";
+import { isAuthFormPath } from "@/lib/nfc/auth-paths";
 
 const SKIP_PREFIXES = [
-  HOME_PATH,
   CARD_ENTRY_PREFIX,
   PUBLIC_PROFILE_PREFIX,
-  VERIFY_OTP_PATH,
   PRIVATE_MODE_PATH,
 ];
 
 function isGuardedPath(pathname: string): boolean {
-  if (pathname === HOME_PATH) {
+  if (pathname === HOME_PATH || isAuthFormPath(pathname)) {
     return false;
   }
 
-  return !SKIP_PREFIXES.some(
-    (prefix) => prefix !== HOME_PATH && pathname.startsWith(prefix)
-  );
+  return !SKIP_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
 /**

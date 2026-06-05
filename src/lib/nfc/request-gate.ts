@@ -6,6 +6,7 @@ import {
   NFC_FINGERPRINT_COOKIE,
   NFC_PROFILE_COOKIE,
   NFC_SESSION_COOKIE,
+  PENDING_NFC_COOKIE,
   STORAGE_VERIFIED_COOKIE,
 } from "@/lib/nfc/constants";
 import {
@@ -43,17 +44,23 @@ function buildDeniedResponse(
   redirectTo: string,
   clearSession: boolean
 ): NextResponse {
-  const url = request.nextUrl.clone();
-  const [path, search] = redirectTo.split("?");
-  url.pathname = path;
-  url.search = search ? `?${search}` : "";
-  const response = NextResponse.redirect(url);
+  const target = new URL(redirectTo, request.url);
+
+  if (
+    target.pathname === request.nextUrl.pathname &&
+    target.search === request.nextUrl.search
+  ) {
+    return NextResponse.next();
+  }
+
+  const response = NextResponse.redirect(target);
 
   if (clearSession) {
     response.cookies.set(NFC_SESSION_COOKIE, "", { maxAge: 0, path: "/" });
     response.cookies.set(NFC_FINGERPRINT_COOKIE, "", { maxAge: 0, path: "/" });
     response.cookies.set(NFC_PROFILE_COOKIE, "", { maxAge: 0, path: "/" });
     response.cookies.set(STORAGE_VERIFIED_COOKIE, "", { maxAge: 0, path: "/" });
+    response.cookies.set(PENDING_NFC_COOKIE, "", { maxAge: 0, path: "/" });
   }
 
   return response;

@@ -1,7 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { NextRequest } from "next/server";
-import { nfcAuthSignupPath } from "@/lib/nfc/auth-paths";
-import { nfcPairingPathForUniqueId } from "@/lib/nfc/card-paths";
+import { isAuthFormPath, nfcAuthSignupPath } from "@/lib/nfc/auth-paths";
 import {
   AUTH_CALLBACK_PATH,
   AUTH_LOGIN_PATH,
@@ -18,9 +17,9 @@ import {
   PUBLIC_PATHS,
   PUBLIC_PROFILE_PREFIX,
   STORAGE_VERIFIED_COOKIE,
-  VERIFY_OTP_PATH,
 } from "@/lib/nfc/constants";
 import { isValidFingerprintHash } from "@/lib/nfc/fingerprint-utils";
+import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 import {
   getCookiePresence,
   logNfcError,
@@ -80,6 +79,10 @@ function isAuthCallbackPath(pathname: string): boolean {
 }
 
 export function isProtectedPath(pathname: string): boolean {
+  if (isAuthFormPath(pathname)) {
+    return false;
+  }
+
   if (PUBLIC_PATHS.has(pathname)) {
     return false;
   }
@@ -87,10 +90,7 @@ export function isProtectedPath(pathname: string): boolean {
   if (
     isCardEntryPath(pathname) ||
     isPublicProfilePath(pathname) ||
-    isWarningPath(pathname) ||
-    pathname === VERIFY_OTP_PATH ||
-    pathname === AUTH_SIGNUP_PATH ||
-    pathname === AUTH_LOGIN_PATH
+    isWarningPath(pathname)
   ) {
     return false;
   }
@@ -111,15 +111,6 @@ export function isProtectedPath(pathname: string): boolean {
     pathname.startsWith(DASHBOARD_PATH) ||
     pathname === PROFILE_COMPLETE_PATH ||
     pathname.startsWith("/api/ai")
-  );
-}
-
-/** Kayıt / giriş / OTP — URL'deki ?nfc= ile çalışır; /c/ rotasına yönlendirilmez */
-function isAuthFormPath(pathname: string): boolean {
-  return (
-    pathname === AUTH_SIGNUP_PATH ||
-    pathname === AUTH_LOGIN_PATH ||
-    pathname === VERIFY_OTP_PATH
   );
 }
 
@@ -161,7 +152,7 @@ function isStorageCheckRequired(pathname: string): boolean {
 function sessionMissingRedirect(request: NextRequest): string {
   const pending = request.cookies.get(PENDING_NFC_COOKIE)?.value?.trim();
   if (pending) {
-    return nfcPairingPathForUniqueId(pending);
+    return nfcAuthSignupPath(pending);
   }
   return HOME_PATH;
 }
@@ -269,6 +260,10 @@ export async function runSecurityGate(
       return { allowed: true };
     }
 
+    if (isAuthFormPath(pathname)) {
+      return { allowed: true };
+    }
+
     if (shouldRedirectUnknownToHome(pathname)) {
       const deny = {
         allowed: false as const,
@@ -279,15 +274,14 @@ export async function runSecurityGate(
       return deny;
     }
 
-    if (isAuthFormPath(pathname)) {
-      return { allowed: true };
-    }
-
     if (isNfcCardRoutePath(pathname)) {
       const prefix = isCardEntryPath(pathname)
         ? CARD_ENTRY_PREFIX
         : PUBLIC_PROFILE_PREFIX;
-      const uniqueId = pathname.slice(`${prefix}/`.length).split("/")[0];
+      const rawUniqueId = pathname.slice(`${prefix}/`.length).split("/")[0];
+      const uniqueId = rawUniqueId
+        ? normalizeNfcUniqueId(rawUniqueId)
+        : "";
 
       if (!uniqueId || !supabase) {
         const redirectTo = uniqueId

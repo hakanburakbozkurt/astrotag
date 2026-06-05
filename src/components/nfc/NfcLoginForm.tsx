@@ -1,12 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useSafeRouter } from "@/lib/auth/safe-router-nav.client";
 import { authQueryMessageText } from "@/lib/auth/auth-query-messages";
 import { logNfcAuthTrace } from "@/lib/auth/nfc-auth-debug";
-import { startNfcLoginAction } from "@/lib/actions/nfc-email-auth";
-import { nfcAuthSignupPath } from "@/lib/nfc/auth-paths";
+import {
+  getPendingNfcIdAction,
+  rememberPendingNfcForAuthAction,
+  startNfcLoginAction,
+} from "@/lib/actions/nfc-email-auth";
+import { authLoginPathClean, nfcAuthSignupPath } from "@/lib/nfc/auth-paths";
 import { navigateAfterNfcAuth } from "@/lib/nfc/post-auth-nav.client";
 import {
   authInputClassName,
@@ -20,13 +25,25 @@ type AuthToast = {
 };
 
 export default function NfcLoginForm() {
-  const { uniqueId, email: emailFromQuery, msg: msgFromQuery } = useNfcAuthQuery();
-  const { safePush, isRouterReady, isPending: routerPending } = useSafeRouter();
+  const searchParams = useSearchParams();
+  const { uniqueId: uniqueIdFromQuery, email: emailFromQuery, msg: msgFromQuery } =
+    useNfcAuthQuery();
+  const { safePush, safeReplace, isRouterReady, isPending: routerPending } =
+    useSafeRouter();
+  const [uniqueId, setUniqueId] = useState(uniqueIdFromQuery);
   const [email, setEmail] = useState(emailFromQuery);
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<AuthToast | null>(null);
+  const nfcUrlStrippedRef = useRef(false);
+  const pendingNfcLoadedRef = useRef(false);
   const isPending = loading || routerPending;
+
+  useEffect(() => {
+    if (uniqueIdFromQuery) {
+      setUniqueId(uniqueIdFromQuery);
+    }
+  }, [uniqueIdFromQuery]);
 
   useEffect(() => {
     if (emailFromQuery) {
@@ -40,6 +57,53 @@ export default function NfcLoginForm() {
       setToast({ message: text, variant: "info" });
     }
   }, [msgFromQuery]);
+
+  useEffect(() => {
+    if (!searchParams.get("nfc")?.trim() || !isRouterReady || nfcUrlStrippedRef.current) {
+      return;
+    }
+
+    nfcUrlStrippedRef.current = true;
+    const nfcFromUrl = uniqueIdFromQuery;
+
+    void (async () => {
+      if (nfcFromUrl) {
+        setUniqueId(nfcFromUrl);
+        try {
+          await rememberPendingNfcForAuthAction(nfcFromUrl);
+        } catch {
+          // Çerez yazılamasa da state'teki uniqueId ile devam edilir.
+        }
+      }
+
+      const cleanUrl = authLoginPathClean({
+        email: emailFromQuery || undefined,
+        msg: msgFromQuery || undefined,
+      });
+      await safeReplace(cleanUrl);
+    })();
+  }, [
+    searchParams,
+    uniqueIdFromQuery,
+    emailFromQuery,
+    msgFromQuery,
+    isRouterReady,
+    safeReplace,
+  ]);
+
+  useEffect(() => {
+    if (uniqueIdFromQuery || pendingNfcLoadedRef.current) {
+      return;
+    }
+
+    pendingNfcLoadedRef.current = true;
+
+    void getPendingNfcIdAction().then((pending) => {
+      if (pending) {
+        setUniqueId(pending);
+      }
+    });
+  }, [uniqueIdFromQuery]);
 
   const showToast = useCallback((message: string, variant: AuthToast["variant"] = "error") => {
     setToast({ message, variant });
