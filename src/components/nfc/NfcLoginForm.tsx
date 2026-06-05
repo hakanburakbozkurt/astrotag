@@ -6,61 +6,60 @@ import { useSearchParams } from "next/navigation";
 import { useSafeRouter } from "@/lib/auth/safe-router-nav.client";
 import { authQueryMessageText } from "@/lib/auth/auth-query-messages";
 import { logNfcAuthTrace } from "@/lib/auth/nfc-auth-debug";
-import {
-  getPendingNfcIdAction,
-  rememberPendingNfcForAuthAction,
-  startNfcLoginAction,
-} from "@/lib/actions/nfc-email-auth";
+import { startNfcLoginAction } from "@/lib/actions/nfc-email-auth";
 import { authLoginPathClean, nfcAuthSignupPath } from "@/lib/nfc/auth-paths";
+import { persistNfcIdClient, readNfcIdClient } from "@/lib/nfc/nfc-id-persist.client";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 import { navigateAfterNfcAuth } from "@/lib/nfc/post-auth-nav.client";
 import {
   authInputClassName,
   authPrimaryButtonClassName,
 } from "@/components/auth/auth-field-styles";
-import { useNfcAuthQuery } from "@/components/nfc/use-nfc-auth-query";
 
 type AuthToast = {
   message: string;
   variant: "error" | "info";
 };
 
-export default function NfcLoginForm() {
+type NfcLoginFormProps = {
+  initialNfcId?: string;
+};
+
+export default function NfcLoginForm({ initialNfcId = "" }: NfcLoginFormProps) {
   const searchParams = useSearchParams();
-  const { uniqueId: uniqueIdFromQuery, email: emailFromQuery, msg: msgFromQuery } =
-    useNfcAuthQuery();
   const { safePush, safeReplace, isRouterReady, isPending: routerPending } =
     useSafeRouter();
-  const [uniqueId, setUniqueId] = useState(uniqueIdFromQuery);
-  const [email, setEmail] = useState(emailFromQuery);
+  const [uniqueId, setUniqueId] = useState(initialNfcId);
+  const [email, setEmail] = useState(() => searchParams.get("email")?.trim() ?? "");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<AuthToast | null>(null);
   const isCleaned = useRef(false);
-  const pendingNfcLoadedRef = useRef(false);
+  const nfcHydratedRef = useRef(false);
+  const isSubmittingRef = useRef(false);
   const isPending = loading || routerPending;
 
   useEffect(() => {
-    if (uniqueIdFromQuery) {
-      setUniqueId(uniqueIdFromQuery);
+    if (nfcHydratedRef.current || isSubmittingRef.current) {
+      return;
     }
-  }, [uniqueIdFromQuery]);
+
+    const nfcParam = searchParams.get("nfc")?.trim();
+    const nfcId = nfcParam
+      ? normalizeNfcUniqueId(nfcParam)
+      : initialNfcId || readNfcIdClient() || "";
+
+    if (!nfcId) {
+      return;
+    }
+
+    nfcHydratedRef.current = true;
+    setUniqueId(nfcId);
+    persistNfcIdClient(nfcId);
+  }, [initialNfcId]);
 
   useEffect(() => {
-    if (emailFromQuery) {
-      setEmail(emailFromQuery);
-    }
-  }, [emailFromQuery]);
-
-  useEffect(() => {
-    const text = authQueryMessageText(msgFromQuery);
-    if (text) {
-      setToast({ message: text, variant: "info" });
-    }
-  }, [msgFromQuery]);
-
-  useEffect(() => {
-    if (isCleaned.current) {
+    if (isCleaned.current || isSubmittingRef.current || !isRouterReady) {
       return;
     }
 
@@ -69,46 +68,33 @@ export default function NfcLoginForm() {
       return;
     }
 
-    if (!isRouterReady) {
-      return;
-    }
-
     isCleaned.current = true;
 
-    const nfcFromUrl = normalizeNfcUniqueId(nfcParam);
     const emailParam = searchParams.get("email")?.trim() ?? "";
     const msgParam = searchParams.get("msg")?.trim() ?? "";
 
-    setUniqueId(nfcFromUrl);
-
-    void (async () => {
-      try {
-        await rememberPendingNfcForAuthAction(nfcFromUrl);
-      } catch {
-        // Çerez yazılamasa da state'teki uniqueId ile devam edilir.
-      }
-
-      const cleanUrl = authLoginPathClean({
+    void safeReplace(
+      authLoginPathClean({
         email: emailParam || undefined,
         msg: msgParam || undefined,
-      });
-      await safeReplace(cleanUrl);
-    })();
+      })
+    );
   }, [isRouterReady, safeReplace]);
 
   useEffect(() => {
-    if (uniqueIdFromQuery || pendingNfcLoadedRef.current) {
-      return;
+    const emailParam = searchParams.get("email")?.trim();
+    if (emailParam) {
+      setEmail(emailParam);
     }
+  }, [searchParams]);
 
-    pendingNfcLoadedRef.current = true;
-
-    void getPendingNfcIdAction().then((pending) => {
-      if (pending) {
-        setUniqueId(pending);
-      }
-    });
-  }, [uniqueIdFromQuery]);
+  useEffect(() => {
+    const msgParam = searchParams.get("msg")?.trim() ?? "";
+    const text = authQueryMessageText(msgParam);
+    if (text) {
+      setToast({ message: text, variant: "info" });
+    }
+  }, [searchParams]);
 
   const showToast = useCallback((message: string, variant: AuthToast["variant"] = "error") => {
     setToast({ message, variant });
@@ -133,8 +119,12 @@ export default function NfcLoginForm() {
 
   const signupHref = nfcAuthSignupPath(uniqueId, { email });
 
-  async function handleSubmit(event: React.FormEvent) {
-    event.preventDefault();
+  async function submitLogin() {
+    if (isSubmittingRef.current || loading || !uniqueId) {
+      return;
+    }
+
+    isSubmittingRef.current = true;
     setLoading(true);
     setToast(null);
 
@@ -164,7 +154,6 @@ export default function NfcLoginForm() {
         }
 
         showToast(result.error);
-        setLoading(false);
         return;
       }
 
@@ -173,8 +162,14 @@ export default function NfcLoginForm() {
       const message =
         cause instanceof Error ? cause.message : "Giriş tamamlanamadı.";
       showToast(message);
+    } finally {
+      isSubmittingRef.current = false;
       setLoading(false);
     }
+  }
+
+  function blockNativeSubmit(event: React.FormEvent) {
+    event.preventDefault();
   }
 
   return (
@@ -192,7 +187,7 @@ export default function NfcLoginForm() {
         </div>
       ) : null}
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <form onSubmit={blockNativeSubmit} className="flex flex-col gap-4" noValidate>
         <label className="text-[11px] uppercase tracking-widest text-white/45">
           E-posta
         </label>
@@ -223,8 +218,9 @@ export default function NfcLoginForm() {
         />
 
         <button
-          type="submit"
+          type="button"
           disabled={isPending}
+          onClick={() => void submitLogin()}
           className={`${authPrimaryButtonClassName} mt-2`}
         >
           {isPending ? "İşleniyor..." : "Giriş Yap"}

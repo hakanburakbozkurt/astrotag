@@ -301,21 +301,20 @@ export async function startNfcSignupAction(params: {
       }
 
       if (signUp.data.user?.id && signUp.data.session) {
+        const authUserId = signUp.data.user.id;
+
         if (cardInactive) {
           return {
             success: true,
             skipOtp: true,
-            redirectTo: await finishAuthOnlySuccess(
-              signUp.data.user.id,
-              params.uniqueId
-            ),
+            redirectTo: await finishAuthOnlySuccess(authUserId, params.uniqueId),
           };
         }
 
         if (
           card.isClaimed &&
           card.ownerId &&
-          !canBindClaimedCard(card.isClaimed, card.ownerId, signUp.data.user.id)
+          !canBindClaimedCard(card.isClaimed, card.ownerId, authUserId)
         ) {
           await supabase.auth.signOut();
           return { success: false, error: NFC_CARD_OWNED_BY_OTHER_MESSAGE };
@@ -323,7 +322,7 @@ export async function startNfcSignupAction(params: {
 
         const finished = await finishNfcPasswordAuth({
           uniqueId: params.uniqueId,
-          userId: signUp.data.user.id,
+          userId: authUserId,
           card,
           device: params.device,
         });

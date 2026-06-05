@@ -1,9 +1,10 @@
 import { Suspense } from "react";
 import AuthMobileShell from "@/components/auth/AuthMobileShell";
 import NfcSignupForm from "@/components/nfc/NfcSignupForm";
+import { resolveInitialNfcId } from "@/lib/nfc/resolve-initial-nfc-id.server";
 
 type PageProps = {
-  searchParams: Promise<{ nfc?: string; msg?: string }>;
+  searchParams: Promise<{ nfc?: string; email?: string; msg?: string }>;
 };
 
 /**
@@ -11,7 +12,8 @@ type PageProps = {
  * Bu sayfa /c/ rotasına geri yönlendirme yapmaz (döngü önlenir).
  */
 export default async function AuthSignupPage({ searchParams }: PageProps) {
-  await searchParams;
+  const params = await searchParams;
+  const initialNfcId = await resolveInitialNfcId(params.nfc);
 
   return (
     <AuthMobileShell
@@ -24,7 +26,7 @@ export default async function AuthSignupPage({ searchParams }: PageProps) {
         }
       >
         <div className="rounded-[28px] border border-white/10 bg-[#0f172a]/90 p-6 backdrop-blur-xl sm:p-8">
-          <NfcSignupForm />
+          <NfcSignupForm initialNfcId={initialNfcId} />
         </div>
       </Suspense>
     </AuthMobileShell>

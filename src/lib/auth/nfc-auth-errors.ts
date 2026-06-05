@@ -7,6 +7,7 @@ export function isUserAlreadyExistsError(error: {
 
   return (
     code === "user_already_exists" ||
+    code === "email_exists" ||
     msg.includes("already") ||
     msg.includes("registered")
   );

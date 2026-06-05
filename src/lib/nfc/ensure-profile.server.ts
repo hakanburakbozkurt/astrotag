@@ -4,7 +4,10 @@ import { randomUUID } from "crypto";
 import { STARTING_ENERGY } from "@/lib/constants/cosmic";
 import { generateReferralCode } from "@/lib/referral";
 import { throwIfSupabaseError } from "@/lib/nfc/supabase-nfc.server";
-import { createSupabaseServiceClient } from "@/lib/supabase/service";
+import {
+  createServiceRoleClient,
+  createSupabaseServiceClient,
+} from "@/lib/supabase/service";
 
 const CTX = { layer: "action" as const, handler: "ensureProfileForAuthUser" };
 
@@ -79,7 +82,9 @@ export async function ensureProfileForAuthUser(
   const profileId = randomUUID();
   const referralCode = generateReferralCode();
 
-  const { error: insertError } = await service.from("profiles").insert({
+  // Kayıt sırasında oturum henüz RLS için hazır olmayabilir — yalnızca INSERT admin ile
+  const admin = createServiceRoleClient();
+  const { error: insertError } = await admin.from("profiles").insert({
     id: profileId,
     user_id: authUserId,
     name: "",

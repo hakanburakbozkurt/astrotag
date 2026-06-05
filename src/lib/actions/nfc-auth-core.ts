@@ -19,7 +19,10 @@ import {
   validateNfcCardActive,
 } from "@/lib/nfc/session.server";
 import { generateReferralCode } from "@/lib/referral";
-import { createSupabaseServiceClient } from "@/lib/supabase/service";
+import {
+  createServiceRoleClient,
+  createSupabaseServiceClient,
+} from "@/lib/supabase/service";
 import { logNfcEvent } from "@/lib/nfc/error-logger";
 
 type DeviceContext = {
@@ -208,7 +211,9 @@ async function establishNfcSessionForUser(params: {
     profileId = randomUUID();
     const referralCode = generateReferralCode();
 
-    const { error: profileError } = await service.from("profiles").insert({
+    const { error: profileError } = await createServiceRoleClient()
+      .from("profiles")
+      .insert({
       id: profileId,
       user_id: params.userId ?? null,
       name: "",

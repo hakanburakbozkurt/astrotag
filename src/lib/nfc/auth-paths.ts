@@ -51,8 +51,7 @@ export function nfcAuthLoginPath(uniqueId: string, query?: AuthPathQuery): strin
   return `${AUTH_LOGIN_PATH}?${buildAuthQuery(uniqueId, query)}`;
 }
 
-/** Giriş sayfası — nfc query olmadan (state / çerezden okunur) */
-export function authLoginPathClean(query?: AuthPathQuery): string {
+function authPathClean(basePath: string, query?: AuthPathQuery): string {
   const params = new URLSearchParams();
 
   if (query?.email?.trim()) {
@@ -64,7 +63,17 @@ export function authLoginPathClean(query?: AuthPathQuery): string {
   }
 
   const qs = params.toString();
-  return qs ? `${AUTH_LOGIN_PATH}?${qs}` : AUTH_LOGIN_PATH;
+  return qs ? `${basePath}?${qs}` : basePath;
+}
+
+/** Giriş sayfası — nfc query olmadan (state / çerezden okunur) */
+export function authLoginPathClean(query?: AuthPathQuery): string {
+  return authPathClean(AUTH_LOGIN_PATH, query);
+}
+
+/** Kayıt sayfası — nfc query olmadan (state / çerezden okunur) */
+export function authSignupPathClean(query?: AuthPathQuery): string {
+  return authPathClean(AUTH_SIGNUP_PATH, query);
 }
 
 /** URL'de NFC kart kimliği var mı (signup/login döngüsünü önlemek için) */

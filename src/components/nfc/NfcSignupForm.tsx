@@ -1,46 +1,101 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useSafeRouter } from "@/lib/auth/safe-router-nav.client";
 import { authQueryMessageText } from "@/lib/auth/auth-query-messages";
 import { logNfcAuthTrace } from "@/lib/auth/nfc-auth-debug";
 import { startNfcSignupAction } from "@/lib/actions/nfc-email-auth";
-import { nfcAuthLoginPath } from "@/lib/nfc/auth-paths";
+import { authSignupPathClean, nfcAuthLoginPath } from "@/lib/nfc/auth-paths";
+import { persistNfcIdClient, readNfcIdClient } from "@/lib/nfc/nfc-id-persist.client";
+import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 import { navigateAfterNfcAuth } from "@/lib/nfc/post-auth-nav.client";
 import {
   authInputClassName,
   authPrimaryButtonClassName,
 } from "@/components/auth/auth-field-styles";
-import { useNfcAuthQuery } from "@/components/nfc/use-nfc-auth-query";
 
 type AuthToast = {
   message: string;
   variant: "error" | "info";
 };
 
-export default function NfcSignupForm() {
-  const { uniqueId, email: emailFromQuery, msg: msgFromQuery } = useNfcAuthQuery();
-  const { safePush, isRouterReady, isPending: routerPending } = useSafeRouter();
-  const [email, setEmail] = useState(emailFromQuery);
+type NfcSignupFormProps = {
+  initialNfcId?: string;
+};
+
+export default function NfcSignupForm({ initialNfcId = "" }: NfcSignupFormProps) {
+  const searchParams = useSearchParams();
+  const { safePush, isRouterReady, safeReplace, isPending: routerPending } =
+    useSafeRouter();
+  const [uniqueId, setUniqueId] = useState(initialNfcId);
+  const [email, setEmail] = useState(() => searchParams.get("email")?.trim() ?? "");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<AuthToast | null>(null);
+  const isCleaned = useRef(false);
+  const nfcHydratedRef = useRef(false);
+  const isSubmittingRef = useRef(false);
   const isPending = loading || routerPending;
 
   useEffect(() => {
-    if (emailFromQuery) {
-      setEmail(emailFromQuery);
+    if (nfcHydratedRef.current || isSubmittingRef.current) {
+      return;
     }
-  }, [emailFromQuery]);
+
+    const nfcParam = searchParams.get("nfc")?.trim();
+    const nfcId = nfcParam
+      ? normalizeNfcUniqueId(nfcParam)
+      : initialNfcId || readNfcIdClient() || "";
+
+    if (!nfcId) {
+      return;
+    }
+
+    nfcHydratedRef.current = true;
+    setUniqueId(nfcId);
+    persistNfcIdClient(nfcId);
+  }, [initialNfcId]);
 
   useEffect(() => {
-    const text = authQueryMessageText(msgFromQuery);
+    if (isCleaned.current || isSubmittingRef.current || !isRouterReady) {
+      return;
+    }
+
+    const nfcParam = searchParams.get("nfc")?.trim();
+    if (!nfcParam) {
+      return;
+    }
+
+    isCleaned.current = true;
+
+    const emailParam = searchParams.get("email")?.trim() ?? "";
+    const msgParam = searchParams.get("msg")?.trim() ?? "";
+
+    void safeReplace(
+      authSignupPathClean({
+        email: emailParam || undefined,
+        msg: msgParam || undefined,
+      })
+    );
+  }, [isRouterReady, safeReplace]);
+
+  useEffect(() => {
+    const emailParam = searchParams.get("email")?.trim();
+    if (emailParam) {
+      setEmail(emailParam);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const msgParam = searchParams.get("msg")?.trim() ?? "";
+    const text = authQueryMessageText(msgParam);
     if (text) {
       setToast({ message: text, variant: "info" });
     }
-  }, [msgFromQuery]);
+  }, [searchParams]);
 
   const showToast = useCallback((message: string, variant: AuthToast["variant"] = "error") => {
     setToast({ message, variant });
@@ -65,8 +120,12 @@ export default function NfcSignupForm() {
 
   const loginHref = nfcAuthLoginPath(uniqueId, { email });
 
-  async function handleSubmit(event: React.FormEvent) {
-    event.preventDefault();
+  async function submitSignup() {
+    if (isSubmittingRef.current || loading || !uniqueId) {
+      return;
+    }
+
+    isSubmittingRef.current = true;
     setLoading(true);
     setToast(null);
 
@@ -97,7 +156,6 @@ export default function NfcSignupForm() {
         }
 
         showToast(result.error);
-        setLoading(false);
         return;
       }
 
@@ -115,8 +173,14 @@ export default function NfcSignupForm() {
       const message =
         cause instanceof Error ? cause.message : "Kayıt tamamlanamadı.";
       showToast(message);
+    } finally {
+      isSubmittingRef.current = false;
       setLoading(false);
     }
+  }
+
+  function blockNativeSubmit(event: React.FormEvent) {
+    event.preventDefault();
   }
 
   return (
@@ -134,7 +198,7 @@ export default function NfcSignupForm() {
         </div>
       ) : null}
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <form onSubmit={blockNativeSubmit} className="flex flex-col gap-4" noValidate>
         <label className="text-[11px] uppercase tracking-widest text-white/45">
           E-posta
         </label>
@@ -180,8 +244,9 @@ export default function NfcSignupForm() {
         />
 
         <button
-          type="submit"
+          type="button"
           disabled={isPending}
+          onClick={() => void submitSignup()}
           className={`${authPrimaryButtonClassName} mt-2`}
         >
           {isPending ? "İşleniyor..." : "Kayıt Ol"}
