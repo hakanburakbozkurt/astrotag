@@ -12,6 +12,7 @@ import {
   startNfcLoginAction,
 } from "@/lib/actions/nfc-email-auth";
 import { authLoginPathClean, nfcAuthSignupPath } from "@/lib/nfc/auth-paths";
+import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 import { navigateAfterNfcAuth } from "@/lib/nfc/post-auth-nav.client";
 import {
   authInputClassName,
@@ -35,7 +36,7 @@ export default function NfcLoginForm() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<AuthToast | null>(null);
-  const nfcUrlStrippedRef = useRef(false);
+  const isCleaned = useRef(false);
   const pendingNfcLoadedRef = useRef(false);
   const isPending = loading || routerPending;
 
@@ -59,37 +60,41 @@ export default function NfcLoginForm() {
   }, [msgFromQuery]);
 
   useEffect(() => {
-    if (!searchParams.get("nfc")?.trim() || !isRouterReady || nfcUrlStrippedRef.current) {
+    if (isCleaned.current) {
       return;
     }
 
-    nfcUrlStrippedRef.current = true;
-    const nfcFromUrl = uniqueIdFromQuery;
+    const nfcParam = searchParams.get("nfc")?.trim();
+    if (!nfcParam) {
+      return;
+    }
+
+    if (!isRouterReady) {
+      return;
+    }
+
+    isCleaned.current = true;
+
+    const nfcFromUrl = normalizeNfcUniqueId(nfcParam);
+    const emailParam = searchParams.get("email")?.trim() ?? "";
+    const msgParam = searchParams.get("msg")?.trim() ?? "";
+
+    setUniqueId(nfcFromUrl);
 
     void (async () => {
-      if (nfcFromUrl) {
-        setUniqueId(nfcFromUrl);
-        try {
-          await rememberPendingNfcForAuthAction(nfcFromUrl);
-        } catch {
-          // Çerez yazılamasa da state'teki uniqueId ile devam edilir.
-        }
+      try {
+        await rememberPendingNfcForAuthAction(nfcFromUrl);
+      } catch {
+        // Çerez yazılamasa da state'teki uniqueId ile devam edilir.
       }
 
       const cleanUrl = authLoginPathClean({
-        email: emailFromQuery || undefined,
-        msg: msgFromQuery || undefined,
+        email: emailParam || undefined,
+        msg: msgParam || undefined,
       });
       await safeReplace(cleanUrl);
     })();
-  }, [
-    searchParams,
-    uniqueIdFromQuery,
-    emailFromQuery,
-    msgFromQuery,
-    isRouterReady,
-    safeReplace,
-  ]);
+  }, [isRouterReady, safeReplace]);
 
   useEffect(() => {
     if (uniqueIdFromQuery || pendingNfcLoadedRef.current) {
