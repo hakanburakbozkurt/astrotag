@@ -19,10 +19,7 @@ import {
   validateNfcCardActive,
 } from "@/lib/nfc/session.server";
 import { generateReferralCode } from "@/lib/referral";
-import {
-  createServiceRoleClient,
-  createSupabaseServiceClient,
-} from "@/lib/supabase/service";
+import { createServiceRoleClient } from "@/lib/supabase/service";
 import { logNfcEvent } from "@/lib/nfc/error-logger";
 
 type DeviceContext = {
@@ -71,8 +68,8 @@ export async function tryResumeNfcSessionForUser(params: {
   const existing = await getNfcSession();
 
   if (existing?.nfcId === params.nfcCardUuid) {
-    const service = createSupabaseServiceClient();
-    const { data: profileRow } = await service
+    const admin = createServiceRoleClient();
+    const { data: profileRow } = await admin
       .from("profiles")
       .select("name")
       .eq("id", existing.profileId)
@@ -198,7 +195,7 @@ async function establishNfcSessionForUser(params: {
     userId: params.userId ?? null,
   });
 
-  const service = createSupabaseServiceClient();
+  const admin = createServiceRoleClient();
   const fingerprint = hashFingerprintPayload(
     params.userAgent,
     params.screenWidth,
@@ -211,9 +208,7 @@ async function establishNfcSessionForUser(params: {
     profileId = randomUUID();
     const referralCode = generateReferralCode();
 
-    const { error: profileError } = await createServiceRoleClient()
-      .from("profiles")
-      .insert({
+    const { error: profileError } = await admin.from("profiles").insert({
       id: profileId,
       user_id: params.userId ?? null,
       name: "",
@@ -239,7 +234,7 @@ async function establishNfcSessionForUser(params: {
       );
     }
 
-    const { error: cardError } = await service
+    const { error: cardError } = await admin
       .from("nfc_cards")
       .update({ profile_id: profileId })
       .eq("id", params.nfcCardUuid);
@@ -256,7 +251,7 @@ async function establishNfcSessionForUser(params: {
       );
     }
   } else if (params.userId) {
-    const { error: linkError } = await service
+    const { error: linkError } = await admin
       .from("profiles")
       .update({ user_id: params.userId })
       .eq("id", profileId);
@@ -323,7 +318,7 @@ async function establishNfcSessionForUser(params: {
     );
   }
 
-  const { data: profileRow, error: nameError } = await service
+  const { data: profileRow, error: nameError } = await admin
     .from("profiles")
     .select("name")
     .eq("id", profileId)

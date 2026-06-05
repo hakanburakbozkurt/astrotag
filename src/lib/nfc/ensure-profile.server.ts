@@ -1,13 +1,11 @@
 import "server-only";
 
 import { randomUUID } from "crypto";
+import { logNfcAuthTrace } from "@/lib/auth/nfc-auth-debug";
 import { STARTING_ENERGY } from "@/lib/constants/cosmic";
 import { generateReferralCode } from "@/lib/referral";
 import { throwIfSupabaseError } from "@/lib/nfc/supabase-nfc.server";
-import {
-  createServiceRoleClient,
-  createSupabaseServiceClient,
-} from "@/lib/supabase/service";
+import { createServiceRoleClient } from "@/lib/supabase/service";
 
 const CTX = { layer: "action" as const, handler: "ensureProfileForAuthUser" };
 
@@ -15,10 +13,10 @@ async function linkProfileToNfcCardIfNeeded(
   profileId: string,
   uniqueId: string
 ): Promise<void> {
-  const service = createSupabaseServiceClient();
+  const admin = createServiceRoleClient();
   const trimmed = uniqueId.trim();
 
-  const { data: card, error: cardError } = await service
+  const { data: card, error: cardError } = await admin
     .from("nfc_cards")
     .select("id, profile_id")
     .eq("unique_id", trimmed)
@@ -30,7 +28,7 @@ async function linkProfileToNfcCardIfNeeded(
     return;
   }
 
-  const { error: updateError } = await service
+  const { error: updateError } = await admin
     .from("nfc_cards")
     .update({ profile_id: profileId })
     .eq("id", card.id);
@@ -43,15 +41,16 @@ async function linkProfileToNfcCardIfNeeded(
 
 /**
  * Auth kullanıcısı için profiles satırı yoksa oluşturur; varsa profileId döner.
+ * Tüm profiles erişimi createServiceRoleClient (RLS bypass).
  */
 export async function ensureProfileForAuthUser(
   authUserId: string,
   uniqueId?: string
 ): Promise<{ profileId: string }> {
-  const service = createSupabaseServiceClient();
+  const admin = createServiceRoleClient();
   const trimmedUniqueId = uniqueId?.trim() || null;
 
-  const { data: existing, error: selectError } = await service
+  const { data: existing, error: selectError } = await admin
     .from("profiles")
     .select("id, nfc_uid")
     .eq("user_id", authUserId)
@@ -61,7 +60,7 @@ export async function ensureProfileForAuthUser(
 
   if (existing?.id) {
     if (trimmedUniqueId && existing.nfc_uid !== trimmedUniqueId) {
-      const { error: updateError } = await service
+      const { error: updateError } = await admin
         .from("profiles")
         .update({ nfc_uid: trimmedUniqueId })
         .eq("id", existing.id);
@@ -76,14 +75,22 @@ export async function ensureProfileForAuthUser(
       await linkProfileToNfcCardIfNeeded(existing.id, trimmedUniqueId);
     }
 
+    logNfcAuthTrace("ensureProfileForAuthUser.mevcut", {
+      profileId: existing.id,
+      authUserId,
+    });
     return { profileId: existing.id };
   }
 
   const profileId = randomUUID();
   const referralCode = generateReferralCode();
 
-  // Kayıt sırasında oturum henüz RLS için hazır olmayabilir — yalnızca INSERT admin ile
-  const admin = createServiceRoleClient();
+  logNfcAuthTrace("ensureProfileForAuthUser.insert.başlıyor", {
+    authUserId,
+    profileId,
+    uniqueId: trimmedUniqueId,
+  });
+
   const { error: insertError } = await admin.from("profiles").insert({
     id: profileId,
     user_id: authUserId,
@@ -97,6 +104,20 @@ export async function ensureProfileForAuthUser(
     referral_code: referralCode,
     nfc_uid: trimmedUniqueId,
   });
+
+  if (insertError) {
+    logNfcAuthTrace("ensureProfileForAuthUser.insert.HATA", {
+      authUserId,
+      profileId,
+      code: insertError.code,
+      message: insertError.message,
+    });
+  } else {
+    logNfcAuthTrace("ensureProfileForAuthUser.insert.ok", {
+      authUserId,
+      profileId,
+    });
+  }
 
   throwIfSupabaseError(insertError, CTX, "profiles.insert", {
     profileId,

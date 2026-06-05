@@ -2,7 +2,7 @@ import "server-only";
 
 import { getNfcSession } from "@/lib/nfc/session.server";
 import { throwIfSupabaseError } from "@/lib/nfc/supabase-nfc.server";
-import { createSupabaseServiceClient } from "@/lib/supabase/service";
+import { createServiceRoleClient } from "@/lib/supabase/service";
 
 const CTX = { layer: "action" as const, handler: "syncAnonymousProfileToUser" };
 
@@ -13,7 +13,7 @@ export async function syncAnonymousProfileToUser(
   authUserId: string,
   uniqueId?: string
 ): Promise<{ ok: true; profileId: string | null } | { ok: false; error: string }> {
-  const service = createSupabaseServiceClient();
+  const service = createServiceRoleClient();
   const session = await getNfcSession();
 
   let profileId = session?.profileId ?? null;

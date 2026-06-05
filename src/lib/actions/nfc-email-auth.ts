@@ -35,6 +35,7 @@ import {
   type NfcCardAuthLookupFailure,
 } from "@/lib/nfc/session.server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { logSupabaseServiceRoleEnvCheck } from "@/lib/supabase/service";
 import {
   authErrorMessage,
   logNfcActionCriticalCatch,
@@ -303,7 +304,13 @@ export async function startNfcSignupAction(params: {
       if (signUp.data.user?.id && signUp.data.session) {
         const authUserId = signUp.data.user.id;
 
+        logNfcAuthTrace("signUp oturum alındı, profil/pairing adımı", {
+          authUserId,
+          cardInactive,
+        });
+
         if (cardInactive) {
+          logNfcAuthTrace("pasif kart — finishAuthOnlySuccess", { authUserId });
           return {
             success: true,
             skipOtp: true,
@@ -320,6 +327,7 @@ export async function startNfcSignupAction(params: {
           return { success: false, error: NFC_CARD_OWNED_BY_OTHER_MESSAGE };
         }
 
+        logNfcAuthTrace("finishNfcPasswordAuth çağrılıyor", { authUserId });
         const finished = await finishNfcPasswordAuth({
           uniqueId: params.uniqueId,
           userId: authUserId,

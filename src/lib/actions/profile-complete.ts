@@ -6,7 +6,7 @@ import { HOME_PATH } from "@/lib/nfc/constants";
 import { logNfcError } from "@/lib/nfc/error-logger";
 import { requireProtectedNfcAccess } from "@/lib/nfc/protected-access.server";
 import { withNfcAction } from "@/lib/nfc/with-nfc-action.server";
-import { createSupabaseServiceClient } from "@/lib/supabase/service";
+import { createServiceRoleClient } from "@/lib/supabase/service";
 import type { UserData } from "@/types/user";
 
 export type CompleteProfileInput = {
@@ -39,7 +39,7 @@ export async function completeUserProfile(
 
   let supabase;
   try {
-    supabase = createSupabaseServiceClient();
+    supabase = createServiceRoleClient();
   } catch (error) {
     logNfcError({ layer: "action", handler: "completeUserProfile" }, error);
     return { success: false, error: "Profil kaydedilemedi." };
