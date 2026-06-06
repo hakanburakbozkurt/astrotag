@@ -1,7 +1,7 @@
 import "server-only";
 
 import { randomUUID } from "crypto";
-import { logNfcAuthTrace } from "@/lib/auth/nfc-auth-debug";
+import { logNfcDebug } from "@/lib/nfc/nfc-debug.server";
 import { STARTING_ENERGY } from "@/lib/constants/cosmic";
 import { generateReferralCode } from "@/lib/referral";
 import { throwIfSupabaseError } from "@/lib/nfc/supabase-nfc.server";
@@ -75,7 +75,7 @@ export async function ensureProfileForAuthUser(
       await linkProfileToNfcCardIfNeeded(existing.id, trimmedUniqueId);
     }
 
-    logNfcAuthTrace("ensureProfileForAuthUser.mevcut", {
+    logNfcDebug("Profile already exists", {
       profileId: existing.id,
       authUserId,
     });
@@ -85,10 +85,11 @@ export async function ensureProfileForAuthUser(
   const profileId = randomUUID();
   const referralCode = generateReferralCode();
 
-  logNfcAuthTrace("ensureProfileForAuthUser.insert.başlıyor", {
+  logNfcDebug("Profile insert attempt", {
     authUserId,
     profileId,
     uniqueId: trimmedUniqueId,
+    client: "createServiceRoleClient",
   });
 
   const { error: insertError } = await admin.from("profiles").insert({
@@ -106,17 +107,14 @@ export async function ensureProfileForAuthUser(
   });
 
   if (insertError) {
-    logNfcAuthTrace("ensureProfileForAuthUser.insert.HATA", {
+    logNfcDebug("Profile insert failed", {
       authUserId,
       profileId,
       code: insertError.code,
       message: insertError.message,
     });
   } else {
-    logNfcAuthTrace("ensureProfileForAuthUser.insert.ok", {
-      authUserId,
-      profileId,
-    });
+    logNfcDebug("Profile insert success", { authUserId, profileId });
   }
 
   throwIfSupabaseError(insertError, CTX, "profiles.insert", {

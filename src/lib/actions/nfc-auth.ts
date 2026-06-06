@@ -9,6 +9,7 @@ import {
   getStrictClearCookieOptions,
 } from "@/lib/nfc/device-cookies.server";
 import { getProtectedNfcAccess } from "@/lib/nfc/protected-access.server";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { clearNfcSessionCookies } from "@/lib/nfc/session.server";
 import { withNfcAction } from "@/lib/nfc/with-nfc-action.server";
 
@@ -31,6 +32,30 @@ export async function checkNfcSessionAction(): Promise<{
       authenticated: Boolean(access),
       profileId: access?.profileId ?? null,
       expiresAt: access?.session.expiresAt ?? null,
+    };
+  });
+}
+
+/** Profil tamamlama: NFC oturumu veya yeni kayıt Supabase oturumu */
+export async function checkProfilePageAccessAction(): Promise<{
+  allowed: boolean;
+  viaNfc: boolean;
+  viaSupabase: boolean;
+}> {
+  return withNfcAction("checkProfilePageAccessAction", async () => {
+    const access = await getProtectedNfcAccess();
+    const supabase = await createServerSupabaseClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    const viaNfc = Boolean(access);
+    const viaSupabase = Boolean(user?.id);
+
+    return {
+      allowed: viaNfc || viaSupabase,
+      viaNfc,
+      viaSupabase,
     };
   });
 }

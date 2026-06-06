@@ -6,7 +6,10 @@ import { useAppRouter } from "@/lib/auth/router-ready-context.client";
 import { motion } from "framer-motion";
 import Starfield from "@/components/Starfield";
 import ProfileCompleteForm from "@/components/profile/ProfileCompleteForm";
-import { checkNfcSessionAction } from "@/lib/actions/nfc-auth";
+import {
+  checkNfcSessionAction,
+  checkProfilePageAccessAction,
+} from "@/lib/actions/nfc-auth";
 import { DASHBOARD_PATH, HOME_PATH } from "@/lib/nfc/constants";
 import { useUserProfile } from "@/lib/auth";
 
@@ -14,7 +17,8 @@ export default function ProfileCompletePage() {
   const { isMounted, isPending } = useAppRouter();
   const { profileStatus, isLoading, userData, isAuthenticated } = useUserProfile();
   const [sessionChecked, setSessionChecked] = useState(false);
-  const [sessionOk, setSessionOk] = useState(true);
+  const [sessionOk, setSessionOk] = useState(false);
+  const [viaSupabaseOnly, setViaSupabaseOnly] = useState(false);
   const redirectStartedRef = useRef(false);
 
   useEffect(() => {
@@ -25,15 +29,20 @@ export default function ProfileCompletePage() {
     let cancelled = false;
 
     void (async () => {
-      const session = await checkNfcSessionAction();
+      const [session, access] = await Promise.all([
+        checkNfcSessionAction(),
+        checkProfilePageAccessAction(),
+      ]);
       if (cancelled) {
         return;
       }
 
-      setSessionOk(session.authenticated);
+      const allowed = access.allowed || session.authenticated;
+      setSessionOk(allowed);
+      setViaSupabaseOnly(access.viaSupabase && !access.viaNfc);
       setSessionChecked(true);
 
-      if (!session.authenticated && !redirectStartedRef.current) {
+      if (!allowed && !redirectStartedRef.current) {
         redirectStartedRef.current = true;
         clientRedirect(HOME_PATH);
       }
@@ -49,6 +58,7 @@ export default function ProfileCompletePage() {
       !isMounted ||
       !sessionChecked ||
       !sessionOk ||
+      viaSupabaseOnly ||
       isLoading ||
       profileStatus !== "ready" ||
       !userData ||
@@ -59,15 +69,19 @@ export default function ProfileCompletePage() {
 
     redirectStartedRef.current = true;
     clientRedirect(DASHBOARD_PATH);
-  }, [isMounted, sessionChecked, sessionOk, isLoading, profileStatus, userData]);
+  }, [
+    isMounted,
+    sessionChecked,
+    sessionOk,
+    viaSupabaseOnly,
+    isLoading,
+    profileStatus,
+    userData,
+  ]);
 
-  const showRedirectShell =
-    isPending ||
-    !sessionChecked ||
-    !sessionOk ||
-    (profileStatus === "ready" && Boolean(userData));
+  const showRedirectShell = isPending || !sessionChecked || !sessionOk;
 
-  if (showRedirectShell || isLoading || !isAuthenticated) {
+  if (showRedirectShell || (isAuthenticated && isLoading)) {
     return (
       <main className="relative min-h-dvh">
         <Starfield />

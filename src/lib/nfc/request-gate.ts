@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
+import { isAuthFormPath } from "@/lib/nfc/auth-paths";
 import {
   AUTH_CALLBACK_PATH,
   HOME_PATH,
@@ -99,12 +100,15 @@ export async function handleProxyRequest(
 
     if (!gate.allowed) {
       const pairingRedirect = gate.redirectTo.includes("pair=1");
+      const authFormRedirect = isAuthFormPath(
+        new URL(gate.redirectTo, request.url).pathname
+      );
       const clearSession =
         gate.reason === "session_expired" ||
         gate.reason === "fingerprint_mismatch" ||
         gate.reason === "nfc_card_inactive" ||
         gate.reason === "unauthorized_route" ||
-        (gate.reason === "session_missing" && !pairingRedirect);
+        (gate.reason === "session_missing" && !pairingRedirect && !authFormRedirect);
 
       return buildDeniedResponse(request, gate.redirectTo, clearSession);
     }

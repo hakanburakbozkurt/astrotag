@@ -56,6 +56,7 @@ import {
   type NfcAuthDeviceContext,
 } from "@/lib/nfc/finish-password-auth.server";
 import { logNfcError } from "@/lib/nfc/error-logger";
+import { logNfcDebug } from "@/lib/nfc/nfc-debug.server";
 import { withNfcAction } from "@/lib/nfc/with-nfc-action.server";
 
 type DeviceContext = NfcAuthDeviceContext;
@@ -86,10 +87,16 @@ async function loadNfcCardForAuthFlow(
   | { ok: true; card: NfcCardAuthEntry }
   | { ok: false; error: string }
 > {
+  logNfcDebug("loadNfcCardForAuthFlow", { uniqueId });
   const card = await resolveNfcCardForAuth(uniqueId);
   if (!card.ok) {
+    logNfcDebug("loadNfcCardForAuthFlow failed", {
+      uniqueId,
+      reason: card.reason,
+    });
     return { ok: false, error: authLookupFailureMessage(card.reason) };
   }
+  logNfcDebug("loadNfcCardForAuthFlow success", { uniqueId, nfcId: card.nfcId });
   return { ok: true, card };
 }
 
@@ -97,10 +104,15 @@ async function finishAuthOnlySuccess(
   userId: string,
   uniqueId: string
 ): Promise<string> {
+  logNfcDebug("finishAuthOnlySuccess started", { userId, uniqueId });
+
   await ensureProfileForAuthUser(userId, uniqueId);
-  await clearPendingNfcCardCookie();
+  await setPendingNfcCardCookie(uniqueId);
   await clearAuthPendingCookie();
-  return resolvePostAuthDestination(userId);
+
+  const redirectTo = await resolvePostAuthDestination(userId);
+  logNfcDebug("finishAuthOnlySuccess redirect", { redirectTo });
+  return redirectTo;
 }
 
 function buildVerifyOtpUrl(email: string, uniqueId: string): string {
@@ -140,6 +152,7 @@ export async function checkNfcAutoLoginAction(
           handler,
           uniqueId: normalizedId,
         });
+        await setPendingNfcCardCookie(normalizedId);
         return { status: "auth_required", cardInactive: true };
       }
 
@@ -155,10 +168,12 @@ export async function checkNfcAutoLoginAction(
           userError,
           { uniqueId: normalizedId, step: "auth.getUser" }
         );
+        await setPendingNfcCardCookie(normalizedId);
         return { status: "auth_required" };
       }
 
       if (!user?.id) {
+        await setPendingNfcCardCookie(normalizedId);
         return { status: "auth_required" };
       }
 
@@ -185,6 +200,7 @@ export async function checkNfcAutoLoginAction(
         });
 
         if (!resumed.ok) {
+          await setPendingNfcCardCookie(normalizedId);
           return { status: "auth_required" };
         }
 
@@ -202,6 +218,7 @@ export async function checkNfcAutoLoginAction(
           resumeError,
           { uniqueId: normalizedId, step: "tryResumeNfcSessionForUser" }
         );
+        await setPendingNfcCardCookie(normalizedId);
         return { status: "auth_required" };
       }
     });
@@ -232,10 +249,11 @@ export async function startNfcSignupAction(params: {
 }): Promise<NfcAuthActionSuccess | NfcAuthActionFailure> {
   try {
     return await withNfcAction("startNfcSignupAction", async () => {
-      logNfcAuthTrace("Tetiklendi", {
+      logNfcDebug("Auth started", {
         handler: "startNfcSignupAction",
         uniqueId: params.uniqueId,
       });
+      logSupabaseServiceRoleEnvCheck("startNfcSignupAction");
       logSupabasePublicEnvCheck("startNfcSignupAction");
 
       const normalizedEmail = params.email.trim().toLowerCase();
@@ -265,10 +283,7 @@ export async function startNfcSignupAction(params: {
 
       const supabase = await createServerSupabaseClient();
 
-      logNfcAuthTrace("signUp çağrılıyor", {
-        email: normalizedEmail,
-        cardInactive,
-      });
+      logNfcDebug("signUp calling", { email: normalizedEmail, cardInactive });
 
       const signUp = await supabase.auth.signUp({
         email: normalizedEmail,
@@ -301,16 +316,35 @@ export async function startNfcSignupAction(params: {
         };
       }
 
+      if (signUp.data.user?.id && !signUp.data.session) {
+        const authUserId = signUp.data.user.id;
+        logNfcDebug("signUp user without session — early profile ensure", {
+          authUserId,
+        });
+        try {
+          await ensureProfileForAuthUser(authUserId, params.uniqueId);
+          logNfcDebug("Early profile ensure success", { authUserId });
+        } catch (profileError) {
+          logNfcDebug("Early profile ensure failed", {
+            authUserId,
+            error:
+              profileError instanceof Error
+                ? profileError.message
+                : String(profileError),
+          });
+        }
+      }
+
       if (signUp.data.user?.id && signUp.data.session) {
         const authUserId = signUp.data.user.id;
 
-        logNfcAuthTrace("signUp oturum alındı, profil/pairing adımı", {
+        logNfcDebug("signUp session received — profile/pairing step", {
           authUserId,
           cardInactive,
         });
 
         if (cardInactive) {
-          logNfcAuthTrace("pasif kart — finishAuthOnlySuccess", { authUserId });
+          logNfcDebug("inactive card — finishAuthOnlySuccess", { authUserId });
           return {
             success: true,
             skipOtp: true,
@@ -327,7 +361,7 @@ export async function startNfcSignupAction(params: {
           return { success: false, error: NFC_CARD_OWNED_BY_OTHER_MESSAGE };
         }
 
-        logNfcAuthTrace("finishNfcPasswordAuth çağrılıyor", { authUserId });
+        logNfcDebug("finishNfcPasswordAuth calling", { authUserId });
         const finished = await finishNfcPasswordAuth({
           uniqueId: params.uniqueId,
           userId: authUserId,
@@ -376,6 +410,10 @@ export async function startNfcSignupAction(params: {
       }
 
       await setAuthPendingCookie(normalizedEmail, params.uniqueId);
+      logNfcDebug("OTP flow — redirect to verify", {
+        email: normalizedEmail,
+        uniqueId: params.uniqueId,
+      });
 
       return {
         success: true,
@@ -578,6 +616,11 @@ export async function verifyNfcOtpAndEnterAction(params: {
   | { success: false; error: string }
 > {
   return withNfcAction("verifyNfcOtpAndEnterAction", async () => {
+    logNfcDebug("verifyOtp started", {
+      uniqueId: params.uniqueId,
+      email: params.email.trim().toLowerCase(),
+    });
+
     const normalizedEmail = params.email.trim().toLowerCase();
     const token = normalizeOtpCode(params.otp);
 
@@ -645,10 +688,18 @@ export async function verifyNfcOtpAndEnterAction(params: {
       return { success: false, error: NFC_CARD_OWNED_BY_OTHER_MESSAGE };
     }
 
+    logNfcDebug("verifyOtp success — ensuring profile", {
+      authUserId: verifyResult.data.user.id,
+    });
+
     const { profileId: ensuredProfileId } = await ensureProfileForAuthUser(
       verifyResult.data.user.id,
       params.uniqueId
     );
+
+    logNfcDebug("verifyOtp — pairing NFC session", {
+      profileId: ensuredProfileId,
+    });
 
     const paired = await pairNfcCardAndCreateSession({
       uniqueId: params.uniqueId,
@@ -663,6 +714,7 @@ export async function verifyNfcOtpAndEnterAction(params: {
     }
 
     await clearAuthPendingCookie();
+    logNfcDebug("verifyOtp success", { redirectTo: paired.redirectTo });
     return { success: true, redirectTo: paired.redirectTo };
   });
 }

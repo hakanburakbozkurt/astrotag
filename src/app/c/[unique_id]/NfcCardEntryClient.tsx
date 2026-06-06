@@ -5,7 +5,7 @@ import { useAppRouter } from "@/lib/auth/router-ready-context.client";
 import { useSafeRouter } from "@/lib/auth/safe-router-nav.client";
 import AuthMobileShell from "@/components/auth/AuthMobileShell";
 import { checkNfcAutoLoginAction } from "@/lib/actions/nfc-email-auth";
-import { nfcAuthSignupPath } from "@/lib/nfc/auth-paths";
+import { authSignupPathClean } from "@/lib/nfc/auth-paths";
 import { confirmStorageAccessAction } from "@/lib/actions/nfc-auth";
 import { isPrivateBrowsingMode } from "@/lib/nfc/private-mode";
 import {
@@ -60,11 +60,8 @@ export default function NfcCardEntryClient({ uniqueId }: NfcCardEntryClientProps
 
         if (result.status === "auth_required") {
           await safeReplace(
-            nfcAuthSignupPath(
-              uniqueId,
-              result.cardInactive
-                ? { msg: AUTH_MSG_CARD_NOT_ACTIVE }
-                : undefined
+            authSignupPathClean(
+              result.cardInactive ? { msg: AUTH_MSG_CARD_NOT_ACTIVE } : undefined
             )
           );
           return;
@@ -72,7 +69,7 @@ export default function NfcCardEntryClient({ uniqueId }: NfcCardEntryClientProps
 
         if (result.error === NFC_CARD_INACTIVE_MESSAGE) {
           await safeReplace(
-            nfcAuthSignupPath(uniqueId, { msg: AUTH_MSG_CARD_NOT_ACTIVE })
+            authSignupPathClean({ msg: AUTH_MSG_CARD_NOT_ACTIVE })
           );
           return;
         }

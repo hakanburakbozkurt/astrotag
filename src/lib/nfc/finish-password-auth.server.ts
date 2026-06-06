@@ -3,6 +3,7 @@ import "server-only";
 import { pairNfcCardAndCreateSession } from "@/lib/actions/nfc-auth-core";
 import { clearAuthPendingCookie } from "@/lib/auth/auth-pending-cookie.server";
 import { ensureProfileForAuthUser } from "@/lib/nfc/ensure-profile.server";
+import { logNfcDebug } from "@/lib/nfc/nfc-debug.server";
 
 export type NfcAuthDeviceContext = {
   screenWidth: number;
@@ -29,10 +30,19 @@ export async function finishNfcPasswordAuth(params: {
   | { success: true; redirectTo: string }
   | { success: false; error: string }
 > {
+  logNfcDebug("finishNfcPasswordAuth started", {
+    userId: params.userId,
+    uniqueId: params.uniqueId,
+  });
+
   const { profileId: ensuredProfileId } = await ensureProfileForAuthUser(
     params.userId,
     params.uniqueId
   );
+
+  logNfcDebug("finishNfcPasswordAuth profile ready", {
+    profileId: ensuredProfileId,
+  });
 
   const paired = await pairNfcCardAndCreateSession({
     uniqueId: params.uniqueId,
@@ -43,9 +53,11 @@ export async function finishNfcPasswordAuth(params: {
   });
 
   if (!paired.success) {
+    logNfcDebug("finishNfcPasswordAuth pairing failed", { error: paired.error });
     return { success: false, error: paired.error };
   }
 
   await clearAuthPendingCookie();
+  logNfcDebug("finishNfcPasswordAuth success", { redirectTo: paired.redirectTo });
   return { success: true, redirectTo: paired.redirectTo };
 }

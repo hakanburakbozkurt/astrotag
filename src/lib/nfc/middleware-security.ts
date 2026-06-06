@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { NextRequest } from "next/server";
-import { isAuthFormPath, nfcAuthSignupPath } from "@/lib/nfc/auth-paths";
+import { authSignupPathClean, isAuthFormPath } from "@/lib/nfc/auth-paths";
 import {
   AUTH_CALLBACK_PATH,
   AUTH_LOGIN_PATH,
@@ -150,15 +150,21 @@ function isStorageCheckRequired(pathname: string): boolean {
 }
 
 function sessionMissingRedirect(request: NextRequest): string {
+  const { pathname, search } = request.nextUrl;
+
+  if (isAuthFormPath(pathname)) {
+    return `${pathname}${search}`;
+  }
+
   const pending = request.cookies.get(PENDING_NFC_COOKIE)?.value?.trim();
   if (pending) {
-    return nfcAuthSignupPath(pending);
+    return authSignupPathClean();
   }
   return HOME_PATH;
 }
 
-function inactiveCardAuthRedirect(uniqueId: string): string {
-  return nfcAuthSignupPath(uniqueId, { msg: AUTH_MSG_CARD_NOT_ACTIVE });
+function inactiveCardAuthRedirect(_uniqueId: string): string {
+  return authSignupPathClean({ msg: AUTH_MSG_CARD_NOT_ACTIVE });
 }
 
 async function validateNfcCard(
@@ -332,6 +338,14 @@ export async function runSecurityGate(
 
     if (!isProtectedPath(pathname)) {
       return { allowed: true };
+    }
+
+    // Yeni kayıt: Supabase oturumu var, NFC henüz yok — profil tamamlamaya izin ver
+    if (pathname === PROFILE_COMPLETE_PATH) {
+      const pendingNfc = request.cookies.get(PENDING_NFC_COOKIE)?.value?.trim();
+      if (pendingNfc) {
+        return { allowed: true };
+      }
     }
 
     const sessionId = request.cookies.get(NFC_SESSION_COOKIE)?.value?.trim();

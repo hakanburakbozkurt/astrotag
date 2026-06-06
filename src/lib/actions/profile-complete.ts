@@ -6,6 +6,7 @@ import { HOME_PATH } from "@/lib/nfc/constants";
 import { logNfcError } from "@/lib/nfc/error-logger";
 import { requireProtectedNfcAccess } from "@/lib/nfc/protected-access.server";
 import { withNfcAction } from "@/lib/nfc/with-nfc-action.server";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import type { UserData } from "@/types/user";
 
@@ -27,7 +28,27 @@ export async function completeUserProfile(
     const access = await requireProtectedNfcAccess();
     profileId = access.profileId;
   } catch {
-    redirect(HOME_PATH);
+    const supabase = await createServerSupabaseClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user?.id) {
+      redirect(HOME_PATH);
+    }
+
+    const admin = createServiceRoleClient();
+    const { data: profileRow, error: lookupError } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (lookupError || !profileRow?.id) {
+      redirect(HOME_PATH);
+    }
+
+    profileId = profileRow.id;
   }
 
   const name = input.name.trim();
