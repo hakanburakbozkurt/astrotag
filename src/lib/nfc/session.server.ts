@@ -1,7 +1,7 @@
 import "server-only";
 
 import { cookies } from "next/headers";
-import { createSupabaseServiceClient } from "@/lib/supabase/service";
+import { createClient } from "@supabase/supabase-js";
 import {
   getStrictClearCookieOptions,
   getStrictCookieOptions,
@@ -14,6 +14,26 @@ import {
 } from "@/lib/nfc/constants";
 import { logNfcError, logNfcEvent } from "@/lib/nfc/error-logger";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
+
+const supabaseUrl =
+  process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !supabaseServiceKey) {
+  console.error("CRITICAL: Supabase ENV variables are missing!", {
+    SUPABASE_URL: Boolean(process.env.SUPABASE_URL),
+    NEXT_PUBLIC_SUPABASE_URL: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL),
+    SUPABASE_SERVICE_ROLE_KEY: Boolean(supabaseServiceKey),
+  });
+  throw new Error("Supabase environment variables are missing");
+}
+
+export const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+  },
+});
 
 export type NfcSessionRecord = {
   sessionId: string;
@@ -40,7 +60,6 @@ export async function getNfcSession(): Promise<NfcSessionRecord | null> {
     return null;
   }
 
-  const supabase = createSupabaseServiceClient();
   const { data, error } = await supabase
     .from("nfc_sessions")
     .select("id, profile_id, nfc_id, expires_at")
@@ -85,7 +104,6 @@ export async function createEphemeralNfcSession(params: {
   nfcId: string;
   userAgent?: string;
 }): Promise<string> {
-  const supabase = createSupabaseServiceClient();
   const expiresAt = sessionExpiresAt();
 
   console.log("[NFC_AUTH_DEBUG]: nfc_sessions.insert deneniyor", {
@@ -108,18 +126,10 @@ export async function createEphemeralNfcSession(params: {
 
   if (error) {
     console.error(
-      "[NFC_AUTH_DEBUG]: Hata sebebi nfc_sessions.insert — Supabase insert reddetti"
+      "[NFC_AUTH_DEBUG]: Hata sebebi nfc_sessions.insert — Supabase insert reddetti",
+      error
     );
-    console.error("[NFC_AUTH_DEBUG]: error.message", error.message);
-    console.error("[NFC_AUTH_DEBUG]: error.details", error.details);
-    console.error("[createEphemeralNfcSession] nfc_sessions.insert başarısız", {
-      profileId: params.profileId,
-      nfcId: params.nfcId,
-      code: error.code,
-      message: error.message,
-      details: error.details,
-      hint: error.hint,
-    });
+    console.error("[createEphemeralNfcSession] nfc_sessions.insert başarısız", error);
     throw new Error(`NFC oturumu oluşturulamadı: ${error.message}`);
   }
 
@@ -212,7 +222,6 @@ export async function clearNfcSessionCookies(): Promise<void> {
   const sessionId = cookieStore.get(NFC_SESSION_COOKIE)?.value;
 
   if (sessionId) {
-    const supabase = createSupabaseServiceClient();
     await supabase.from("nfc_sessions").delete().eq("id", sessionId);
   }
 
@@ -243,45 +252,44 @@ export async function validateNfcCardActive(
   const ctx = { layer: "action" as const, handler: "validateNfcCardActive" };
   const normalizedId = normalizeNfcUniqueId(uniqueId);
 
-  let supabase;
   try {
-    supabase = createSupabaseServiceClient();
+    const { data, error } = await supabase
+      .from("nfc_cards")
+      .select("id, is_active, profile_id, is_claimed, owner_id")
+      .eq("unique_id", normalizedId)
+      .maybeSingle();
+
+    if (error) {
+      console.error("[validateNfcCardActive] nfc_cards sorgu hatası:", error);
+      logNfcError(ctx, error, { uniqueId: normalizedId, step: "nfc_cards.select" });
+      return { ok: false, reason: "db_error" };
+    }
+
+    if (!data) {
+      logNfcEvent("warn", ctx, "NFC kartı bulunamadı", { uniqueId: normalizedId });
+      return { ok: false, reason: "not_found" };
+    }
+
+    if (!data.is_active) {
+      logNfcEvent("warn", ctx, "NFC kartı pasif", {
+        uniqueId: normalizedId,
+        nfcId: data.id,
+      });
+      return { ok: false, reason: "inactive" };
+    }
+
+    return {
+      ok: true,
+      nfcId: data.id,
+      profileId: data.profile_id ?? null,
+      isClaimed: Boolean(data.is_claimed),
+      ownerId: data.owner_id ?? null,
+    };
   } catch (error) {
-    logNfcError(ctx, error, { uniqueId: normalizedId, step: "service_client" });
-    return { ok: false, reason: "config_error" };
-  }
-
-  const { data, error } = await supabase
-    .from("nfc_cards")
-    .select("id, is_active, profile_id, is_claimed, owner_id")
-    .eq("unique_id", normalizedId)
-    .maybeSingle();
-
-  if (error) {
+    console.error("[validateNfcCardActive] Beklenmeyen hata:", error);
     logNfcError(ctx, error, { uniqueId: normalizedId, step: "nfc_cards.select" });
     return { ok: false, reason: "db_error" };
   }
-
-  if (!data) {
-    logNfcEvent("warn", ctx, "NFC kartı bulunamadı", { uniqueId: normalizedId });
-    return { ok: false, reason: "not_found" };
-  }
-
-  if (!data.is_active) {
-    logNfcEvent("warn", ctx, "NFC kartı pasif", {
-      uniqueId: normalizedId,
-      nfcId: data.id,
-    });
-    return { ok: false, reason: "inactive" };
-  }
-
-  return {
-    ok: true,
-    nfcId: data.id,
-    profileId: data.profile_id ?? null,
-    isClaimed: Boolean(data.is_claimed),
-    ownerId: data.owner_id ?? null,
-  };
 }
 
 export type NfcCardAuthEntry = NfcCardActive & {
@@ -305,55 +313,46 @@ export async function resolveNfcCardForAuth(
   console.log("Sorgulanan Kart ID'si:", uniqueId);
   console.log("Veritabanı sorgu ID'si (normalize):", normalizedId);
 
-  let supabase;
   try {
-    supabase = createSupabaseServiceClient();
+    const { data, error } = await supabase
+      .from("nfc_cards")
+      .select("id, is_active, profile_id, is_claimed, owner_id")
+      .eq("unique_id", normalizedId)
+      .maybeSingle();
+
+    if (error) {
+      console.error("[resolveNfcCardForAuth] nfc_cards sorgu hatası:", error);
+      logNfcError(ctx, error, { uniqueId: normalizedId, step: "nfc_cards.select" });
+      return { ok: false, reason: "db_error" };
+    }
+
+    if (!data) {
+      console.error("[resolveNfcCardForAuth] Kart bulunamadı:", {
+        uniqueId: normalizedId,
+        rawUniqueId: uniqueId,
+      });
+      logNfcEvent("warn", ctx, "NFC kartı bulunamadı", { uniqueId: normalizedId });
+      return { ok: false, reason: "not_found" };
+    }
+
+    if (!data.is_active) {
+      logNfcEvent("warn", ctx, "NFC kartı pasif — acil auth yolu", {
+        uniqueId: normalizedId,
+        nfcId: data.id,
+      });
+    }
+
+    return {
+      ok: true,
+      nfcId: data.id,
+      profileId: data.profile_id ?? null,
+      isClaimed: Boolean(data.is_claimed),
+      ownerId: data.owner_id ?? null,
+      isActive: Boolean(data.is_active),
+    };
   } catch (error) {
-    console.error("[resolveNfcCardForAuth] Supabase service client oluşturulamadı:", error);
-    logNfcError(ctx, error, { uniqueId: normalizedId, step: "service_client" });
-    return { ok: false, reason: "config_error" };
-  }
-
-  const { data, error } = await supabase
-    .from("nfc_cards")
-    .select("id, is_active, profile_id, is_claimed, owner_id")
-    .eq("unique_id", normalizedId)
-    .maybeSingle();
-
-  if (error) {
-    console.error("[resolveNfcCardForAuth] nfc_cards sorgu hatası:", {
-      uniqueId: normalizedId,
-      code: error.code,
-      message: error.message,
-      details: error.details,
-      hint: error.hint,
-    });
-    logNfcError(ctx, error, { uniqueId: normalizedId, step: "nfc_cards.select" });
+    console.error("[resolveNfcCardForAuth] Beklenmeyen hata:", error);
+    logNfcError(ctx, error, { uniqueId: normalizedId, step: "resolveNfcCardForAuth" });
     return { ok: false, reason: "db_error" };
   }
-
-  if (!data) {
-    console.error("[resolveNfcCardForAuth] Kart bulunamadı:", {
-      uniqueId: normalizedId,
-      rawUniqueId: uniqueId,
-    });
-    logNfcEvent("warn", ctx, "NFC kartı bulunamadı", { uniqueId: normalizedId });
-    return { ok: false, reason: "not_found" };
-  }
-
-  if (!data.is_active) {
-    logNfcEvent("warn", ctx, "NFC kartı pasif — acil auth yolu", {
-      uniqueId: normalizedId,
-      nfcId: data.id,
-    });
-  }
-
-  return {
-    ok: true,
-    nfcId: data.id,
-    profileId: data.profile_id ?? null,
-    isClaimed: Boolean(data.is_claimed),
-    ownerId: data.owner_id ?? null,
-    isActive: Boolean(data.is_active),
-  };
 }
