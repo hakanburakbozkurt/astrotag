@@ -302,10 +302,14 @@ export async function resolveNfcCardForAuth(
   const ctx = { layer: "action" as const, handler: "resolveNfcCardForAuth" };
   const normalizedId = normalizeNfcUniqueId(uniqueId);
 
+  console.log("Sorgulanan Kart ID'si:", uniqueId);
+  console.log("Veritabanı sorgu ID'si (normalize):", normalizedId);
+
   let supabase;
   try {
     supabase = createSupabaseServiceClient();
   } catch (error) {
+    console.error("[resolveNfcCardForAuth] Supabase service client oluşturulamadı:", error);
     logNfcError(ctx, error, { uniqueId: normalizedId, step: "service_client" });
     return { ok: false, reason: "config_error" };
   }
@@ -317,11 +321,22 @@ export async function resolveNfcCardForAuth(
     .maybeSingle();
 
   if (error) {
+    console.error("[resolveNfcCardForAuth] nfc_cards sorgu hatası:", {
+      uniqueId: normalizedId,
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
     logNfcError(ctx, error, { uniqueId: normalizedId, step: "nfc_cards.select" });
     return { ok: false, reason: "db_error" };
   }
 
   if (!data) {
+    console.error("[resolveNfcCardForAuth] Kart bulunamadı:", {
+      uniqueId: normalizedId,
+      rawUniqueId: uniqueId,
+    });
     logNfcEvent("warn", ctx, "NFC kartı bulunamadı", { uniqueId: normalizedId });
     return { ok: false, reason: "not_found" };
   }
