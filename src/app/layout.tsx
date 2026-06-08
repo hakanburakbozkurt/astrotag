@@ -3,7 +3,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { RouterReadyProvider } from "@/lib/auth/router-ready-context.client";
 import PwaRegister from "@/components/PwaRegister";
 import SecurityBootstrap from "@/components/SecurityBootstrap";
-import SessionActivityGuard from "@/components/SessionActivityGuard";
 import { SITE_URL, WELCOME_IMAGE_PATH } from "@/lib/nfc/constants";
 import "./globals.css";
 
@@ -72,7 +71,6 @@ export default function RootLayout({
         <RouterReadyProvider>
           <PwaRegister />
           <SecurityBootstrap />
-          <SessionActivityGuard />
           {children}
         </RouterReadyProvider>
       </body>

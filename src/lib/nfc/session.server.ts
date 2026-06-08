@@ -10,9 +10,8 @@ import {
   NFC_FINGERPRINT_COOKIE,
   NFC_PROFILE_COOKIE,
   NFC_SESSION_COOKIE,
-  NFC_SESSION_TTL_MINUTES,
+  NFC_SESSION_TTL_DAYS,
 } from "@/lib/nfc/constants";
-import { isValidFingerprintHash } from "@/lib/nfc/fingerprint.server";
 import { logNfcError, logNfcEvent } from "@/lib/nfc/error-logger";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 
@@ -20,9 +19,14 @@ export type NfcSessionRecord = {
   sessionId: string;
   profileId: string;
   nfcId: string;
-  fingerprint: string;
   expiresAt: string;
 };
+
+function sessionExpiresAt(): Date {
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + NFC_SESSION_TTL_DAYS);
+  return expiresAt;
+}
 
 function isExpired(expiresAt: string): boolean {
   return new Date(expiresAt).getTime() <= Date.now();
@@ -31,24 +35,19 @@ function isExpired(expiresAt: string): boolean {
 export async function getNfcSession(): Promise<NfcSessionRecord | null> {
   const cookieStore = await cookies();
   const sessionId = cookieStore.get(NFC_SESSION_COOKIE)?.value?.trim();
-  const fingerprint = cookieStore.get(NFC_FINGERPRINT_COOKIE)?.value?.trim();
 
-  if (!sessionId || !isValidFingerprintHash(fingerprint)) {
+  if (!sessionId) {
     return null;
   }
 
   const supabase = createSupabaseServiceClient();
   const { data, error } = await supabase
     .from("nfc_sessions")
-    .select("id, profile_id, nfc_id, fingerprint, expires_at")
+    .select("id, profile_id, nfc_id, expires_at")
     .eq("id", sessionId)
     .maybeSingle();
 
-  if (error || !data?.profile_id || !data.nfc_id || !data.fingerprint) {
-    return null;
-  }
-
-  if (data.fingerprint !== fingerprint) {
+  if (error || !data?.profile_id || !data.nfc_id) {
     return null;
   }
 
@@ -61,7 +60,6 @@ export async function getNfcSession(): Promise<NfcSessionRecord | null> {
     sessionId: data.id,
     profileId: data.profile_id,
     nfcId: data.nfc_id,
-    fingerprint: data.fingerprint,
     expiresAt: data.expires_at,
   };
 }
@@ -82,49 +80,17 @@ export async function requireNfcSessionProfileId(): Promise<string> {
   return access.profileId;
 }
 
-export async function assertNfcFingerprintMatch(
-  nfcId: string,
-  fingerprint: string
-): Promise<{ ok: true } | { ok: false; reason: "mismatch" | "blocked" }> {
-  const supabase = createSupabaseServiceClient();
-  const { data, error } = await supabase
-    .from("nfc_sessions")
-    .select("fingerprint")
-    .eq("nfc_id", nfcId)
-    .gt("expires_at", new Date().toISOString())
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
-    return { ok: false, reason: "blocked" };
-  }
-
-  if (!data?.fingerprint) {
-    return { ok: true };
-  }
-
-  if (data.fingerprint !== fingerprint) {
-    return { ok: false, reason: "mismatch" };
-  }
-
-  return { ok: true };
-}
-
 export async function createEphemeralNfcSession(params: {
   profileId: string;
   nfcId: string;
-  fingerprint: string;
   userAgent?: string;
 }): Promise<string> {
   const supabase = createSupabaseServiceClient();
-  const expiresAt = new Date();
-  expiresAt.setMinutes(expiresAt.getMinutes() + NFC_SESSION_TTL_MINUTES);
+  const expiresAt = sessionExpiresAt();
 
   console.log("[NFC_AUTH_DEBUG]: nfc_sessions.insert deneniyor", {
     profileId: params.profileId,
     nfcId: params.nfcId,
-    fingerprintLength: params.fingerprint?.length ?? 0,
     expiresAt: expiresAt.toISOString(),
   });
 
@@ -133,7 +99,7 @@ export async function createEphemeralNfcSession(params: {
     .insert({
       profile_id: params.profileId,
       nfc_id: params.nfcId,
-      fingerprint: params.fingerprint,
+      fingerprint: null,
       user_agent: params.userAgent ?? null,
       expires_at: expiresAt.toISOString(),
     })
@@ -174,19 +140,16 @@ export async function createEphemeralNfcSession(params: {
 
 export async function setNfcSessionCookies(
   sessionId: string,
-  fingerprint: string,
   profileId: string
 ): Promise<void> {
   const trimmedSessionId = sessionId?.trim() ?? "";
-  const trimmedFingerprint = fingerprint?.trim() ?? "";
   const trimmedProfileId = profileId?.trim() ?? "";
 
-  if (!trimmedSessionId || !trimmedFingerprint || !trimmedProfileId) {
+  if (!trimmedSessionId || !trimmedProfileId) {
     console.error(
       "[NFC_AUTH_DEBUG]: Hata sebebi çerez değerleri boş — oturum yazılamadı",
       {
         sessionId: trimmedSessionId || "(boş)",
-        fingerprint: trimmedFingerprint ? "[set]" : "(boş)",
         profileId: trimmedProfileId || "(boş)",
       }
     );
@@ -195,16 +158,14 @@ export async function setNfcSessionCookies(
 
   try {
     const cookieStore = await cookies();
-    const cookieOptions = getStrictCookieOptions();
+    const cookieOptions = getStrictCookieOptions(sessionExpiresAt());
 
     cookieStore.set(NFC_SESSION_COOKIE, trimmedSessionId, cookieOptions);
-    cookieStore.set(NFC_FINGERPRINT_COOKIE, trimmedFingerprint, cookieOptions);
     cookieStore.set(NFC_PROFILE_COOKIE, trimmedProfileId, cookieOptions);
 
     console.log("[NFC_AUTH_DEBUG]: NFC oturum çerezleri set edildi", {
       sessionId: trimmedSessionId,
       profileId: trimmedProfileId,
-      fingerprintLength: trimmedFingerprint.length,
     });
   } catch (error) {
     console.error(
@@ -220,23 +181,21 @@ export async function setNfcSessionCookies(
 }
 
 /**
- * DB kaydı (profile_id) + astrotag_nfc_session / astrotag_fingerprint / astrotag_nfc_profile çerezleri.
+ * DB kaydı (profile_id) + astrotag_nfc_session / astrotag_nfc_profile çerezleri.
  */
 export async function setNfcSession(params: {
   profileId: string;
   nfcCardUuid: string;
-  fingerprint: string;
   userAgent?: string;
 }): Promise<string> {
   const sessionId = await createEphemeralNfcSession({
     profileId: params.profileId,
     nfcId: params.nfcCardUuid,
-    fingerprint: params.fingerprint,
     userAgent: params.userAgent,
   });
 
   try {
-    await setNfcSessionCookies(sessionId, params.fingerprint, params.profileId);
+    await setNfcSessionCookies(sessionId, params.profileId);
   } catch (error) {
     console.error(
       "[NFC_AUTH_DEBUG]: Hata sebebi setNfcSessionCookies — setNfcSession akışında çerez hatası",

@@ -11,14 +11,11 @@ export const STORAGE_VERIFIED_COOKIE = "astrotag_storage_ok";
 /** E-posta doğrulama / eşleştirme sırasında kartı hatırla (middleware yönlendirmesi) */
 export const PENDING_NFC_COOKIE = "astrotag_pending_nfc";
 export const NFC_PAIRING_QUERY = "pair";
-/** Sunucu oturum tavanı (dakika) — istemci daha erken sonlandırır */
-export const NFC_SESSION_TTL_MINUTES = 30;
+/** Oturum çerezi + DB kaydı süresi (gün) — çerez silinene kadar oturum sürer */
+export const NFC_SESSION_TTL_DAYS = 365;
 
-/** 10 dk etkileşimsizlik → oturum sonu */
-export const SESSION_INACTIVITY_MS = 10 * 60 * 1000;
-
-/** 5 dk arka planda kalma → oturum sonu */
-export const SESSION_BACKGROUND_MS = 5 * 60 * 1000;
+/** @deprecated NFC_SESSION_TTL_DAYS kullan */
+export const NFC_SESSION_TTL_MINUTES = NFC_SESSION_TTL_DAYS * 24 * 60;
 
 export const SESSION_EXPIRED_PATH = "/session-expired";
 export const PRIVATE_MODE_PATH = "/private-mode-warning";
@@ -66,6 +63,8 @@ export const NFC_FINGERPRINT_MISMATCH_MESSAGE =
   "Oturum Sona Erdi veya Geçersiz Erişim";
 
 export const NFC_CARD_OWNED_BY_OTHER_MESSAGE = "Bu kart başkasına ait.";
+
+export const CARD_VERIFY_FAILURE_MESSAGE = "Hatalı Bilgi";
 
 /** @deprecated use NFC_FINGERPRINT_COOKIE */
 export const NFC_DEVICE_COOKIE = NFC_FINGERPRINT_COOKIE;

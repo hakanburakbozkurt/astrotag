@@ -2,7 +2,7 @@ import "server-only";
 
 import { cookies } from "next/headers";
 import {
-  NFC_SESSION_TTL_MINUTES,
+  NFC_SESSION_TTL_DAYS,
   PENDING_NFC_COOKIE,
 } from "@/lib/nfc/constants";
 
@@ -10,7 +10,7 @@ import {
 export function getStrictCookieOptions(expiresAt?: Date) {
   const expires =
     expiresAt ??
-    new Date(Date.now() + NFC_SESSION_TTL_MINUTES * 60 * 1000);
+    new Date(Date.now() + NFC_SESSION_TTL_DAYS * 24 * 60 * 60 * 1000);
 
   return {
     httpOnly: true,

@@ -39,26 +39,25 @@ type NfcCardMeta = {
   owner_id: string | null;
 };
 
-async function isSessionValidInDatabase(
-  nfcCardUuid: string,
-  fingerprint: string
-): Promise<boolean> {
+async function isSessionValidInDatabase(sessionId: string): Promise<boolean> {
   const supabase = createSupabaseServiceClient();
-  const { data, error } = await supabase.rpc("is_valid_nfc_session", {
-    p_nfc_id: nfcCardUuid,
-    p_fingerprint: fingerprint,
-  });
+  const { data, error } = await supabase
+    .from("nfc_sessions")
+    .select("id")
+    .eq("id", sessionId)
+    .gt("expires_at", new Date().toISOString())
+    .maybeSingle();
 
   if (error) {
     logNfcError(
-      { layer: "protected-access", handler: "is_valid_nfc_session" },
+      { layer: "protected-access", handler: "isSessionValidInDatabase" },
       error,
-      { nfcCardUuid, rpcCode: error.code }
+      { sessionId, dbCode: error.code }
     );
     return false;
   }
 
-  return Boolean(data);
+  return Boolean(data?.id);
 }
 
 async function loadCardMeta(nfcCardUuid: string): Promise<NfcCardMeta | null> {
@@ -95,7 +94,7 @@ async function loadCardMeta(nfcCardUuid: string): Promise<NfcCardMeta | null> {
   };
 }
 
-/** NFC oturum çerezi + DB doğrulama (is_valid_nfc_session). */
+/** NFC oturum çerezi + DB doğrulama (session id). */
 export async function getProtectedNfcAccess(): Promise<ProtectedNfcContext | null> {
   try {
     const session = await getNfcSession();
@@ -109,16 +108,13 @@ export async function getProtectedNfcAccess(): Promise<ProtectedNfcContext | nul
       return null;
     }
 
-    const sessionValid = await isSessionValidInDatabase(
-      session.nfcId,
-      session.fingerprint
-    );
+    const sessionValid = await isSessionValidInDatabase(session.sessionId);
 
     if (!sessionValid) {
       logNfcEvent(
         "warn",
         { layer: "protected-access", handler: "getProtectedNfcAccess" },
-        "is_valid_nfc_session false",
+        "nfc_sessions kaydı geçersiz veya süresi dolmuş",
         {
           sessionId: session.sessionId,
           nfcCardUuid: session.nfcId,

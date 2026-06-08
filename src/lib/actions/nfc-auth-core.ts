@@ -11,7 +11,6 @@ import {
 import { canBindClaimedCard, claimNfcCard } from "@/lib/nfc/nfc-ownership.server";
 import { syncAnonymousProfileToUser } from "@/lib/nfc/profile-sync.server";
 import { clearPendingNfcCardCookie } from "@/lib/nfc/device-cookies.server";
-import { hashFingerprintPayload } from "@/lib/nfc/fingerprint.server";
 import { confirmStorageAccessAction } from "@/lib/actions/nfc-auth";
 import {
   getNfcSession,
@@ -196,11 +195,6 @@ async function establishNfcSessionForUser(params: {
   });
 
   const admin = createServiceRoleClient();
-  const fingerprint = hashFingerprintPayload(
-    params.userAgent,
-    params.screenWidth,
-    params.screenHeight
-  );
 
   let profileId = params.profileId;
 
@@ -285,7 +279,6 @@ async function establishNfcSessionForUser(params: {
     await setNfcSession({
       profileId,
       nfcCardUuid: params.nfcCardUuid,
-      fingerprint,
       userAgent: params.userAgent,
     });
   } catch (error) {
