@@ -142,6 +142,14 @@ export function shouldRedirectUnknownToHome(pathname: string): boolean {
     return false;
   }
 
+  /** Eski NFC etiket formatı: /c/{unique_id} — shape ne olursa olsun ana sayfaya atma */
+  if (
+    pathname === CARD_ENTRY_PREFIX ||
+    pathname.startsWith(`${CARD_ENTRY_PREFIX}/`)
+  ) {
+    return false;
+  }
+
   if (isNfcCardRoutePath(pathname) || isAuthFormPath(pathname) || isWarningPath(pathname)) {
     return false;
   }
