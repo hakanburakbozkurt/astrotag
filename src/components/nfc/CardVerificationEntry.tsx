@@ -21,7 +21,7 @@ export default async function CardVerificationEntry({
   } catch (error) {
     logNfcEvent(
       "error",
-      { layer: "page", handler: "CardVerificationEntry" },
+      { layer: "action", handler: "CardVerificationEntry" },
       "resolveNfcCardForAuth başarısız",
       {
         uniqueId,
