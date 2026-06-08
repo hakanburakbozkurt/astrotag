@@ -12,6 +12,7 @@ import {
   AUTH_CALLBACK_PATH,
 } from "@/lib/nfc/constants";
 import { isAuthFormPath } from "@/lib/nfc/auth-paths";
+import { isRootCardEntryPath } from "@/lib/nfc/card-paths";
 import { isPrivateBrowsingMode } from "@/lib/nfc/private-mode";
 
 function shouldRunStorageCheck(pathname: string): boolean {
@@ -26,6 +27,7 @@ function shouldRunStorageCheck(pathname: string): boolean {
   if (
     pathname.startsWith(CARD_ENTRY_PREFIX) ||
     pathname.startsWith(PUBLIC_PROFILE_PREFIX) ||
+    isRootCardEntryPath(pathname) ||
     isAuthFormPath(pathname) ||
     pathname.startsWith(AUTH_CALLBACK_PATH)
   ) {

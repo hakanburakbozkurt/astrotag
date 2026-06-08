@@ -10,6 +10,7 @@ export function nfcCardValidationErrorMessage(
     case "db_error":
       return "Kart doğrulanırken veritabanı hatası oluştu.";
     case "not_found":
+      return "Bu NFC kartı sistemde kayıtlı değil.";
     case "inactive":
     default:
       return NFC_CARD_INACTIVE_MESSAGE;

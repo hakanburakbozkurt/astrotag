@@ -7,7 +7,6 @@ import {
 } from "@/lib/nfc/card-paths";
 import {
   AUTH_CALLBACK_PATH,
-  AUTH_MSG_CARD_NOT_ACTIVE,
   CARD_ENTRY_PREFIX,
   DASHBOARD_PATH,
   HOME_PATH,
@@ -50,7 +49,7 @@ export type SecurityDenyReason =
   | "private_mode"
   | "session_missing"
   | "session_expired"
-  | "nfc_card_inactive"
+  | "invalid_card_route"
   | "unauthorized_route";
 
 export type SecurityGateResult =
@@ -182,23 +181,6 @@ function sessionMissingRedirect(request: NextRequest): string {
   return HOME_PATH;
 }
 
-function inactiveCardAuthRedirect(_uniqueId: string): string {
-  return authSignupPathClean({ msg: AUTH_MSG_CARD_NOT_ACTIVE });
-}
-
-async function validateNfcCard(
-  supabase: SupabaseClient,
-  uniqueId: string
-): Promise<boolean> {
-  const { data, error } = await supabase
-    .from("nfc_cards")
-    .select("is_active")
-    .eq("unique_id", uniqueId)
-    .maybeSingle();
-
-  return !error && Boolean(data?.is_active);
-}
-
 async function validateSessionRecord(
   supabase: SupabaseClient,
   sessionId: string
@@ -263,30 +245,13 @@ export async function runSecurityGate(
     if (isNfcCardRoutePath(pathname)) {
       const uniqueId = resolveUniqueIdFromCardRoute(pathname);
 
-      if (!uniqueId || !supabase) {
-        const redirectTo = uniqueId
-          ? inactiveCardAuthRedirect(uniqueId)
-          : HOME_PATH;
+      if (!uniqueId) {
         const deny = {
           allowed: false as const,
-          reason: "nfc_card_inactive" as const,
-          redirectTo,
+          reason: "invalid_card_route" as const,
+          redirectTo: HOME_PATH,
         };
-        logGateDeny(request, deny.reason, deny.redirectTo, {
-          uniqueId: uniqueId ?? null,
-          supabaseClient: Boolean(supabase),
-        });
-        return deny;
-      }
-
-      const cardActive = await validateNfcCard(supabase, uniqueId);
-      if (!cardActive) {
-        const deny = {
-          allowed: false as const,
-          reason: "nfc_card_inactive" as const,
-          redirectTo: inactiveCardAuthRedirect(uniqueId),
-        };
-        logGateDeny(request, deny.reason, deny.redirectTo, { uniqueId });
+        logGateDeny(request, deny.reason, deny.redirectTo);
         return deny;
       }
 

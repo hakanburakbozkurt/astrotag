@@ -105,7 +105,6 @@ export async function handleProxyRequest(
       );
       const clearSession =
         gate.reason === "session_expired" ||
-        gate.reason === "nfc_card_inactive" ||
         gate.reason === "unauthorized_route" ||
         (gate.reason === "session_missing" && !pairingRedirect && !authFormRedirect);
 
