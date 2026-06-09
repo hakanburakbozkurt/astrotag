@@ -232,10 +232,11 @@ async function resolveRedirectForProfile(profileId: string): Promise<string> {
  */
 export async function verifyPin(
   uniqueId: string,
-  pin: string
+  inputPin: string
 ): Promise<VerifyPinResult> {
+  const pinToVerify = String(inputPin).trim();
   const normalizedId = normalizeNfcUniqueId(uniqueId);
-  const normalizedPin = normalizePinInput(pin);
+  const normalizedPin = normalizePinInput(pinToVerify);
 
   if (!normalizedId || normalizedPin.length < 4 || normalizedPin.length > 8) {
     return { ok: false, error: CARD_VERIFY_FAILURE_MESSAGE };
@@ -290,7 +291,15 @@ export async function verifyPin(
     return { ok: true, redirectTo: PROFILE_SETUP_PATH };
   }
 
-  const pinOk = await bcrypt.compare(normalizedPin, row.pin_hash);
+  const dbPinHash = row.pin_hash;
+  console.log(
+    "DEBUG_PIN_VERIFY: Girilen PIN:",
+    "'" + inputPin + "'",
+    "DB Hash:",
+    dbPinHash
+  );
+
+  const pinOk = await bcrypt.compare(normalizedPin, dbPinHash);
 
   if (!pinOk) {
     return failVerification(row.id, row.pin_failed_attempts ?? 0);
