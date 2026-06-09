@@ -13,6 +13,12 @@ import {
   NFC_SESSION_TTL_DAYS,
 } from "@/lib/nfc/constants";
 import { logNfcError, logNfcEvent } from "@/lib/nfc/error-logger";
+import {
+  NFC_CARD_AUTH_SELECT,
+  NFC_CARD_SLUG_COLUMN,
+  NFC_CARD_TABLE,
+  nfcCardQueryMeta,
+} from "@/lib/nfc/nfc-card-table";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 
 const supabaseUrl =
@@ -254,14 +260,17 @@ export async function validateNfcCardActive(
 
   try {
     const { data, error } = await supabase
-      .from("nfc_cards")
-      .select("id, is_active, profile_id, is_claimed, owner_id")
-      .eq("unique_id", normalizedId)
+      .from(NFC_CARD_TABLE)
+      .select(NFC_CARD_AUTH_SELECT)
+      .eq(NFC_CARD_SLUG_COLUMN, normalizedId)
       .maybeSingle();
 
     if (error) {
-      console.error("[validateNfcCardActive] nfc_cards sorgu hatası:", error);
-      logNfcError(ctx, error, { uniqueId: normalizedId, step: "nfc_cards.select" });
+      console.error("[validateNfcCardActive] nfc_user_data sorgu hatası:", error);
+      logNfcError(ctx, error, {
+        ...nfcCardQueryMeta(normalizedId),
+        step: "nfc_user_data.select",
+      });
       return { ok: false, reason: "db_error" };
     }
 
@@ -287,7 +296,10 @@ export async function validateNfcCardActive(
     };
   } catch (error) {
     console.error("[validateNfcCardActive] Beklenmeyen hata:", error);
-    logNfcError(ctx, error, { uniqueId: normalizedId, step: "nfc_cards.select" });
+    logNfcError(ctx, error, {
+      ...nfcCardQueryMeta(normalizedId),
+      step: "nfc_user_data.select",
+    });
     return { ok: false, reason: "db_error" };
   }
 }
@@ -314,28 +326,37 @@ export async function resolveNfcCardForAuth(
     return { ok: false, reason: "not_found" };
   }
 
-  console.log("Sorgulanan Kart ID'si:", uniqueId);
-  console.log("Veritabanı sorgu ID'si (normalize):", normalizedId);
+  const queryMeta = nfcCardQueryMeta(normalizedId, uniqueId);
+
+  console.log("[resolveNfcCardForAuth] DB sorgusu başlıyor:", queryMeta);
 
   try {
     const { data, error } = await supabase
-      .from("nfc_cards")
-      .select("id, is_active, profile_id, is_claimed, owner_id")
-      .eq("unique_id", normalizedId)
+      .from(NFC_CARD_TABLE)
+      .select(NFC_CARD_AUTH_SELECT)
+      .eq(NFC_CARD_SLUG_COLUMN, normalizedId)
       .maybeSingle();
 
     if (error) {
-      console.error("[resolveNfcCardForAuth] nfc_cards sorgu hatası:", error);
-      logNfcError(ctx, error, { uniqueId: normalizedId, step: "nfc_cards.select" });
+      console.error("[resolveNfcCardForAuth] nfc_user_data sorgu hatası:", {
+        ...queryMeta,
+        error,
+      });
+      logNfcError(ctx, error, {
+        ...queryMeta,
+        step: "nfc_user_data.select",
+      });
       return { ok: false, reason: "db_error" };
     }
 
     if (!data) {
-      console.error("[resolveNfcCardForAuth] Kart bulunamadı:", {
-        uniqueId: normalizedId,
-        rawUniqueId: uniqueId,
+      console.error("[resolveNfcCardForAuth] Kart bulunamadı — satır yok:", {
+        ...queryMeta,
+        sqlEquivalent: `select ${NFC_CARD_AUTH_SELECT} from ${NFC_CARD_TABLE} where ${NFC_CARD_SLUG_COLUMN} = '${normalizedId}' limit 1`,
+        hint:
+          "nfc_user_data tablosunda bu nfc_id yok; Supabase projesi veya seed/backfill kontrol edin.",
       });
-      logNfcEvent("warn", ctx, "NFC kartı bulunamadı", { uniqueId: normalizedId });
+      logNfcEvent("warn", ctx, "NFC kartı bulunamadı", queryMeta);
       return { ok: false, reason: "not_found" };
     }
 

@@ -2,6 +2,11 @@ import "server-only";
 
 import { NFC_CARD_OWNED_BY_OTHER_MESSAGE } from "@/lib/nfc/constants";
 import { logNfcError, logNfcErrorAndThrow, toError } from "@/lib/nfc/error-logger";
+import {
+  NFC_CARD_OWNERSHIP_SELECT,
+  NFC_CARD_SLUG_COLUMN,
+  NFC_CARD_TABLE,
+} from "@/lib/nfc/nfc-card-table";
 import { throwIfSupabaseError } from "@/lib/nfc/supabase-nfc.server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 
@@ -19,9 +24,9 @@ export async function getNfcCardOwnership(
 ): Promise<NfcCardOwnership | null> {
   const supabase = createSupabaseServiceClient();
   const { data, error } = await supabase
-    .from("nfc_cards")
-    .select("id, profile_id, is_active, is_claimed, owner_id")
-    .eq("unique_id", uniqueId.trim())
+    .from(NFC_CARD_TABLE)
+    .select(NFC_CARD_OWNERSHIP_SELECT)
+    .eq(NFC_CARD_SLUG_COLUMN, uniqueId.trim())
     .maybeSingle();
 
   if (error || !data?.is_active) {
@@ -49,12 +54,12 @@ export async function claimNfcCard(
   }
 
   const { data: card, error: fetchError } = await supabase
-    .from("nfc_cards")
+    .from(NFC_CARD_TABLE)
     .select("is_claimed, owner_id")
     .eq("id", nfcCardUuid)
     .maybeSingle();
 
-  throwIfSupabaseError(fetchError, CLAIM_CTX, "nfc_cards.select", {
+  throwIfSupabaseError(fetchError, CLAIM_CTX, "nfc_user_data.select", {
     nfcCardUuid,
   });
 
@@ -71,11 +76,11 @@ export async function claimNfcCard(
   }
 
   const { error: updateError } = await supabase
-    .from("nfc_cards")
+    .from(NFC_CARD_TABLE)
     .update({ is_claimed: true, owner_id: ownerId })
     .eq("id", nfcCardUuid);
 
-  throwIfSupabaseError(updateError, CLAIM_CTX, "nfc_cards.update.claim", {
+  throwIfSupabaseError(updateError, CLAIM_CTX, "nfc_user_data.update.claim", {
     nfcCardUuid,
     ownerId,
   });

@@ -5,6 +5,11 @@ import { logNfcDebug } from "@/lib/nfc/nfc-debug.server";
 import { STARTING_ENERGY } from "@/lib/constants/cosmic";
 import { generateReferralCode } from "@/lib/referral";
 import { throwIfSupabaseError } from "@/lib/nfc/supabase-nfc.server";
+import {
+  NFC_CARD_PROFILE_LINK_SELECT,
+  NFC_CARD_SLUG_COLUMN,
+  NFC_CARD_TABLE,
+} from "@/lib/nfc/nfc-card-table";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 
 const CTX = { layer: "action" as const, handler: "ensureProfileForAuthUser" };
@@ -17,23 +22,23 @@ async function linkProfileToNfcCardIfNeeded(
   const trimmed = uniqueId.trim();
 
   const { data: card, error: cardError } = await admin
-    .from("nfc_cards")
-    .select("id, profile_id")
-    .eq("unique_id", trimmed)
+    .from(NFC_CARD_TABLE)
+    .select(NFC_CARD_PROFILE_LINK_SELECT)
+    .eq(NFC_CARD_SLUG_COLUMN, trimmed)
     .maybeSingle();
 
-  throwIfSupabaseError(cardError, CTX, "nfc_cards.select", { uniqueId: trimmed });
+  throwIfSupabaseError(cardError, CTX, "nfc_user_data.select", { uniqueId: trimmed });
 
   if (!card?.id || card.profile_id) {
     return;
   }
 
   const { error: updateError } = await admin
-    .from("nfc_cards")
+    .from(NFC_CARD_TABLE)
     .update({ profile_id: profileId })
     .eq("id", card.id);
 
-  throwIfSupabaseError(updateError, CTX, "nfc_cards.update.profile_id", {
+  throwIfSupabaseError(updateError, CTX, "nfc_user_data.update.profile_id", {
     nfcCardUuid: card.id,
     profileId,
   });

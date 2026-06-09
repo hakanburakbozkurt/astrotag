@@ -9,6 +9,11 @@ import {
   PROFILE_COMPLETE_PATH,
 } from "@/lib/nfc/constants";
 import { logNfcEvent } from "@/lib/nfc/error-logger";
+import {
+  NFC_CARD_PIN_SELECT,
+  NFC_CARD_SLUG_COLUMN,
+  NFC_CARD_TABLE,
+} from "@/lib/nfc/nfc-card-table";
 import { setNfcSession } from "@/lib/nfc/session.server";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 import { createServiceRoleClient } from "@/lib/supabase/service";
@@ -111,7 +116,7 @@ async function recordPinFailure(cardId: string, currentAttempts: number): Promis
     : null;
 
   const { error } = await admin
-    .from("nfc_cards")
+    .from(NFC_CARD_TABLE)
     .update({
       pin_failed_attempts: nextAttempts,
       pin_locked_until: lockedUntil,
@@ -131,7 +136,7 @@ async function recordPinFailure(cardId: string, currentAttempts: number): Promis
 async function resetPinAttempts(cardId: string): Promise<void> {
   const admin = createServiceRoleClient();
   const { error } = await admin
-    .from("nfc_cards")
+    .from(NFC_CARD_TABLE)
     .update({
       pin_failed_attempts: 0,
       pin_locked_until: null,
@@ -218,18 +223,16 @@ export async function verifyPin(
 
   const admin = createServiceRoleClient();
   const { data: card, error } = await admin
-    .from("nfc_cards")
-    .select(
-      "id, profile_id, is_active, pin_hash, pin_failed_attempts, pin_locked_until"
-    )
-    .eq("unique_id", normalizedId)
+    .from(NFC_CARD_TABLE)
+    .select(NFC_CARD_PIN_SELECT)
+    .eq(NFC_CARD_SLUG_COLUMN, normalizedId)
     .maybeSingle();
 
   if (error) {
     logNfcEvent(
       "error",
       { layer: "action", handler: "verifyPin" },
-      "nfc_cards sorgusu başarısız",
+      "nfc_user_data sorgusu başarısız",
       { uniqueId: normalizedId, code: error.code, message: error.message }
     );
     return { ok: false, error: CARD_VERIFY_FAILURE_MESSAGE };

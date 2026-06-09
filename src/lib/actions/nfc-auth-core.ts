@@ -9,6 +9,7 @@ import {
   PROFILE_COMPLETE_PATH,
 } from "@/lib/nfc/constants";
 import { canBindClaimedCard, claimNfcCard } from "@/lib/nfc/nfc-ownership.server";
+import { NFC_CARD_TABLE } from "@/lib/nfc/nfc-card-table";
 import { syncAnonymousProfileToUser } from "@/lib/nfc/profile-sync.server";
 import { clearPendingNfcCardCookie } from "@/lib/nfc/device-cookies.server";
 import { confirmStorageAccessAction } from "@/lib/actions/nfc-auth";
@@ -229,17 +230,17 @@ async function establishNfcSessionForUser(params: {
     }
 
     const { error: cardError } = await admin
-      .from("nfc_cards")
+      .from(NFC_CARD_TABLE)
       .update({ profile_id: profileId })
       .eq("id", params.nfcCardUuid);
 
     if (cardError) {
       console.error(
-        "[NFC_AUTH_DEBUG]: Hata sebebi nfc_cards.update.profile_id — karta profil bağlanamadı"
+        "[NFC_AUTH_DEBUG]: Hata sebebi nfc_user_data.update.profile_id — karta profil bağlanamadı"
       );
       return establishFailure(
-        "nfc_cards.update.profile_id — karta profil bağlanamadı",
-        "nfc_cards.update.profile_id",
+        "nfc_user_data.update.profile_id — karta profil bağlanamadı",
+        "nfc_user_data.update.profile_id",
         cardError,
         { nfcCardUuid: params.nfcCardUuid, profileId }
       );

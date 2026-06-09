@@ -3,6 +3,10 @@ import "server-only";
 import { logNfcError, logNfcEvent } from "@/lib/nfc/error-logger";
 import { NFC_CARD_OWNED_BY_OTHER_MESSAGE } from "@/lib/nfc/constants";
 import {
+  NFC_CARD_META_SELECT,
+  NFC_CARD_TABLE,
+} from "@/lib/nfc/nfc-card-table";
+import {
   getNfcSession,
   type NfcSessionRecord,
 } from "@/lib/nfc/session.server";
@@ -34,7 +38,7 @@ export type ProtectedNfcContext = {
 };
 
 type NfcCardMeta = {
-  unique_id: string;
+  nfc_id: string;
   is_claimed: boolean;
   owner_id: string | null;
 };
@@ -63,8 +67,8 @@ async function isSessionValidInDatabase(sessionId: string): Promise<boolean> {
 async function loadCardMeta(nfcCardUuid: string): Promise<NfcCardMeta | null> {
   const supabase = createSupabaseServiceClient();
   const { data, error } = await supabase
-    .from("nfc_cards")
-    .select("unique_id, is_claimed, owner_id, is_active")
+    .from(NFC_CARD_TABLE)
+    .select(NFC_CARD_META_SELECT)
     .eq("id", nfcCardUuid)
     .maybeSingle();
 
@@ -77,7 +81,7 @@ async function loadCardMeta(nfcCardUuid: string): Promise<NfcCardMeta | null> {
     return null;
   }
 
-  if (!data?.is_active || !data.unique_id) {
+  if (!data?.is_active || !data.nfc_id) {
     logNfcEvent(
       "warn",
       { layer: "protected-access", handler: "loadCardMeta" },
@@ -88,7 +92,7 @@ async function loadCardMeta(nfcCardUuid: string): Promise<NfcCardMeta | null> {
   }
 
   return {
-    unique_id: data.unique_id,
+    nfc_id: data.nfc_id,
     is_claimed: Boolean(data.is_claimed),
     owner_id: data.owner_id ?? null,
   };
@@ -132,7 +136,7 @@ export async function getProtectedNfcAccess(): Promise<ProtectedNfcContext | nul
       session,
       profileId: session.profileId,
       nfcCardUuid: session.nfcId,
-      uniqueId: card.unique_id.trim(),
+      uniqueId: card.nfc_id.trim(),
       authUserId: card.owner_id,
       isClaimed: card.is_claimed,
       ownerId: card.owner_id,

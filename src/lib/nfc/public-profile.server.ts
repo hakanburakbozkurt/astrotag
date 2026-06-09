@@ -1,6 +1,10 @@
 import "server-only";
 
 import { NFC_CARD_INACTIVE_MESSAGE } from "@/lib/nfc/constants";
+import {
+  NFC_CARD_SLUG_COLUMN,
+  NFC_CARD_TABLE,
+} from "@/lib/nfc/nfc-card-table";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import type { PublicNfcProfile } from "@/types/public-profile";
 
@@ -14,10 +18,10 @@ export async function getPublicProfileByUniqueId(
 > {
   const supabase = createSupabaseServiceClient();
   const { data, error } = await supabase
-    .from("nfc_cards")
+    .from(NFC_CARD_TABLE)
     .select(
       `
-      unique_id,
+      nfc_id,
       is_active,
       owner_id,
       profiles (
@@ -30,7 +34,7 @@ export async function getPublicProfileByUniqueId(
       )
     `
     )
-    .eq("unique_id", uniqueId.trim())
+    .eq(NFC_CARD_SLUG_COLUMN, uniqueId.trim())
     .maybeSingle();
 
   if (error || !data?.is_active) {
@@ -62,7 +66,7 @@ export async function getPublicProfileByUniqueId(
   return {
     ok: true,
     profile: {
-      uniqueId: data.unique_id,
+      uniqueId: data.nfc_id,
       name: displayName,
       birthDate: profile?.birth_date ?? null,
       birthTime: profile?.birth_time ?? null,

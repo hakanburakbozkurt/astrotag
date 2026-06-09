@@ -2,6 +2,10 @@ import "server-only";
 
 import { getNfcSession } from "@/lib/nfc/session.server";
 import { throwIfSupabaseError } from "@/lib/nfc/supabase-nfc.server";
+import {
+  NFC_CARD_SLUG_COLUMN,
+  NFC_CARD_TABLE,
+} from "@/lib/nfc/nfc-card-table";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 
 const CTX = { layer: "action" as const, handler: "syncAnonymousProfileToUser" };
@@ -20,12 +24,12 @@ export async function syncAnonymousProfileToUser(
 
   if (!profileId && uniqueId?.trim()) {
     const { data: card, error: cardError } = await service
-      .from("nfc_cards")
+      .from(NFC_CARD_TABLE)
       .select("profile_id")
-      .eq("unique_id", uniqueId.trim())
+      .eq(NFC_CARD_SLUG_COLUMN, uniqueId.trim())
       .maybeSingle();
 
-    throwIfSupabaseError(cardError, CTX, "nfc_cards.select", { uniqueId });
+    throwIfSupabaseError(cardError, CTX, "nfc_user_data.select", { uniqueId });
 
     profileId = card?.profile_id ?? null;
   }
