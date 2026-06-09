@@ -28,21 +28,138 @@ import {
 
 const GATE_LOG = { layer: "security-gate" as const, handler: "runSecurityGate" };
 
+type GateDiagnostics = {
+  pathname: string;
+  method: string;
+  search: string;
+  supabaseAvailable: boolean;
+  checks: {
+    isAuthCallbackPath: boolean;
+    isAuthFormPath: boolean;
+    shouldRedirectUnknownToHome: boolean;
+    shouldRedirectUnknownBreakdown: {
+      isHome: boolean;
+      isLegacyCardPrefix: boolean;
+      isNfcCardRoutePath: boolean;
+      isAuthFormPath: boolean;
+      isWarningPath: boolean;
+      isProtectedPath: boolean;
+      isStaticOrApi: boolean;
+      wouldRedirectToHome: boolean;
+    };
+    isNfcCardRoutePath: boolean;
+    resolvedUniqueId: string | null;
+    isStorageCheckRequired: boolean;
+    storageVerified: boolean;
+    isProtectedPath: boolean;
+    profileCompleteWithPendingNfc: boolean;
+    hasSessionId: boolean;
+    hasPendingNfc: boolean;
+  };
+  cookies: ReturnType<typeof getCookiePresence>;
+};
+
+function buildShouldRedirectUnknownBreakdown(pathname: string) {
+  const isHome = pathname === HOME_PATH;
+  const isLegacyCardPrefix = isLegacyCardEntryPrefix(pathname);
+  const nfcCardRoute = isNfcCardRoutePath(pathname);
+  const authForm = isAuthFormPath(pathname);
+  const warning = isWarningPath(pathname);
+  const protectedPath = isProtectedPath(pathname);
+  const isStaticOrApi =
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/api/") ||
+    pathname === "/manifest.json" ||
+    pathname === "/sw.js" ||
+    pathname.startsWith("/.well-known");
+
+  return {
+    isHome,
+    isLegacyCardPrefix,
+    isNfcCardRoutePath: nfcCardRoute,
+    isAuthFormPath: authForm,
+    isWarningPath: warning,
+    isProtectedPath: protectedPath,
+    isStaticOrApi,
+    wouldRedirectToHome: shouldRedirectUnknownToHome(pathname),
+  };
+}
+
+function buildGateDiagnostics(
+  request: NextRequest,
+  supabase: SupabaseClient | null
+): GateDiagnostics {
+  const { pathname, search } = request.nextUrl;
+  const shouldRedirectBreakdown = buildShouldRedirectUnknownBreakdown(pathname);
+  const nfcCardRoute = isNfcCardRoutePath(pathname);
+  const resolvedUniqueId = nfcCardRoute
+    ? resolveUniqueIdFromCardRoute(pathname) || null
+    : null;
+  const pendingNfc = request.cookies.get(PENDING_NFC_COOKIE)?.value?.trim() ?? "";
+  const sessionId = request.cookies.get(NFC_SESSION_COOKIE)?.value?.trim() ?? "";
+
+  return {
+    pathname,
+    method: request.method,
+    search,
+    supabaseAvailable: Boolean(supabase),
+    checks: {
+      isAuthCallbackPath: isAuthCallbackPath(pathname),
+      isAuthFormPath: isAuthFormPath(pathname),
+      shouldRedirectUnknownToHome: shouldRedirectBreakdown.wouldRedirectToHome,
+      shouldRedirectUnknownBreakdown: shouldRedirectBreakdown,
+      isNfcCardRoutePath: nfcCardRoute,
+      resolvedUniqueId,
+      isStorageCheckRequired: isStorageCheckRequired(pathname),
+      storageVerified:
+        request.cookies.get(STORAGE_VERIFIED_COOKIE)?.value === "1",
+      isProtectedPath: isProtectedPath(pathname),
+      profileCompleteWithPendingNfc:
+        pathname === PROFILE_COMPLETE_PATH && Boolean(pendingNfc),
+      hasSessionId: Boolean(sessionId),
+      hasPendingNfc: Boolean(pendingNfc),
+    },
+    cookies: getCookiePresence(request.cookies),
+  };
+}
+
+function logGateEntry(
+  request: NextRequest,
+  supabase: SupabaseClient | null
+): GateDiagnostics {
+  const diagnostics = buildGateDiagnostics(request, supabase);
+
+  logNfcEvent("info", GATE_LOG, "runSecurityGate giriş", diagnostics);
+  console.log("[runSecurityGate] giriş:", JSON.stringify(diagnostics, null, 2));
+
+  return diagnostics;
+}
+
 function logGateDeny(
   request: NextRequest,
   reason: SecurityDenyReason,
   redirectTo: string,
+  diagnostics: GateDiagnostics,
+  denyBranch: string,
   extra?: Record<string, unknown>
 ): void {
-  logNfcEvent("warn", GATE_LOG, `Erişim reddedildi: ${reason}`, {
+  const payload = {
     reason,
     redirectTo,
+    denyBranch,
     pathname: request.nextUrl.pathname,
     method: request.method,
+    diagnostics,
     cookies: getCookiePresence(request.cookies),
     requestHeaders: sanitizeRequestHeaders(request.headers),
     ...extra,
-  });
+  };
+
+  logNfcEvent("warn", GATE_LOG, `Erişim reddedildi: ${reason}`, payload);
+  console.warn(
+    `[runSecurityGate] Erişim reddedildi: ${reason} | branch=${denyBranch}`,
+    JSON.stringify(payload, null, 2)
+  );
 }
 
 export type SecurityDenyReason =
@@ -56,8 +173,17 @@ export type SecurityGateResult =
   | { allowed: true }
   | { allowed: false; reason: SecurityDenyReason; redirectTo: string };
 
+/** NFC etiket formatı: /c ve /c/... — büyük/küçük harf duyarsız */
+function isLegacyCardEntryPrefix(pathname: string): boolean {
+  const normalized = pathname.toLowerCase();
+  return (
+    normalized === CARD_ENTRY_PREFIX ||
+    normalized.startsWith(`${CARD_ENTRY_PREFIX}/`)
+  );
+}
+
 function isCardEntryPath(pathname: string): boolean {
-  return pathname.startsWith(`${CARD_ENTRY_PREFIX}/`);
+  return isLegacyCardEntryPrefix(pathname);
 }
 
 function isPublicProfilePath(pathname: string): boolean {
@@ -123,8 +249,10 @@ function isNfcCardRoutePath(pathname: string): boolean {
 
 function resolveUniqueIdFromCardRoute(pathname: string): string {
   if (isCardEntryPath(pathname)) {
+    const lower = pathname.toLowerCase();
+    const prefixLen = `${CARD_ENTRY_PREFIX}/`.length;
     return normalizeNfcUniqueId(
-      pathname.slice(`${CARD_ENTRY_PREFIX}/`.length).split("/")[0]
+      lower.slice(prefixLen).split("/")[0]
     );
   }
 
@@ -143,10 +271,7 @@ export function shouldRedirectUnknownToHome(pathname: string): boolean {
   }
 
   /** Eski NFC etiket formatı: /c/{unique_id} — shape ne olursa olsun ana sayfaya atma */
-  if (
-    pathname === CARD_ENTRY_PREFIX ||
-    pathname.startsWith(`${CARD_ENTRY_PREFIX}/`)
-  ) {
+  if (isLegacyCardEntryPrefix(pathname)) {
     return false;
   }
 
@@ -229,6 +354,8 @@ export async function runSecurityGate(
   request: NextRequest,
   supabase: SupabaseClient | null
 ): Promise<SecurityGateResult> {
+  const diagnostics = logGateEntry(request, supabase);
+
   try {
     const { pathname } = request.nextUrl;
 
@@ -240,17 +367,8 @@ export async function runSecurityGate(
       return { allowed: true };
     }
 
-    if (shouldRedirectUnknownToHome(pathname)) {
-      const deny = {
-        allowed: false as const,
-        reason: "unauthorized_route" as const,
-        redirectTo: HOME_PATH,
-      };
-      logGateDeny(request, deny.reason, deny.redirectTo);
-      return deny;
-    }
-
-    if (isNfcCardRoutePath(pathname)) {
+    /** NFC etiket (/c/xyz) — unknown-route filtresinden önce; session gerekmez */
+    if (isLegacyCardEntryPrefix(pathname) || isNfcCardRoutePath(pathname)) {
       const uniqueId = resolveUniqueIdFromCardRoute(pathname);
 
       if (!uniqueId) {
@@ -259,11 +377,34 @@ export async function runSecurityGate(
           reason: "invalid_card_route" as const,
           redirectTo: HOME_PATH,
         };
-        logGateDeny(request, deny.reason, deny.redirectTo);
+        logGateDeny(
+          request,
+          deny.reason,
+          deny.redirectTo,
+          diagnostics,
+          "NFC kart rotası → uniqueId boş (session kontrolü yapılmadı)",
+          { resolvedUniqueId: uniqueId }
+        );
         return deny;
       }
 
       return { allowed: true };
+    }
+
+    if (shouldRedirectUnknownToHome(pathname)) {
+      const deny = {
+        allowed: false as const,
+        reason: "unauthorized_route" as const,
+        redirectTo: HOME_PATH,
+      };
+      logGateDeny(
+        request,
+        deny.reason,
+        deny.redirectTo,
+        diagnostics,
+        "shouldRedirectUnknownToHome → tanınmayan rota (session kontrolü yapılmadı)"
+      );
+      return deny;
     }
 
     if (!isStorageCheckRequired(pathname)) {
@@ -279,7 +420,14 @@ export async function runSecurityGate(
         reason: "private_mode" as const,
         redirectTo: PRIVATE_MODE_PATH,
       };
-      logGateDeny(request, deny.reason, deny.redirectTo);
+      logGateDeny(
+        request,
+        deny.reason,
+        deny.redirectTo,
+        diagnostics,
+        "storageVerified=false → astrotag_storage_ok çerezi yok",
+        { storageVerified }
+      );
       return deny;
     }
 
@@ -303,10 +451,17 @@ export async function runSecurityGate(
         reason: "session_missing" as const,
         redirectTo,
       };
-      logGateDeny(request, deny.reason, deny.redirectTo, {
-        hasSessionId: false,
-        pendingNfc: request.cookies.get(PENDING_NFC_COOKIE)?.value ?? null,
-      });
+      logGateDeny(
+        request,
+        deny.reason,
+        deny.redirectTo,
+        diagnostics,
+        "sessionId yok → astrotag_nfc_session çerezi eksik",
+        {
+          hasSessionId: false,
+          pendingNfc: request.cookies.get(PENDING_NFC_COOKIE)?.value ?? null,
+        }
+      );
       return deny;
     }
 
@@ -316,9 +471,14 @@ export async function runSecurityGate(
         reason: "session_missing" as const,
         redirectTo: HOME_PATH,
       };
-      logGateDeny(request, deny.reason, deny.redirectTo, {
-        supabaseClient: false,
-      });
+      logGateDeny(
+        request,
+        deny.reason,
+        deny.redirectTo,
+        diagnostics,
+        "supabase null → SUPABASE_SERVICE_ROLE_KEY veya URL eksik",
+        { supabaseClient: false, sessionIdPresent: true }
+      );
       return deny;
     }
 
@@ -334,11 +494,18 @@ export async function runSecurityGate(
         reason: sessionCheck.reason,
         redirectTo,
       };
-      logGateDeny(request, deny.reason, deny.redirectTo, {
-        sessionId,
-        sessionCheckReason: sessionCheck.reason,
-        pendingNfc: request.cookies.get(PENDING_NFC_COOKIE)?.value ?? null,
-      });
+      logGateDeny(
+        request,
+        deny.reason,
+        deny.redirectTo,
+        diagnostics,
+        `validateSessionRecord → ${sessionCheck.reason}`,
+        {
+          sessionId,
+          sessionCheckReason: sessionCheck.reason,
+          pendingNfc: request.cookies.get(PENDING_NFC_COOKIE)?.value ?? null,
+        }
+      );
       return deny;
     }
 
@@ -347,10 +514,12 @@ export async function runSecurityGate(
     logNfcError(GATE_LOG, error, {
       pathname: request.nextUrl.pathname,
       method: request.method,
+      diagnostics,
       cookies: getCookiePresence(request.cookies),
       requestHeaders: sanitizeRequestHeaders(request.headers),
       supabaseClient: Boolean(supabase),
     });
+    console.error("[runSecurityGate] beklenmeyen hata:", error, diagnostics);
     throw error;
   }
 }
