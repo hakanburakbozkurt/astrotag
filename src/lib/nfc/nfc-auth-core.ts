@@ -1,6 +1,5 @@
 import "server-only";
 
-import bcrypt from "bcryptjs";
 import { confirmStorageAccessAction } from "@/lib/actions/nfc-auth";
 import { clearPendingNfcCardCookie } from "@/lib/nfc/device-cookies.server";
 import {
@@ -10,7 +9,7 @@ import {
 } from "@/lib/nfc/constants";
 import { logNfcEvent } from "@/lib/nfc/error-logger";
 import {
-  NFC_CARD_PIN_SELECT,
+  NFC_CARD_AUTH_SELECT,
   NFC_CARD_SLUG_COLUMN,
   NFC_CARD_TABLE,
 } from "@/lib/nfc/nfc-card-table";
@@ -18,20 +17,14 @@ import { setNfcSession } from "@/lib/nfc/session.server";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 
-const PIN_MAX_ATTEMPTS = 5;
-const PIN_LOCK_MS = 15 * 60 * 1000;
-
 export type VerifyPinResult =
   | { ok: true; redirectTo: string }
   | { ok: false; error: string };
 
-type NfcCardPinRow = {
+type NfcCardAuthRow = {
   id: string;
   profile_id: string | null;
   is_active: boolean;
-  pin_hash: string | null;
-  pin_failed_attempts: number;
-  pin_locked_until: string | null;
 };
 
 function isValidDateParts(year: number, month: number, day: number): boolean {
@@ -93,80 +86,6 @@ export function normalizeBirthDateToIso(value: string): string | null {
   return null;
 }
 
-function normalizePinInput(pin: string): string {
-  return pin.replace(/\D/g, "").trim();
-}
-
-function isPinLocked(lockedUntil: string | null): boolean {
-  if (!lockedUntil) {
-    return false;
-  }
-
-  return new Date(lockedUntil).getTime() > Date.now();
-}
-
-/** RLS bypass — service role ile hatalı deneme sayacı ve kilit güncellenir. */
-async function recordPinFailure(cardId: string, currentAttempts: number): Promise<void> {
-  const admin = createServiceRoleClient();
-  const nextAttempts = currentAttempts + 1;
-  const shouldLock = nextAttempts >= PIN_MAX_ATTEMPTS;
-
-  const lockedUntil = shouldLock
-    ? new Date(Date.now() + PIN_LOCK_MS).toISOString()
-    : null;
-
-  const { error } = await admin
-    .from(NFC_CARD_TABLE)
-    .update({
-      pin_failed_attempts: nextAttempts,
-      pin_locked_until: lockedUntil,
-    })
-    .eq("id", cardId);
-
-  if (error) {
-    logNfcEvent(
-      "warn",
-      { layer: "action", handler: "verifyPin/recordPinFailure" },
-      "Hatalı deneme sayacı güncellenemedi",
-      { cardId, code: error.code, message: error.message }
-    );
-  }
-}
-
-async function resetPinAttempts(cardId: string): Promise<void> {
-  const admin = createServiceRoleClient();
-  const { error } = await admin
-    .from(NFC_CARD_TABLE)
-    .update({
-      pin_failed_attempts: 0,
-      pin_locked_until: null,
-    })
-    .eq("id", cardId);
-
-  if (error) {
-    logNfcEvent(
-      "warn",
-      { layer: "action", handler: "verifyPin/resetPinAttempts" },
-      "PIN deneme sayacı sıfırlanamadı",
-      { cardId, code: error.code, message: error.message }
-    );
-  }
-}
-
-async function failVerification(
-  cardId: string,
-  currentAttempts: number
-): Promise<VerifyPinResult> {
-  const nextAttempts = currentAttempts + 1;
-  await recordPinFailure(cardId, currentAttempts);
-
-  if (nextAttempts >= PIN_MAX_ATTEMPTS) {
-    return { ok: false, error: LOCKOUT_MESSAGE };
-  }
-
-  return { ok: false, error: CARD_VERIFY_FAILURE_MESSAGE };
-}
-
 async function resolveRedirectForProfile(profileId: string): Promise<string> {
   const admin = createServiceRoleClient();
   const { data, error } = await admin
@@ -203,16 +122,13 @@ async function loadProfileBirthDateIso(profileId: string): Promise<string | null
   return normalizeBirthDateToIso(String(data.birth_date));
 }
 
-const LOCKOUT_MESSAGE =
-  "Çok fazla hatalı deneme. Lütfen daha sonra tekrar deneyin.";
-
 /**
- * unique_id + doğum tarihi + PIN doğrulama (service role — RLS bypass).
- * Başarılı doğrulamada nfc_sessions + çerez oturumu açılır.
+ * nfc_id + doğum tarihi doğrulama (service role — RLS bypass).
+ * PIN geçici olarak devre dışı; yalnızca profiles.birth_date eşleşmesi yeterli.
  */
 export async function verifyPin(
   uniqueId: string,
-  pin: string,
+  _pin: string,
   birthDate: string
 ): Promise<VerifyPinResult> {
   const normalizedId = normalizeNfcUniqueId(uniqueId);
@@ -221,10 +137,16 @@ export async function verifyPin(
     return { ok: false, error: CARD_VERIFY_FAILURE_MESSAGE };
   }
 
+  const normalizedBirthDate = normalizeBirthDateToIso(birthDate);
+
+  if (!normalizedBirthDate) {
+    return { ok: false, error: CARD_VERIFY_FAILURE_MESSAGE };
+  }
+
   const admin = createServiceRoleClient();
   const { data: card, error } = await admin
     .from(NFC_CARD_TABLE)
-    .select(NFC_CARD_PIN_SELECT)
+    .select(NFC_CARD_AUTH_SELECT)
     .eq(NFC_CARD_SLUG_COLUMN, normalizedId)
     .maybeSingle();
 
@@ -242,44 +164,21 @@ export async function verifyPin(
     return { ok: false, error: CARD_VERIFY_FAILURE_MESSAGE };
   }
 
-  const row = card as NfcCardPinRow;
+  const row = card as NfcCardAuthRow;
 
   if (!row.is_active) {
     return { ok: false, error: CARD_VERIFY_FAILURE_MESSAGE };
   }
 
-  if (isPinLocked(row.pin_locked_until)) {
-    return { ok: false, error: LOCKOUT_MESSAGE };
-  }
-
-  const normalizedPin = normalizePinInput(pin);
-  const normalizedBirthDate = normalizeBirthDateToIso(birthDate);
-
-  if (
-    !normalizedBirthDate ||
-    normalizedPin.length < 4 ||
-    normalizedPin.length > 8
-  ) {
-    return failVerification(row.id, row.pin_failed_attempts ?? 0);
-  }
-
-  if (!row.profile_id || !row.pin_hash) {
-    return failVerification(row.id, row.pin_failed_attempts ?? 0);
+  if (!row.profile_id) {
+    return { ok: false, error: CARD_VERIFY_FAILURE_MESSAGE };
   }
 
   const storedBirthDate = await loadProfileBirthDateIso(row.profile_id);
 
   if (!storedBirthDate || storedBirthDate !== normalizedBirthDate) {
-    return failVerification(row.id, row.pin_failed_attempts ?? 0);
+    return { ok: false, error: CARD_VERIFY_FAILURE_MESSAGE };
   }
-
-  const pinOk = await bcrypt.compare(normalizedPin, row.pin_hash);
-
-  if (!pinOk) {
-    return failVerification(row.id, row.pin_failed_attempts ?? 0);
-  }
-
-  await resetPinAttempts(row.id);
 
   try {
     await setNfcSession({
@@ -315,7 +214,7 @@ export async function verifyPin(
     "info",
     { layer: "action", handler: "verifyPin" },
     "Doğrulama başarılı — NFC oturumu açıldı",
-    { uniqueId: normalizedId, redirectTo }
+    { uniqueId: normalizedId, redirectTo, authMode: "birth_date_only" }
   );
 
   return { ok: true, redirectTo };

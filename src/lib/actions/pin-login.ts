@@ -8,17 +8,17 @@ export type PinLoginResult =
   | { success: false; error: string };
 
 /**
- * Doğum tarihi + PIN doğrulama — verifyPin ile oturum açılır.
+ * Doğum tarihi doğrulama — verifyPin ile oturum açılır (PIN geçici olarak kapalı).
  */
 export async function handlePinLogin(params: {
   uniqueId: string;
-  pin: string;
   birthDate: string;
+  pin?: string;
 }): Promise<PinLoginResult> {
   return withNfcAction("handlePinLogin", async () => {
     const result = await verifyPin(
       params.uniqueId,
-      params.pin,
+      params.pin ?? "",
       params.birthDate
     );
 

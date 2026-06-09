@@ -79,7 +79,7 @@ export default async function CardVerificationEntry({
   return (
     <AuthMobileShell
       title="Doğrulama"
-      subtitle="Devam etmek için doğum tarihinizi ve PIN kodunuzu girin."
+      subtitle="Devam etmek için doğum tarihinizi girin."
     >
       <div className="rounded-[28px] border border-white/10 bg-[#0f172a]/90 p-6 backdrop-blur-xl sm:p-8">
         <CardVerificationForm uniqueId={uniqueId} />
