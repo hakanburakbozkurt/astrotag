@@ -21,6 +21,132 @@ import {
 } from "@/lib/nfc/nfc-card-table";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+/** nfc_sessions insert — beklenen sütunlar (migration 262490 / 262300) */
+const NFC_SESSIONS_SCHEMA_HINT = {
+  id: "uuid — gönderilmez, default gen_random_uuid()",
+  profile_id: "uuid NOT NULL — FK profiles(id)",
+  nfc_id: "uuid — FK nfc_user_data(id); eski şemada nfc_cards(id)",
+  expires_at: "timestamptz NOT NULL — ISO 8601",
+  fingerprint: "text nullable — null gönderilebilir",
+  user_agent: "text nullable",
+  created_at: "timestamptz — gönderilmez, default now()",
+} as const;
+
+type NfcSessionInsertPayload = {
+  profile_id: string;
+  nfc_id: string;
+  fingerprint: null;
+  user_agent: string | null;
+  expires_at: string;
+};
+
+function isUuid(value: string): boolean {
+  return UUID_RE.test(value.trim());
+}
+
+function validateNfcSessionInsertPayload(payload: NfcSessionInsertPayload): string[] {
+  const issues: string[] = [];
+
+  if (!payload.profile_id?.trim()) {
+    issues.push("profile_id boş");
+  } else if (!isUuid(payload.profile_id)) {
+    issues.push(`profile_id geçersiz UUID formatı: "${payload.profile_id}"`);
+  }
+
+  if (!payload.nfc_id?.trim()) {
+    issues.push("nfc_id boş");
+  } else if (!isUuid(payload.nfc_id)) {
+    issues.push(`nfc_id geçersiz UUID formatı: "${payload.nfc_id}"`);
+  }
+
+  if (!payload.expires_at?.trim()) {
+    issues.push("expires_at boş");
+  } else if (Number.isNaN(Date.parse(payload.expires_at))) {
+    issues.push(`expires_at geçersiz tarih: "${payload.expires_at}"`);
+  }
+
+  return issues;
+}
+
+function formatSupabaseError(error: {
+  code?: string;
+  message?: string;
+  details?: string | null;
+  hint?: string | null;
+}) {
+  return {
+    code: error.code ?? null,
+    message: error.message ?? null,
+    details: error.details ?? null,
+    hint: error.hint ?? null,
+  };
+}
+
+async function logNfcSessionInsertFailure(
+  payload: NfcSessionInsertPayload,
+  validationIssues: string[],
+  error: { code?: string; message?: string; details?: string | null; hint?: string | null }
+): Promise<void> {
+  const [profileLookup, cardLookup] = await Promise.all([
+    supabase.from("profiles").select("id").eq("id", payload.profile_id).maybeSingle(),
+    supabase
+      .from(NFC_CARD_TABLE)
+      .select("id, nfc_id, is_active")
+      .eq("id", payload.nfc_id)
+      .maybeSingle(),
+  ]);
+
+  const likelyCause =
+    validationIssues.length > 0
+      ? "payload_validation_failed"
+      : error.code === "23503"
+        ? cardLookup.data && !profileLookup.data
+          ? "foreign_key_profile_id_missing_in_profiles"
+          : cardLookup.data
+            ? "foreign_key_nfc_id_wrong_target_table_likely_nfc_cards_not_nfc_user_data"
+            : "foreign_key_nfc_id_not_found_in_nfc_user_data"
+        : error.code === "42501"
+          ? "permission_denied_rls_or_grants"
+          : error.code === "23502"
+            ? "not_null_violation"
+            : "unknown";
+
+  console.error(
+    "[createEphemeralNfcSession] nfc_sessions.insert başarısız — tam debug",
+    JSON.stringify(
+      {
+        handler: "createEphemeralNfcSession",
+        table: "nfc_sessions",
+        payload,
+        payloadValidation: {
+          ok: validationIssues.length === 0,
+          issues: validationIssues,
+        },
+        supabaseError: formatSupabaseError(error),
+        fkDiagnostics: {
+          profileExists: Boolean(profileLookup.data?.id),
+          profileLookupError: profileLookup.error
+            ? formatSupabaseError(profileLookup.error)
+            : null,
+          nfcCardExistsInNfcUserData: Boolean(cardLookup.data?.id),
+          nfcCardSlug: cardLookup.data?.nfc_id ?? null,
+          nfcCardActive: cardLookup.data?.is_active ?? null,
+          nfcCardLookupError: cardLookup.error
+            ? formatSupabaseError(cardLookup.error)
+            : null,
+        },
+        likelyCause,
+        schemaHint: NFC_SESSIONS_SCHEMA_HINT,
+      },
+      null,
+      2
+    )
+  );
+}
+
 const supabaseUrl =
   process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -110,48 +236,108 @@ export async function createEphemeralNfcSession(params: {
   nfcId: string;
   userAgent?: string;
 }): Promise<string> {
+  const profileId = params.profileId?.trim() ?? "";
+  const nfcId = params.nfcId?.trim() ?? "";
   const expiresAt = sessionExpiresAt();
 
-  console.log("[NFC_AUTH_DEBUG]: nfc_sessions.insert deneniyor", {
-    profileId: params.profileId,
-    nfcId: params.nfcId,
-    expiresAt: expiresAt.toISOString(),
-  });
+  const payload: NfcSessionInsertPayload = {
+    profile_id: profileId,
+    nfc_id: nfcId,
+    fingerprint: null,
+    user_agent: params.userAgent?.trim() || null,
+    expires_at: expiresAt.toISOString(),
+  };
 
-  const { data, error } = await supabase
-    .from("nfc_sessions")
-    .insert({
-      profile_id: params.profileId,
-      nfc_id: params.nfcId,
-      fingerprint: null,
-      user_agent: params.userAgent ?? null,
-      expires_at: expiresAt.toISOString(),
-    })
-    .select("id")
-    .single();
+  const validationIssues = validateNfcSessionInsertPayload(payload);
 
-  if (error) {
-    console.error(
-      "[NFC_AUTH_DEBUG]: Hata sebebi nfc_sessions.insert — Supabase insert reddetti",
-      error
-    );
-    console.error("[createEphemeralNfcSession] nfc_sessions.insert başarısız", error);
-    throw new Error(`NFC oturumu oluşturulamadı: ${error.message}`);
+  console.log(
+    "[createEphemeralNfcSession] nfc_sessions.insert deneniyor",
+    JSON.stringify(
+      {
+        payload,
+        payloadValidation: {
+          ok: validationIssues.length === 0,
+          issues: validationIssues,
+        },
+        schemaHint: NFC_SESSIONS_SCHEMA_HINT,
+      },
+      null,
+      2
+    )
+  );
+
+  if (validationIssues.length > 0) {
+    const validationError = {
+      code: "PAYLOAD_VALIDATION",
+      message: validationIssues.join("; "),
+      details: null,
+      hint: "profile_id ve nfc_id geçerli UUID olmalı; expires_at ISO 8601 olmalı",
+    };
+
+    await logNfcSessionInsertFailure(payload, validationIssues, validationError);
+    throw new Error(`NFC oturumu oluşturulamadı: ${validationError.message}`);
   }
 
-  if (!data?.id) {
-    console.error(
-      "[NFC_AUTH_DEBUG]: Hata sebebi nfc_sessions.insert — insert başarılı göründü ama session id dönmedi"
-    );
-    console.error("[createEphemeralNfcSession] insert döndü ama id yok", {
-      profileId: params.profileId,
-      nfcId: params.nfcId,
-      data,
-    });
-    throw new Error("NFC oturumu oluşturulamadı.");
-  }
+  try {
+    const { data, error } = await supabase
+      .from("nfc_sessions")
+      .insert(payload)
+      .select("id")
+      .single();
 
-  return data.id as string;
+    if (error) {
+      await logNfcSessionInsertFailure(payload, validationIssues, error);
+      throw new Error(`NFC oturumu oluşturulamadı: ${error.message}`);
+    }
+
+    if (!data?.id) {
+      console.error(
+        "[createEphemeralNfcSession] nfc_sessions.insert başarısız — id dönmedi",
+        JSON.stringify(
+          {
+            handler: "createEphemeralNfcSession",
+            payload,
+            returnedRow: data,
+            schemaHint: NFC_SESSIONS_SCHEMA_HINT,
+          },
+          null,
+          2
+        )
+      );
+      throw new Error("NFC oturumu oluşturulamadı.");
+    }
+
+    console.log(
+      "[createEphemeralNfcSession] nfc_sessions.insert başarılı",
+      JSON.stringify({ sessionId: data.id, profileId, nfcId }, null, 2)
+    );
+
+    return data.id as string;
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith("NFC oturumu")) {
+      throw error;
+    }
+
+    console.error(
+      "[createEphemeralNfcSession] nfc_sessions.insert beklenmeyen hata",
+      JSON.stringify(
+        {
+          handler: "createEphemeralNfcSession",
+          payload,
+          error:
+            error instanceof Error
+              ? { name: error.name, message: error.message, stack: error.stack }
+              : String(error),
+        },
+        null,
+        2
+      )
+    );
+
+    throw error instanceof Error
+      ? error
+      : new Error("NFC oturumu oluşturulamadı.");
+  }
 }
 
 export async function setNfcSessionCookies(
