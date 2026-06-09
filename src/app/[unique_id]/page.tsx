@@ -10,5 +10,10 @@ export default async function RootCardEntryPage({ params }: PageProps) {
   const { unique_id: rawId } = await params;
   const uniqueId = normalizeNfcUniqueId(rawId);
 
+  console.log("[/[unique_id]/page] Kart doğrulama sayfası render:", {
+    rawId,
+    uniqueId,
+  });
+
   return <CardVerificationEntry uniqueId={uniqueId} />;
 }

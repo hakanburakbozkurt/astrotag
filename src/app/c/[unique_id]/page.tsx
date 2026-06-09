@@ -9,5 +9,14 @@ type PageProps = {
 /** Eski /c/{unique_id} rotası → /{unique_id} */
 export default async function LegacyNfcCardEntryPage({ params }: PageProps) {
   const { unique_id: rawId } = await params;
-  redirect(cardEntryPathForUniqueId(normalizeNfcUniqueId(rawId)));
+  const uniqueId = normalizeNfcUniqueId(rawId);
+  const targetPath = cardEntryPathForUniqueId(uniqueId);
+
+  console.log("[/c/[unique_id]/page] Rota tetiklendi:", {
+    rawId,
+    uniqueId,
+    targetPath,
+  });
+
+  redirect(targetPath);
 }

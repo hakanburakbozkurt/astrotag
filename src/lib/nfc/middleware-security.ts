@@ -371,6 +371,16 @@ export async function runSecurityGate(
     if (isLegacyCardEntryPrefix(pathname) || isNfcCardRoutePath(pathname)) {
       const uniqueId = resolveUniqueIdFromCardRoute(pathname);
 
+      if (pathname.startsWith("/c/") || pathname === "/c") {
+        console.log("[runSecurityGate] /c/ kart rotası kontrolü:", {
+          pathname,
+          isLegacyCardEntryPrefix: isLegacyCardEntryPrefix(pathname),
+          isNfcCardRoutePath: isNfcCardRoutePath(pathname),
+          resolvedUniqueId: uniqueId || null,
+          allowed: Boolean(uniqueId),
+        });
+      }
+
       if (!uniqueId) {
         const deny = {
           allowed: false as const,

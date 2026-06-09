@@ -80,14 +80,24 @@ function isAuthCallbackPath(pathname: string): boolean {
 export async function handleProxyRequest(
   request: NextRequest
 ): Promise<NextResponse> {
+  const pathname = request.nextUrl.pathname;
   const context = {
     layer: "middleware" as const,
     handler: "proxy",
-    pathname: request.nextUrl.pathname,
+    pathname,
     method: request.method,
   };
 
-  if (isAuthCallbackPath(request.nextUrl.pathname)) {
+  if (pathname.startsWith("/c/") || pathname === "/c") {
+    console.log("[proxy] /c/ isteği alındı:", {
+      pathname,
+      search: request.nextUrl.search,
+      method: request.method,
+      url: request.nextUrl.toString(),
+    });
+  }
+
+  if (isAuthCallbackPath(pathname)) {
     if (request.method !== "GET") {
       return new NextResponse("Method Not Allowed", { status: 405 });
     }
@@ -108,13 +118,26 @@ export async function handleProxyRequest(
         gate.reason === "unauthorized_route" ||
         (gate.reason === "session_missing" && !pairingRedirect && !authFormRedirect);
 
-      return buildDeniedResponse(request, gate.redirectTo, clearSession);
+      if (pathname.startsWith("/c/") || pathname === "/c") {
+        console.warn("[proxy] /c/ isteği gate tarafından reddedildi:", {
+          pathname,
+          reason: gate.reason,
+          redirectTo: gate.redirectTo,
+          clearSession,
+        });
+      }
+
+      const response = buildDeniedResponse(request, gate.redirectTo, clearSession);
+      response.headers.set("x-astrotag-gate", `deny:${gate.reason}`);
+      return response;
     }
 
     const response = NextResponse.next();
+    response.headers.set("x-astrotag-gate", "allow");
 
-    if (request.nextUrl.pathname.startsWith("/c/")) {
-      response.headers.set("Link", `<${request.nextUrl.pathname}>; rel=prefetch`);
+    if (pathname.startsWith("/c/")) {
+      console.log("[proxy] /c/ isteği gate geçti, sayfa render edilecek:", pathname);
+      response.headers.set("Link", `<${pathname}>; rel=prefetch`);
     }
 
     return response;
