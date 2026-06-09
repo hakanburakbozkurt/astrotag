@@ -16,6 +16,7 @@ import {
   NFC_CARD_TABLE,
 } from "@/lib/nfc/nfc-card-table";
 import { isProfileSetupComplete } from "@/lib/nfc/profile-readiness.server";
+import { normalizePinInput } from "@/lib/nfc/pin-input";
 import { setNfcSession } from "@/lib/nfc/session.server";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 import { createServiceRoleClient } from "@/lib/supabase/service";
@@ -37,10 +38,6 @@ type NfcCardPinRow = {
   pin_failed_attempts: number;
   pin_locked_until: string | null;
 };
-
-export function normalizePinInput(pin: string): string {
-  return pin.replace(/\D/g, "").trim();
-}
 
 function isPinLocked(lockedUntil: string | null): boolean {
   if (!lockedUntil) {

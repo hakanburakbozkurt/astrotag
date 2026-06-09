@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { confirmStorageAccessAction } from "@/lib/actions/nfc-auth";
 import { handlePinLogin } from "@/lib/actions/pin-login";
 import {
   authInputClassName,
   authPrimaryButtonClassName,
 } from "@/components/auth/auth-field-styles";
+import { isPinInputReady, normalizePinInput } from "@/lib/nfc/pin-input";
 import { navigateAfterNfcAuth } from "@/lib/nfc/post-auth-nav.client";
 
 type CardVerificationFormProps = {
@@ -19,25 +20,36 @@ export default function CardVerificationForm({
   const [pin, setPin] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const isSubmittingRef = useRef(false);
+
+  const cardId = uniqueId.trim();
+  const pinDigits = useMemo(() => normalizePinInput(pin), [pin]);
+  const canSubmit = Boolean(cardId) && isPinInputReady(pinDigits) && !loading;
 
   useEffect(() => {
     void confirmStorageAccessAction();
   }, []);
 
-  async function submitVerification() {
-    if (isSubmittingRef.current || loading || !uniqueId) {
+  function syncPin(rawValue: string) {
+    setPin(normalizePinInput(rawValue).slice(0, 8));
+  }
+
+  async function loginAction(pinCode: string) {
+    if (!cardId) {
+      setError("Kart kimliği bulunamadı. Lütfen NFC etiketinizle tekrar deneyin.");
       return;
     }
 
-    isSubmittingRef.current = true;
+    if (!isPinInputReady(pinCode) || loading) {
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
       const result = await handlePinLogin({
-        uniqueId,
-        pin,
+        uniqueId: cardId,
+        pin_code: pinCode,
       });
 
       if (!result.success) {
@@ -51,13 +63,22 @@ export default function CardVerificationForm({
         cause instanceof Error ? cause.message : "Doğrulama tamamlanamadı."
       );
     } finally {
-      isSubmittingRef.current = false;
       setLoading(false);
     }
   }
 
-  function blockNativeSubmit(event: React.FormEvent) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    const formData = new FormData(event.currentTarget);
+    const fromForm = normalizePinInput(String(formData.get("pin_code") ?? ""));
+    const pinCode = fromForm || pinDigits;
+
+    if (fromForm && fromForm !== pinDigits) {
+      syncPin(fromForm);
+    }
+
+    void loginAction(pinCode);
   }
 
   return (
@@ -71,30 +92,38 @@ export default function CardVerificationForm({
         </div>
       ) : null}
 
-      <form onSubmit={blockNativeSubmit} className="flex flex-col gap-4" noValidate>
-        <label className="text-[11px] uppercase tracking-widest text-white/45">
+      {!cardId ? (
+        <div
+          role="alert"
+          className="mb-4 rounded-xl border border-amber-400/35 bg-amber-950/40 px-4 py-3 text-sm text-amber-100"
+        >
+          Geçersiz kart bağlantısı. NFC etiketinizle tekrar giriş yapın.
+        </div>
+      ) : null}
+
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
+        <label htmlFor="pin_code" className="text-[11px] uppercase tracking-widest text-white/45">
           PIN
         </label>
         <input
+          id="pin_code"
           type="password"
-          name="pin"
+          name="pin_code"
           inputMode="numeric"
-          autoComplete="off"
+          autoComplete="one-time-code"
           required
           minLength={4}
           maxLength={8}
           value={pin}
-          onChange={(event) =>
-            setPin(event.target.value.replace(/\D/g, "").slice(0, 8))
-          }
+          onChange={(event) => syncPin(event.target.value)}
+          onInput={(event) => syncPin(event.currentTarget.value)}
           placeholder="••••"
           className={`${authInputClassName} text-center text-2xl font-semibold tracking-[0.45em]`}
         />
 
         <button
-          type="button"
-          disabled={loading || pin.length < 4}
-          onClick={() => void submitVerification()}
+          type="submit"
+          disabled={!canSubmit}
           className={`${authPrimaryButtonClassName} mt-2`}
         >
           {loading ? "Doğrulanıyor..." : "Giriş Yap"}
