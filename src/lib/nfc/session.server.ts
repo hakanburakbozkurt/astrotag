@@ -310,6 +310,10 @@ export async function resolveNfcCardForAuth(
   const ctx = { layer: "action" as const, handler: "resolveNfcCardForAuth" };
   const normalizedId = normalizeNfcUniqueId(uniqueId);
 
+  if (!normalizedId.startsWith("at_")) {
+    return { ok: false, reason: "not_found" };
+  }
+
   console.log("Sorgulanan Kart ID'si:", uniqueId);
   console.log("Veritabanı sorgu ID'si (normalize):", normalizedId);
 
