@@ -10,14 +10,20 @@ import {
   CARD_ENTRY_PREFIX,
   DASHBOARD_PATH,
   HOME_PATH,
+  NFC_PROFILE_COOKIE,
   NFC_SESSION_COOKIE,
   PENDING_NFC_COOKIE,
   PRIVATE_MODE_PATH,
   PROFILE_COMPLETE_PATH,
+  PROFILE_SETUP_PATH,
   PUBLIC_PATHS,
   PUBLIC_PROFILE_PREFIX,
   STORAGE_VERIFIED_COOKIE,
 } from "@/lib/nfc/constants";
+import {
+  isProfileSetupComplete,
+  loadProfileSetupFields,
+} from "@/lib/nfc/profile-readiness.server";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 import {
   getCookiePresence,
@@ -167,7 +173,8 @@ export type SecurityDenyReason =
   | "session_missing"
   | "session_expired"
   | "invalid_card_route"
-  | "unauthorized_route";
+  | "unauthorized_route"
+  | "profile_incomplete";
 
 export type SecurityGateResult =
   | { allowed: true }
@@ -234,6 +241,7 @@ export function isProtectedPath(pathname: string): boolean {
   return (
     pathname.startsWith(DASHBOARD_PATH) ||
     pathname === PROFILE_COMPLETE_PATH ||
+    pathname === PROFILE_SETUP_PATH ||
     pathname.startsWith("/api/ai")
   );
 }
@@ -298,6 +306,18 @@ export function shouldRedirectUnknownToHome(pathname: string): boolean {
 
 function isStorageCheckRequired(pathname: string): boolean {
   return isProtectedPath(pathname);
+}
+
+/** Dashboard ve AI API — tam profil zorunlu; kurulum sayfaları hariç */
+function requiresCompleteProfile(pathname: string): boolean {
+  if (
+    pathname === PROFILE_SETUP_PATH ||
+    pathname === PROFILE_COMPLETE_PATH
+  ) {
+    return false;
+  }
+
+  return pathname.startsWith(DASHBOARD_PATH) || pathname.startsWith("/api/ai");
 }
 
 function sessionMissingRedirect(request: NextRequest): string {
@@ -445,7 +465,7 @@ export async function runSecurityGate(
       return { allowed: true };
     }
 
-    if (pathname === PROFILE_COMPLETE_PATH) {
+    if (pathname === PROFILE_COMPLETE_PATH || pathname === PROFILE_SETUP_PATH) {
       const pendingNfc = request.cookies.get(PENDING_NFC_COOKIE)?.value?.trim();
       if (pendingNfc) {
         return { allowed: true };
@@ -517,6 +537,47 @@ export async function runSecurityGate(
         }
       );
       return deny;
+    }
+
+    if (requiresCompleteProfile(pathname)) {
+      const profileId =
+        request.cookies.get(NFC_PROFILE_COOKIE)?.value?.trim() ?? "";
+
+      if (!profileId) {
+        const deny = {
+          allowed: false as const,
+          reason: "profile_incomplete" as const,
+          redirectTo: PROFILE_SETUP_PATH,
+        };
+        logGateDeny(
+          request,
+          deny.reason,
+          deny.redirectTo,
+          diagnostics,
+          "Profil çerezi yok veya boş → kurulum gerekli",
+          { profileId: null }
+        );
+        return deny;
+      }
+
+      const profileFields = await loadProfileSetupFields(supabase, profileId);
+
+      if (!profileFields || !isProfileSetupComplete(profileFields)) {
+        const deny = {
+          allowed: false as const,
+          reason: "profile_incomplete" as const,
+          redirectTo: PROFILE_SETUP_PATH,
+        };
+        logGateDeny(
+          request,
+          deny.reason,
+          deny.redirectTo,
+          diagnostics,
+          "Profil eksik → kurulum sayfasına yönlendir",
+          { profileId, profileComplete: false }
+        );
+        return deny;
+      }
     }
 
     return { allowed: true };

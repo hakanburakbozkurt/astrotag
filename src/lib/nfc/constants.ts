@@ -23,6 +23,7 @@ export const PRIVATE_MODE_PATH = "/private-mode-warning";
 export const LOGIN_PATH = HOME_PATH;
 export const DASHBOARD_PATH = "/dashboard";
 export const PROFILE_COMPLETE_PATH = "/profile/complete";
+export const PROFILE_SETUP_PATH = "/profile-setup";
 export const CARD_ENTRY_PREFIX = "/c";
 /** NFC ile açılan herkese açık profil */
 export const PUBLIC_PROFILE_PREFIX = "/p";

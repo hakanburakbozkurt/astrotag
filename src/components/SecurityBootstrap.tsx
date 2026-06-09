@@ -7,6 +7,7 @@ import { confirmStorageAccessAction } from "@/lib/actions/nfc-auth";
 import {
   CARD_ENTRY_PREFIX,
   HOME_PATH,
+  PROFILE_SETUP_PATH,
   PRIVATE_MODE_PATH,
   PUBLIC_PROFILE_PREFIX,
   AUTH_CALLBACK_PATH,
@@ -21,6 +22,10 @@ function shouldRunStorageCheck(pathname: string): boolean {
   }
 
   if (pathname.startsWith(PRIVATE_MODE_PATH)) {
+    return false;
+  }
+
+  if (pathname === PROFILE_SETUP_PATH) {
     return false;
   }
 

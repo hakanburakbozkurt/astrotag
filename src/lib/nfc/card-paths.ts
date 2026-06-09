@@ -10,6 +10,7 @@ export const RESERVED_ROOT_SEGMENTS = new Set([
   "dashboard",
   "auth",
   "profile",
+  "profile-setup",
   "c",
   "p",
   "verify-otp",

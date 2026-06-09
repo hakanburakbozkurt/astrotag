@@ -210,6 +210,15 @@ export default function PartnerSettingsPage() {
               </button>
             </form>
           )}
+
+          <div className="mt-8 border-t border-white/10 pt-6 text-center">
+            <Link
+              href="/profile-setup"
+              className="text-xs uppercase tracking-widest text-amber-400/75 transition hover:text-amber-300"
+            >
+              Profil ve PIN Yönetimi
+            </Link>
+          </div>
         </motion.section>
       </div>
     </main>
