@@ -81,7 +81,7 @@ export default async function CardVerificationEntry({
       title="Doğrulama"
       subtitle="Devam etmek için PIN kodunuzu girin."
     >
-      <div className="rounded-[28px] border border-white/10 bg-[#0f172a]/90 p-6 backdrop-blur-xl sm:p-8">
+      <div className="relative z-10 rounded-[28px] border border-white/10 bg-[#0f172a]/90 p-6 backdrop-blur-xl sm:p-8 pointer-events-auto">
         <CardVerificationForm uniqueId={uniqueId} />
       </div>
     </AuthMobileShell>

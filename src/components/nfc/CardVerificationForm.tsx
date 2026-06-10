@@ -3,10 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { confirmStorageAccessAction } from "@/lib/actions/nfc-auth";
 import { handlePinLogin as handlePinLoginAction } from "@/lib/actions/pin-login";
-import {
-  authInputClassName,
-  authPrimaryButtonClassName,
-} from "@/components/auth/auth-field-styles";
+import { authInputClassName } from "@/components/auth/auth-field-styles";
 import { isPinInputReady, normalizePinInput } from "@/lib/nfc/pin-input";
 import { navigateAfterNfcAuth } from "@/lib/nfc/post-auth-nav.client";
 
@@ -26,15 +23,16 @@ export default function CardVerificationForm({
   const canSubmit = Boolean(cardId) && isPinInputReady(pinDigits) && !loading;
 
   useEffect(() => {
+    console.log("--- [DEBUG] CardVerificationForm mount oldu ---", { cardId });
     void confirmStorageAccessAction();
-  }, []);
+  }, [cardId]);
 
   function syncPin(rawValue: string) {
     setPin(normalizePinInput(rawValue).slice(0, 8));
   }
 
   async function handlePinLogin() {
-    console.log("--- [DEBUG] handlePinLogin tetiklendi ---");
+    console.log("--- [DEBUG] handlePinLogin fonksiyonuna girildi ---");
 
     try {
       if (!cardId) {
@@ -42,7 +40,12 @@ export default function CardVerificationForm({
         return;
       }
 
-      if (!isPinInputReady(pinDigits) || loading) {
+      if (!isPinInputReady(pinDigits)) {
+        setError("PIN en az 4 haneli olmalıdır.");
+        return;
+      }
+
+      if (loading) {
         return;
       }
 
@@ -77,6 +80,12 @@ export default function CardVerificationForm({
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    console.log("BUTON TIKLANDI - TEST (form submit)");
+    void handlePinLogin();
+  }
+
+  function handleButtonClick() {
+    console.log("BUTON TIKLANDI - TEST");
     void handlePinLogin();
   }
 
@@ -100,7 +109,15 @@ export default function CardVerificationForm({
         </div>
       ) : null}
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
+      <p className="mb-3 text-center text-[10px] text-white/35">
+        debug: canSubmit={String(canSubmit)} pinLen={pinDigits.length}
+      </p>
+
+      <form
+        onSubmit={handleSubmit}
+        className="relative z-20 flex flex-col gap-4 pointer-events-auto"
+        noValidate
+      >
         <label htmlFor="pin_code" className="text-[11px] uppercase tracking-widest text-white/45">
           PIN
         </label>
@@ -117,14 +134,29 @@ export default function CardVerificationForm({
           onChange={(event) => syncPin(event.target.value)}
           onInput={(event) => syncPin(event.currentTarget.value)}
           placeholder="••••"
-          className={`${authInputClassName} text-center text-2xl font-semibold tracking-[0.45em]`}
+          className={`${authInputClassName} text-center text-2xl font-semibold tracking-[0.45em] pointer-events-auto`}
         />
 
+        {/* Geçici debug: sade HTML button — styled button tıklama sorununu izole eder */}
         <button
           type="button"
-          disabled={!canSubmit}
-          onClick={() => void handlePinLogin()}
-          className={`${authPrimaryButtonClassName} mt-2`}
+          disabled={loading}
+          onClick={handleButtonClick}
+          style={{
+            pointerEvents: "auto",
+            position: "relative",
+            zIndex: 30,
+            width: "100%",
+            minHeight: "54px",
+            padding: "12px 16px",
+            border: "2px solid #fbbf24",
+            borderRadius: "16px",
+            background: loading ? "#78716c" : "#fbbf24",
+            color: "#000",
+            fontWeight: 700,
+            fontSize: "14px",
+            cursor: loading ? "not-allowed" : "pointer",
+          }}
         >
           {loading ? "Doğrulanıyor..." : "Giriş Yap"}
         </button>

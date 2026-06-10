@@ -246,7 +246,23 @@ export function isProtectedPath(pathname: string): boolean {
   );
 }
 
-/** /c/, /p/ ve /{unique_id} — kart is_active middleware kontrolü */
+/** /c/, /p/, /{at_xxx} — oturum gerekmez; redirect döngüsünü önlemek için bypass */
+function isNfcCardRouteBypass(pathname: string): boolean {
+  if (isNfcCardRoutePath(pathname) || isLegacyCardEntryPrefix(pathname)) {
+    return true;
+  }
+
+  const lower = pathname.toLowerCase();
+
+  /** astrotag.app/at_xxx kök kart girişi — session zorunlu değil */
+  if (lower.startsWith("/at_")) {
+    return true;
+  }
+
+  return isRootCardEntryPath(pathname);
+}
+
+/** /c/, /p/ ve /{unique_id} — kart rotası tanıma */
 function isNfcCardRoutePath(pathname: string): boolean {
   return (
     isCardEntryPath(pathname) ||
@@ -374,50 +390,34 @@ export async function runSecurityGate(
   request: NextRequest,
   supabase: SupabaseClient | null
 ): Promise<SecurityGateResult> {
+  const { pathname } = request.nextUrl;
+  const sessionId =
+    request.cookies.get(NFC_SESSION_COOKIE)?.value?.trim() ?? "";
+  const hasSessionId = Boolean(sessionId);
+
+  console.log(
+    "--- [SECURITY GATE DEBUG] Path:",
+    pathname,
+    "HasSession:",
+    hasSessionId
+  );
+
+  if (isNfcCardRouteBypass(pathname)) {
+    console.log(
+      "[runSecurityGate] NFC kart rotası bypass — session/redirect yok",
+      { pathname, hasSessionId }
+    );
+    return { allowed: true };
+  }
+
   const diagnostics = logGateEntry(request, supabase);
 
   try {
-    const { pathname } = request.nextUrl;
-
     if (isAuthCallbackPath(pathname)) {
       return { allowed: true };
     }
 
     if (isAuthFormPath(pathname)) {
-      return { allowed: true };
-    }
-
-    /** NFC etiket (/c/xyz) — unknown-route filtresinden önce; session gerekmez */
-    if (isLegacyCardEntryPrefix(pathname) || isNfcCardRoutePath(pathname)) {
-      const uniqueId = resolveUniqueIdFromCardRoute(pathname);
-
-      if (pathname.startsWith("/c/") || pathname === "/c") {
-        console.log("[runSecurityGate] /c/ kart rotası kontrolü:", {
-          pathname,
-          isLegacyCardEntryPrefix: isLegacyCardEntryPrefix(pathname),
-          isNfcCardRoutePath: isNfcCardRoutePath(pathname),
-          resolvedUniqueId: uniqueId || null,
-          allowed: Boolean(uniqueId),
-        });
-      }
-
-      if (!uniqueId) {
-        const deny = {
-          allowed: false as const,
-          reason: "invalid_card_route" as const,
-          redirectTo: HOME_PATH,
-        };
-        logGateDeny(
-          request,
-          deny.reason,
-          deny.redirectTo,
-          diagnostics,
-          "NFC kart rotası → uniqueId boş (session kontrolü yapılmadı)",
-          { resolvedUniqueId: uniqueId }
-        );
-        return deny;
-      }
-
       return { allowed: true };
     }
 
@@ -471,8 +471,6 @@ export async function runSecurityGate(
         return { allowed: true };
       }
     }
-
-    const sessionId = request.cookies.get(NFC_SESSION_COOKIE)?.value?.trim();
 
     if (!sessionId) {
       const redirectTo = sessionMissingRedirect(request);

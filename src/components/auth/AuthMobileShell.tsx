@@ -46,7 +46,7 @@ export default function AuthMobileShell({
             </p>
           ) : null}
 
-          <div className="mt-8">{children}</div>
+          <div className="relative z-10 mt-8 pointer-events-auto">{children}</div>
         </motion.div>
       </div>
     </main>
