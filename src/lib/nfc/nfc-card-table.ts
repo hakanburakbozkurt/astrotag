@@ -16,7 +16,10 @@ export const NFC_CARD_AUTH_SELECT =
   "id, is_active, profile_id, is_claimed, owner_id" as const;
 
 export const NFC_CARD_PIN_SELECT =
-  "id, profile_id, is_active, pin_hash, pin_failed_attempts, pin_locked_until" as const;
+  "id, profile_id, is_active, pin_hash, pin_failed_attempts, pin_locked_until, full_name, birth_date, birth_time, birth_location" as const;
+
+export const NFC_CARD_PROFILE_SELECT =
+  "full_name, birth_date, birth_time, birth_location" as const;
 
 export const NFC_CARD_META_SELECT =
   "nfc_id, is_claimed, owner_id, is_active" as const;

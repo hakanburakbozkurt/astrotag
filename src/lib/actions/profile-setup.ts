@@ -17,6 +17,73 @@ export type ProfileSetupInput = {
   pin: string;
 };
 
+export type ProfileSetupPrefill = {
+  name: string;
+  birthDate: string;
+  birthTime: string;
+  birthCity: string;
+  birthDistrict: string;
+};
+
+function parseBirthLocation(location: string | null | undefined): {
+  city: string;
+  district: string;
+} {
+  const trimmed = location?.trim() ?? "";
+  if (!trimmed) {
+    return { city: "", district: "" };
+  }
+
+  const parts = trimmed.split(",").map((part) => part.trim());
+  if (parts.length >= 2) {
+    return { city: parts[0] ?? "", district: parts.slice(1).join(", ") };
+  }
+
+  return { city: trimmed, district: "" };
+}
+
+/** Oturum açıkken nfc_user_data'dan form ön doldurma */
+export async function loadProfileSetupPrefill(): Promise<
+  ProfileSetupPrefill | null
+> {
+  return withNfcAction("loadProfileSetupPrefill", async () => {
+    let access;
+
+    try {
+      access = await requireProtectedNfcAccess();
+    } catch {
+      return null;
+    }
+
+    let admin;
+    try {
+      admin = createServiceRoleClient();
+    } catch {
+      return null;
+    }
+
+    const { data, error } = await admin
+      .from(NFC_CARD_TABLE)
+      .select("full_name, birth_date, birth_time, birth_location")
+      .eq("id", access.nfcCardUuid)
+      .maybeSingle();
+
+    if (error || !data) {
+      return null;
+    }
+
+    const { city, district } = parseBirthLocation(data.birth_location);
+
+    return {
+      name: data.full_name?.trim() ?? "",
+      birthDate: data.birth_date?.trim() ?? "",
+      birthTime: String(data.birth_time ?? "").slice(0, 5),
+      birthCity: city,
+      birthDistrict: district,
+    };
+  });
+}
+
 export async function saveProfileSetup(
   input: ProfileSetupInput
 ): Promise<{ success: true } | { success: false; error: string }> {
@@ -29,12 +96,13 @@ export async function saveProfileSetup(
       return { success: false, error: "Oturum geçersiz. Lütfen kartınızla tekrar giriş yapın." };
     }
 
-    const name = input.name.trim();
+    const fullName = input.name.trim();
     const birthCity = input.birthCity.trim();
     const birthDistrict = input.birthDistrict.trim();
-    const birthPlace = `${birthCity}, ${birthDistrict}`;
+    const birthLocation = `${birthCity}, ${birthDistrict}`;
+    const birthPlace = birthLocation;
 
-    if (!name || !input.birthDate || !input.birthTime || !birthCity || !birthDistrict) {
+    if (!fullName || !input.birthDate || !input.birthTime || !birthCity || !birthDistrict) {
       return { success: false, error: "Tüm alanlar zorunludur." };
     }
 
@@ -46,10 +114,31 @@ export async function saveProfileSetup(
       return { success: false, error: "Profil kaydedilemedi." };
     }
 
+    const { error: cardError } = await admin
+      .from(NFC_CARD_TABLE)
+      .update({
+        full_name: fullName,
+        birth_date: input.birthDate,
+        birth_time: input.birthTime,
+        birth_location: birthLocation,
+        is_claimed: true,
+      })
+      .eq("id", access.nfcCardUuid)
+      .eq("profile_id", access.profileId);
+
+    if (cardError) {
+      logNfcError(
+        { layer: "action", handler: "saveProfileSetup" },
+        cardError,
+        { nfcCardUuid: access.nfcCardUuid, profileId: access.profileId }
+      );
+      return { success: false, error: "Profil kaydedilemedi." };
+    }
+
     const { error: profileError } = await admin
       .from("profiles")
       .update({
-        name,
+        name: fullName,
         birth_date: input.birthDate,
         birth_time: input.birthTime,
         birth_city: birthCity,
@@ -66,20 +155,6 @@ export async function saveProfileSetup(
         { profileId: access.profileId }
       );
       return { success: false, error: "Profil kaydedilemedi." };
-    }
-
-    const { error: claimError } = await admin
-      .from(NFC_CARD_TABLE)
-      .update({ is_claimed: true })
-      .eq("id", access.nfcCardUuid)
-      .eq("profile_id", access.profileId);
-
-    if (claimError) {
-      logNfcError(
-        { layer: "action", handler: "saveProfileSetup" },
-        claimError,
-        { nfcCardUuid: access.nfcCardUuid, profileId: access.profileId }
-      );
     }
 
     const pinResult = await hashAndStorePin(access.nfcCardUuid, input.pin);

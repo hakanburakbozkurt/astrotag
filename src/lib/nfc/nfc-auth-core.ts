@@ -15,7 +15,10 @@ import {
   NFC_CARD_SLUG_COLUMN,
   NFC_CARD_TABLE,
 } from "@/lib/nfc/nfc-card-table";
-import { isProfileSetupComplete } from "@/lib/nfc/profile-readiness.server";
+import {
+  isNfcCardProfileComplete,
+  type NfcCardProfileFields,
+} from "@/lib/nfc/profile-readiness.server";
 import { normalizePinInput } from "@/lib/nfc/pin-input";
 import { setNfcSession } from "@/lib/nfc/session.server";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
@@ -37,6 +40,10 @@ type NfcCardPinRow = {
   pin_hash: string | null;
   pin_failed_attempts: number;
   pin_locked_until: string | null;
+  full_name: string | null;
+  birth_date: string | null;
+  birth_time: string | null;
+  birth_location: string | null;
 };
 
 function isPinLocked(lockedUntil: string | null): boolean {
@@ -201,25 +208,10 @@ async function ensureProfileForCard(
   return resolveClaimedProfileId(admin, cardId);
 }
 
-async function resolveRedirectForProfile(profileId: string): Promise<string> {
-  const admin = createServiceRoleClient();
-  const { data, error } = await admin
-    .from("profiles")
-    .select("name, birth_date, birth_time, birth_city, birth_district")
-    .eq("id", profileId)
-    .maybeSingle();
-
-  if (error || !data) {
-    logNfcEvent(
-      "warn",
-      { layer: "action", handler: "verifyPin/resolveRedirectForProfile" },
-      "Profil okunamadı — kurulum sayfasına yönlendiriliyor",
-      { profileId, code: error?.code }
-    );
-    return PROFILE_SETUP_PATH;
-  }
-
-  if (!isProfileSetupComplete(data)) {
+async function resolveRedirectAfterLogin(
+  card: NfcCardProfileFields
+): Promise<string> {
+  if (!isNfcCardProfileComplete(card)) {
     return PROFILE_SETUP_PATH;
   }
 
@@ -341,7 +333,12 @@ export async function verifyPin(
 
   await clearPendingNfcCardCookie();
 
-  const redirectTo = await resolveRedirectForProfile(profileId);
+  const redirectTo = await resolveRedirectAfterLogin({
+    full_name: row.full_name,
+    birth_date: row.birth_date,
+    birth_time: row.birth_time,
+    birth_location: row.birth_location,
+  });
 
   logNfcEvent(
     "info",

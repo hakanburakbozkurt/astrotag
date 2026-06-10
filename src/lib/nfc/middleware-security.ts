@@ -21,8 +21,8 @@ import {
   STORAGE_VERIFIED_COOKIE,
 } from "@/lib/nfc/constants";
 import {
-  isProfileSetupComplete,
-  loadProfileSetupFields,
+  isNfcCardProfileComplete,
+  loadNfcCardProfileFieldsByProfileId,
 } from "@/lib/nfc/profile-readiness.server";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 import {
@@ -560,9 +560,12 @@ export async function runSecurityGate(
         return deny;
       }
 
-      const profileFields = await loadProfileSetupFields(supabase, profileId);
+      const cardProfileFields = await loadNfcCardProfileFieldsByProfileId(
+        supabase,
+        profileId
+      );
 
-      if (!profileFields || !isProfileSetupComplete(profileFields)) {
+      if (!cardProfileFields || !isNfcCardProfileComplete(cardProfileFields)) {
         const deny = {
           allowed: false as const,
           reason: "profile_incomplete" as const,

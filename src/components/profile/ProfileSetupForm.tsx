@@ -3,7 +3,10 @@
 import { FormEvent, useEffect, useState } from "react";
 import { clientRedirect } from "@/lib/auth/client-redirect.client";
 import { checkNfcSessionAction } from "@/lib/actions/nfc-auth";
-import { saveProfileSetup } from "@/lib/actions/profile-setup";
+import {
+  loadProfileSetupPrefill,
+  saveProfileSetup,
+} from "@/lib/actions/profile-setup";
 import { HOME_PATH } from "@/lib/nfc/constants";
 import { navigateAfterNfcAuth } from "@/lib/nfc/post-auth-nav.client";
 
@@ -37,6 +40,16 @@ export default function ProfileSetupForm({
         clientRedirect(HOME_PATH);
         return;
       }
+
+      const prefill = await loadProfileSetupPrefill();
+      if (prefill) {
+        setName(prefill.name);
+        setBirthDate(prefill.birthDate);
+        setBirthTime(prefill.birthTime);
+        setBirthCity(prefill.birthCity);
+        setBirthDistrict(prefill.birthDistrict);
+      }
+
       setSessionOk(true);
     })();
   }, []);
