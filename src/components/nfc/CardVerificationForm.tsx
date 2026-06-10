@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { confirmStorageAccessAction } from "@/lib/actions/nfc-auth";
-import { handlePinLogin } from "@/lib/actions/pin-login";
+import { handlePinLogin as handlePinLoginAction } from "@/lib/actions/pin-login";
 import {
   authInputClassName,
   authPrimaryButtonClassName,
@@ -33,29 +33,30 @@ export default function CardVerificationForm({
     setPin(normalizePinInput(rawValue).slice(0, 8));
   }
 
-  async function loginAction(pinCode: string) {
-    if (!cardId) {
-      setError("Kart kimliği bulunamadı. Lütfen NFC etiketinizle tekrar deneyin.");
-      return;
-    }
-
-    if (!isPinInputReady(pinCode) || loading) {
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    console.log("--- [DEBUG] CardVerificationForm loginAction client submit ---", {
-      cardId,
-      pinLength: pinCode.length,
-    });
+  async function handlePinLogin() {
+    console.log("--- [DEBUG] handlePinLogin tetiklendi ---");
 
     try {
-      alert("Buton tetiklendi!");
-      const result = await handlePinLogin({
+      if (!cardId) {
+        setError("Kart kimliği bulunamadı. Lütfen NFC etiketinizle tekrar deneyin.");
+        return;
+      }
+
+      if (!isPinInputReady(pinDigits) || loading) {
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      console.log("--- [DEBUG] handlePinLogin server action cagriliyor ---", {
+        cardId,
+        pinLength: pinDigits.length,
+      });
+
+      const result = await handlePinLoginAction({
         uniqueId: cardId,
-        pin_code: pinCode,
+        pin_code: pinDigits,
       });
 
       if (!result.success) {
@@ -64,10 +65,11 @@ export default function CardVerificationForm({
       }
 
       navigateAfterNfcAuth(result.redirectTo);
-    } catch (cause) {
-      setError(
-        cause instanceof Error ? cause.message : "Doğrulama tamamlanamadı."
-      );
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      alert(`Hata oluştu: ${message}`);
+      console.error(e);
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -75,16 +77,7 @@ export default function CardVerificationForm({
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
-    const formData = new FormData(event.currentTarget);
-    const fromForm = normalizePinInput(String(formData.get("pin_code") ?? ""));
-    const pinCode = fromForm || pinDigits;
-
-    if (fromForm && fromForm !== pinDigits) {
-      syncPin(fromForm);
-    }
-
-    void loginAction(pinCode);
+    void handlePinLogin();
   }
 
   return (
@@ -128,8 +121,9 @@ export default function CardVerificationForm({
         />
 
         <button
-          type="submit"
+          type="button"
           disabled={!canSubmit}
+          onClick={() => void handlePinLogin()}
           className={`${authPrimaryButtonClassName} mt-2`}
         >
           {loading ? "Doğrulanıyor..." : "Giriş Yap"}
