@@ -85,11 +85,25 @@ function formatSupabaseError(error: {
   };
 }
 
+function logSupabaseErrorRaw(context: string, error: unknown): void {
+  console.log(`--- [DEBUG] ${context} SUPABASE ERROR (JSON.stringify) ---`);
+  console.log(JSON.stringify(error, null, 2));
+  console.log(
+    JSON.stringify(
+      error && typeof error === "object" ? { ...(error as object) } : { raw: String(error) },
+      null,
+      2
+    )
+  );
+}
+
 async function logNfcSessionInsertFailure(
   payload: NfcSessionInsertPayload,
   validationIssues: string[],
   error: { code?: string; message?: string; details?: string | null; hint?: string | null }
 ): Promise<void> {
+  logSupabaseErrorRaw("nfc_sessions.insert", error);
+
   const [profileLookup, cardLookup] = await Promise.all([
     supabase.from("profiles").select("id").eq("id", payload.profile_id).maybeSingle(),
     supabase
@@ -236,6 +250,12 @@ export async function createEphemeralNfcSession(params: {
   nfcId: string;
   userAgent?: string;
 }): Promise<string> {
+  console.log("--- [DEBUG] createEphemeralNfcSession TETIKLENDI ---", {
+    profileId: params.profileId,
+    nfcId: params.nfcId,
+    at: new Date().toISOString(),
+  });
+
   const profileId = params.profileId?.trim() ?? "";
   const nfcId = params.nfcId?.trim() ?? "";
   const expiresAt = sessionExpiresAt();
@@ -249,6 +269,21 @@ export async function createEphemeralNfcSession(params: {
   };
 
   const validationIssues = validateNfcSessionInsertPayload(payload);
+
+  console.log(
+    "[createEphemeralNfcSession] insert payload (gönderilen sütunlar)",
+    JSON.stringify(
+      {
+        table: "nfc_sessions",
+        columnsSent: Object.keys(payload),
+        payload,
+        columnsNotSent: ["id", "created_at"],
+        schemaHint: NFC_SESSIONS_SCHEMA_HINT,
+      },
+      null,
+      2
+    )
+  );
 
   console.log(
     "[createEphemeralNfcSession] nfc_sessions.insert deneniyor",
@@ -286,6 +321,7 @@ export async function createEphemeralNfcSession(params: {
       .single();
 
     if (error) {
+      logSupabaseErrorRaw("nfc_sessions.insert (insert response)", error);
       await logNfcSessionInsertFailure(payload, validationIssues, error);
       throw new Error(`NFC oturumu oluşturulamadı: ${error.message}`);
     }
