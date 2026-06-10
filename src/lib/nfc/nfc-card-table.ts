@@ -2,7 +2,12 @@ import "server-only";
 
 /**
  * Production NFC kart kaynağı.
- * URL slug (at_xxx) sütunu: nfc_id — eski nfc_cards.unique_id karşılığı.
+ *
+ * DB sütun sözleşmesi (tip uyumu kritik):
+ * - id (uuid)     — kart PK; kodda nfcCardUuid / row.id
+ * - nfc_id (text) — URL slug at_xxx; kodda uniqueId / NFC_CARD_SLUG_COLUMN
+ *
+ * nfc_sessions.nfc_id (uuid) → bu tablonun id sütununa FK (slug değil).
  */
 export const NFC_CARD_TABLE = "nfc_user_data" as const;
 export const NFC_CARD_SLUG_COLUMN = "nfc_id" as const;
