@@ -52,6 +52,7 @@ export default function CardVerificationForm({
     });
 
     try {
+      alert("Buton tetiklendi!");
       const result = await handlePinLogin({
         uniqueId: cardId,
         pin_code: pinCode,
