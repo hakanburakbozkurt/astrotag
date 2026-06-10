@@ -1,30 +1,34 @@
 "use server";
 
 import { verifyPin } from "@/lib/nfc/nfc-auth-core";
+import { normalizePinInput } from "@/lib/nfc/pin-input";
 import { withNfcAction } from "@/lib/nfc/with-nfc-action.server";
 
 export type PinLoginResult =
   | { success: true; redirectTo: string }
   | { success: false; error: string };
 
-/** PIN doğrulama — başarılı girişte oturum açılır. */
+/**
+ * PIN girişi (handlePinLogin):
+ * 1. nfc_cards tablosundan unique_id ile kart + profile_id + pin_code oku
+ * 2. pin_code ile kullanıcı PIN'ini kod içinde karşılaştır
+ * 3. Doğruysa nfc_sessions'a yalnızca nfc_id, profile_id, fingerprint, expires_at insert et
+ */
 export async function handlePinLogin(params: {
   uniqueId: string;
   pin?: string;
   pin_code?: string;
 }): Promise<PinLoginResult> {
-  console.log("--- [DEBUG] handlePinLogin SERVER ACTION TETIKLENDI ---", {
+  const pin_code = normalizePinInput(params.pin ?? params.pin_code ?? "");
+
+  console.log("[handlePinLogin] tetiklendi", {
     uniqueId: params.uniqueId,
-    hasPin: Boolean(params.pin ?? params.pin_code),
-    pinLength: (params.pin ?? params.pin_code ?? "").length,
+    pinLength: pin_code.length,
     at: new Date().toISOString(),
   });
 
   return withNfcAction("handlePinLogin", async () => {
-    console.log("--- [DEBUG] handlePinLogin withNfcAction icinde ---");
-
-    const pin = params.pin ?? params.pin_code ?? "";
-    const result = await verifyPin(params.uniqueId, pin);
+    const result = await verifyPin(params.uniqueId, pin_code);
 
     if (!result.ok) {
       return { success: false, error: result.error };

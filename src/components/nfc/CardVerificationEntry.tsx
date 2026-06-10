@@ -3,32 +3,19 @@ import AuthMobileShell from "@/components/auth/AuthMobileShell";
 import CardVerificationForm from "@/components/nfc/CardVerificationForm";
 import { nfcCardValidationErrorMessage } from "@/lib/nfc/card-validation-messages";
 import { HOME_PATH, NFC_CARD_INACTIVE_MESSAGE } from "@/lib/nfc/constants";
-import { logNfcEvent } from "@/lib/nfc/error-logger";
-import { resolveNfcCardForAuth } from "@/lib/nfc/session.server";
+import type { NfcCardAuthLookupResult } from "@/lib/nfc/session.server";
 
 type CardVerificationEntryProps = {
   uniqueId: string;
+  cardLookup: NfcCardAuthLookupResult | "fetch_error";
 };
 
 /** Kart varlığı / aktiflik kontrolü — uyarılar bu katmanda gösterilir. */
-export default async function CardVerificationEntry({
+export default function CardVerificationEntry({
   uniqueId,
+  cardLookup,
 }: CardVerificationEntryProps) {
-  let card;
-
-  try {
-    card = await resolveNfcCardForAuth(uniqueId);
-  } catch (error) {
-    logNfcEvent(
-      "error",
-      { layer: "action", handler: "CardVerificationEntry" },
-      "resolveNfcCardForAuth başarısız",
-      {
-        uniqueId,
-        message: error instanceof Error ? error.message : String(error),
-      }
-    );
-
+  if (cardLookup === "fetch_error") {
     return (
       <AuthMobileShell
         title="Bağlantı hatası"
@@ -43,6 +30,8 @@ export default async function CardVerificationEntry({
       </AuthMobileShell>
     );
   }
+
+  const card = cardLookup;
 
   if (!card.ok) {
     return (

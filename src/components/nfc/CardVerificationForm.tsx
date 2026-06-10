@@ -1,7 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
-import { confirmStorageAccessAction } from "@/lib/actions/nfc-auth";
+import { FormEvent, useMemo, useState } from "react";
 import { handlePinLogin as handlePinLoginAction } from "@/lib/actions/pin-login";
 import { authInputClassName } from "@/components/auth/auth-field-styles";
 import { isPinInputReady, normalizePinInput } from "@/lib/nfc/pin-input";
@@ -21,11 +20,6 @@ export default function CardVerificationForm({
   const cardId = uniqueId.trim();
   const pinDigits = useMemo(() => normalizePinInput(pin), [pin]);
   const canSubmit = Boolean(cardId) && isPinInputReady(pinDigits) && !loading;
-
-  useEffect(() => {
-    console.log("--- [DEBUG] CardVerificationForm mount oldu ---", { cardId });
-    void confirmStorageAccessAction();
-  }, [cardId]);
 
   function syncPin(rawValue: string) {
     setPin(normalizePinInput(rawValue).slice(0, 8));

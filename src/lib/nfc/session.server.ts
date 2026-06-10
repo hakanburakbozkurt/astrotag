@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { createClient } from "@supabase/supabase-js";
 import {
@@ -31,7 +32,7 @@ const NFC_SESSIONS_SCHEMA_HINT = {
   nfc_id: "uuid — FK nfc_user_data(id); eski şemada nfc_cards(id)",
   expires_at: "timestamptz NOT NULL — ISO 8601",
   fingerprint: "text nullable — null gönderilebilir",
-  user_agent: "text nullable",
+  user_agent: "text nullable — insert edilmez",
   created_at: "timestamptz — gönderilmez, default now()",
 } as const;
 
@@ -39,7 +40,6 @@ type NfcSessionInsertPayload = {
   profile_id: string;
   nfc_id: string;
   fingerprint: null;
-  user_agent: string | null;
   expires_at: string;
 };
 
@@ -248,7 +248,6 @@ export async function requireNfcSessionProfileId(): Promise<string> {
 export async function createEphemeralNfcSession(params: {
   profileId: string;
   nfcId: string;
-  userAgent?: string;
 }): Promise<string> {
   console.log("--- [DEBUG] createEphemeralNfcSession TETIKLENDI ---", {
     profileId: params.profileId,
@@ -264,7 +263,6 @@ export async function createEphemeralNfcSession(params: {
     profile_id: profileId,
     nfc_id: nfcId,
     fingerprint: null,
-    user_agent: params.userAgent?.trim() || null,
     expires_at: expiresAt.toISOString(),
   };
 
@@ -277,7 +275,7 @@ export async function createEphemeralNfcSession(params: {
         table: "nfc_sessions",
         columnsSent: Object.keys(payload),
         payload,
-        columnsNotSent: ["id", "created_at"],
+        columnsNotSent: ["id", "created_at", "user_agent", "pin_code"],
         schemaHint: NFC_SESSIONS_SCHEMA_HINT,
       },
       null,
@@ -416,12 +414,10 @@ export async function setNfcSessionCookies(
 export async function setNfcSession(params: {
   profileId: string;
   nfcCardUuid: string;
-  userAgent?: string;
 }): Promise<string> {
   const sessionId = await createEphemeralNfcSession({
     profileId: params.profileId,
     nfcId: params.nfcCardUuid,
-    userAgent: params.userAgent,
   });
 
   try {
@@ -527,12 +523,16 @@ export type NfcCardAuthLookupFailure = {
   reason: "config_error" | "db_error" | "not_found";
 };
 
+export type NfcCardAuthLookupResult =
+  | ({ ok: true } & NfcCardAuthEntry)
+  | NfcCardAuthLookupFailure;
+
 /**
  * Kayıt / giriş acil çıkışı — kart pasif olsa da DB kaydı varsa döner.
  */
 export async function resolveNfcCardForAuth(
   uniqueId: string
-): Promise<({ ok: true } & NfcCardAuthEntry) | NfcCardAuthLookupFailure> {
+): Promise<NfcCardAuthLookupResult> {
   const ctx = { layer: "action" as const, handler: "resolveNfcCardForAuth" };
   const normalizedId = normalizeNfcUniqueId(uniqueId);
 
@@ -595,3 +595,6 @@ export async function resolveNfcCardForAuth(
     return { ok: false, reason: "db_error" };
   }
 }
+
+/** Kart doğrulama sayfası — React cache ile istek başına tek sorgu */
+export const getNfcCardForAuthEntry = cache(resolveNfcCardForAuth);

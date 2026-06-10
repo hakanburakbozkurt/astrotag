@@ -12,6 +12,12 @@ import "server-only";
 export const NFC_CARD_TABLE = "nfc_user_data" as const;
 export const NFC_CARD_SLUG_COLUMN = "nfc_id" as const;
 
+/** PIN girişi — nfc_cards (handlePinLogin / verifyPin) */
+export const NFC_CARDS_TABLE = "nfc_cards" as const;
+export const NFC_CARDS_SLUG_COLUMN = "unique_id" as const;
+export const NFC_CARDS_PIN_LOGIN_SELECT =
+  "id, profile_id, is_active, pin_code, pin_failed_attempts, pin_locked_until" as const;
+
 export const NFC_CARD_AUTH_SELECT =
   "id, is_active, profile_id, is_claimed, owner_id" as const;
 

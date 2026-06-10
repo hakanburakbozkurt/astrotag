@@ -280,7 +280,6 @@ async function establishNfcSessionForUser(params: {
     await setNfcSession({
       profileId,
       nfcCardUuid: params.nfcCardUuid,
-      userAgent: params.userAgent,
     });
   } catch (error) {
     console.error(

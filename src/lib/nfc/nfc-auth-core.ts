@@ -11,10 +11,10 @@ import {
 } from "@/lib/nfc/constants";
 import { logNfcEvent } from "@/lib/nfc/error-logger";
 import {
-  NFC_CARD_PROFILE_SELECT,
-  NFC_CARD_SLUG_COLUMN,
   NFC_CARD_TABLE,
-  NFC_CARD_VERIFY_SELECT,
+  NFC_CARDS_PIN_LOGIN_SELECT,
+  NFC_CARDS_SLUG_COLUMN,
+  NFC_CARDS_TABLE,
 } from "@/lib/nfc/nfc-card-table";
 import {
   isNfcCardProfileComplete,
@@ -38,23 +38,62 @@ type NfcCardPinRow = {
   id: string;
   profile_id: string | null;
   is_active: boolean;
-  pin_hash: string | null;
+  pin_code: string | null;
   pin_failed_attempts: number;
   pin_locked_until: string | null;
 };
 
 const VERIFY_PIN_LOG = "[verifyPin]";
 
-function maskPinHash(hash: string | null | undefined): string | null {
-  if (!hash) {
+function maskPinCode(pinCode: string | null | undefined): string | null {
+  if (!pinCode) {
     return null;
   }
 
-  if (hash.length <= 12) {
-    return "***";
+  return "*".repeat(Math.min(pinCode.length, 8));
+}
+
+function sanitizeCardRowForLog(row: NfcCardPinRow | null | undefined) {
+  if (!row) {
+    return null;
   }
 
-  return `${hash.slice(0, 7)}…${hash.slice(-4)}`;
+  return {
+    ...row,
+    pin_code: maskPinCode(row.pin_code),
+  };
+}
+
+async function loadProfileFieldsForRedirect(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  profileId: string
+): Promise<NfcCardProfileFields> {
+  const { data, error } = await admin
+    .from("profiles")
+    .select("name, birth_date, birth_time, birth_city, birth_district")
+    .eq("id", profileId)
+    .maybeSingle();
+
+  if (error || !data) {
+    return {
+      full_name: null,
+      birth_date: null,
+      birth_time: null,
+      birth_location: null,
+    };
+  }
+
+  const location = [data.birth_city, data.birth_district]
+    .map((part) => part?.trim())
+    .filter(Boolean)
+    .join(", ");
+
+  return {
+    full_name: data.name,
+    birth_date: data.birth_date,
+    birth_time: data.birth_time,
+    birth_location: location || null,
+  };
 }
 
 function serializeVerifyPinError(error: unknown): Record<string, unknown> {
@@ -77,44 +116,6 @@ function logVerifyPin(step: string, payload: Record<string, unknown>): void {
   console.log(`${VERIFY_PIN_LOG} ${step}`, JSON.stringify(payload, null, 2));
 }
 
-function sanitizeCardRowForLog(row: NfcCardPinRow | null | undefined) {
-  if (!row) {
-    return null;
-  }
-
-  return {
-    ...row,
-    pin_hash: maskPinHash(row.pin_hash),
-  };
-}
-
-async function loadCardProfileFields(
-  admin: ReturnType<typeof createServiceRoleClient>,
-  cardId: string
-): Promise<NfcCardProfileFields | null> {
-  const queryStartedAt = performance.now();
-
-  const { data, error } = await admin
-    .from(NFC_CARD_TABLE)
-    .select(NFC_CARD_PROFILE_SELECT)
-    .eq("id", cardId)
-    .maybeSingle();
-
-  logVerifyPin("profile_query", {
-    cardId,
-    durationMs: Math.round(performance.now() - queryStartedAt),
-    hasData: Boolean(data),
-    error: error ? serializeVerifyPinError(error) : null,
-    data,
-  });
-
-  if (error || !data) {
-    return null;
-  }
-
-  return data;
-}
-
 function isPinLocked(lockedUntil: string | null): boolean {
   if (!lockedUntil) {
     return false;
@@ -135,7 +136,7 @@ async function recordPinFailure(
     : null;
 
   const { error } = await admin
-    .from(NFC_CARD_TABLE)
+    .from(NFC_CARDS_TABLE)
     .update({
       pin_failed_attempts: nextAttempts,
       pin_locked_until: lockedUntil,
@@ -155,7 +156,7 @@ async function recordPinFailure(
 async function resetPinAttempts(cardId: string): Promise<void> {
   const admin = createServiceRoleClient();
   const { error } = await admin
-    .from(NFC_CARD_TABLE)
+    .from(NFC_CARDS_TABLE)
     .update({
       pin_failed_attempts: 0,
       pin_locked_until: null,
@@ -191,7 +192,7 @@ async function resolveClaimedProfileId(
   cardId: string
 ): Promise<string | null> {
   const { data, error } = await admin
-    .from(NFC_CARD_TABLE)
+    .from(NFC_CARDS_TABLE)
     .select("profile_id")
     .eq("id", cardId)
     .maybeSingle();
@@ -250,7 +251,7 @@ async function ensureProfileForCard(
   }
 
   const { data: linked, error: linkError } = await admin
-    .from(NFC_CARD_TABLE)
+    .from(NFC_CARDS_TABLE)
     .update({
       profile_id: newProfileId,
       is_claimed: true,
@@ -288,8 +289,8 @@ async function resolveRedirectAfterLogin(
 }
 
 /**
- * nfc_id + PIN doğrulama (service role — RLS bypass).
- * Başarılı girişte oturum açılır; profil eksikse /profile-setup.
+ * nfc_cards.unique_id + pin_code doğrulama (service role — RLS bypass).
+ * Başarılı girişte nfc_sessions insert (pin_code gönderilmez).
  */
 export async function verifyPin(
   uniqueId: string,
@@ -332,16 +333,16 @@ export async function verifyPin(
     const queryStartedAt = performance.now();
 
     const { data: card, error } = await admin
-      .from(NFC_CARD_TABLE)
-      .select(NFC_CARD_VERIFY_SELECT)
-      .eq(NFC_CARD_SLUG_COLUMN, normalizedId)
+      .from(NFC_CARDS_TABLE)
+      .select(NFC_CARDS_PIN_LOGIN_SELECT)
+      .eq(NFC_CARDS_SLUG_COLUMN, normalizedId)
       .maybeSingle();
 
     logVerifyPin("card_query", {
-      table: NFC_CARD_TABLE,
-      slugColumn: NFC_CARD_SLUG_COLUMN,
+      table: NFC_CARDS_TABLE,
+      slugColumn: NFC_CARDS_SLUG_COLUMN,
       slug: normalizedId,
-      select: NFC_CARD_VERIFY_SELECT,
+      select: NFC_CARDS_PIN_LOGIN_SELECT,
       durationMs: Math.round(performance.now() - queryStartedAt),
       hasData: Boolean(card),
       error: error ? serializeVerifyPinError(error) : null,
@@ -352,7 +353,7 @@ export async function verifyPin(
       logNfcEvent(
         "error",
         { layer: "action", handler: "verifyPin" },
-        "nfc_user_data sorgusu başarısız",
+        "nfc_cards sorgusu başarısız",
         { uniqueId: normalizedId, code: error.code, message: error.message }
       );
       logVerifyPin("fail", {
@@ -393,69 +394,28 @@ export async function verifyPin(
       return { ok: false, error: LOCKOUT_MESSAGE };
     }
 
-    if (!row.pin_hash) {
-      logVerifyPin("branch", {
-        branch: "no_pin_hash_first_setup",
+    if (!row.pin_code) {
+      logVerifyPin("fail", {
+        failReason: "pin_not_set",
         cardId: row.id,
-      });
-
-      const profileId = await ensureProfileForCard(row.id, row.profile_id);
-
-      if (!profileId) {
-        logVerifyPin("fail", {
-          failReason: "ensure_profile_failed",
-          cardId: row.id,
-          durationMs: Math.round(performance.now() - startedAt),
-        });
-        return { ok: false, error: CARD_VERIFY_FAILURE_MESSAGE };
-      }
-
-      try {
-        await setNfcSession({ profileId, nfcCardUuid: row.id });
-        await confirmStorageAccessAction();
-        await clearPendingNfcCardCookie();
-      } catch (sessionError) {
-        logVerifyPin("fail", {
-          failReason: "session_setup_failed_no_pin_hash",
-          cardId: row.id,
-          profileId,
-          error: serializeVerifyPinError(sessionError),
-          durationMs: Math.round(performance.now() - startedAt),
-        });
-        return { ok: false, error: CARD_VERIFY_FAILURE_MESSAGE };
-      }
-
-      logVerifyPin("success", {
-        branch: "no_pin_hash_first_setup",
-        redirectTo: PROFILE_SETUP_PATH,
-        cardId: row.id,
-        profileId,
         durationMs: Math.round(performance.now() - startedAt),
       });
-
-      return { ok: true, redirectTo: PROFILE_SETUP_PATH };
+      return { ok: false, error: CARD_VERIFY_FAILURE_MESSAGE };
     }
 
-    const dbPinHash = row.pin_hash;
+    const storedPin = normalizePinInput(String(row.pin_code));
 
     logVerifyPin("pin_compare", {
-      inputPinRaw: inputPin,
-      pinToVerify,
       normalizedPinLength: normalizedPin.length,
-      dbPinHash: maskPinHash(dbPinHash),
-      dbPinHashPrefix: dbPinHash?.slice(0, 7) ?? null,
+      storedPinMasked: maskPinCode(storedPin),
       pinFailedAttempts: row.pin_failed_attempts ?? 0,
     });
 
-    const pinOk = await bcrypt.compare(normalizedPin, dbPinHash);
-
-    logVerifyPin("pin_compare_result", {
-      cardId: row.id,
-      pinOk,
-    });
-
-    if (!pinOk) {
-      const failResult = await failVerification(row.id, row.pin_failed_attempts ?? 0);
+    if (storedPin !== normalizedPin) {
+      const failResult = await failVerification(
+        row.id,
+        row.pin_failed_attempts ?? 0
+      );
       logVerifyPin("fail", {
         failReason: "pin_mismatch",
         cardId: row.id,
@@ -464,6 +424,11 @@ export async function verifyPin(
       });
       return failResult;
     }
+
+    logVerifyPin("pin_compare_result", {
+      cardId: row.id,
+      pinOk: true,
+    });
 
     await resetPinAttempts(row.id);
 
@@ -522,13 +487,7 @@ export async function verifyPin(
 
     await clearPendingNfcCardCookie();
 
-    const profileFields =
-      (await loadCardProfileFields(admin, row.id)) ?? {
-        full_name: null,
-        birth_date: null,
-        birth_time: null,
-        birth_location: null,
-      };
+    const profileFields = await loadProfileFieldsForRedirect(admin, profileId);
 
     const redirectTo = await resolveRedirectAfterLogin(profileFields);
 
