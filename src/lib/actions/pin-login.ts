@@ -10,9 +10,9 @@ export type PinLoginResult =
 
 /**
  * PIN girişi (handlePinLogin):
- * 1. nfc_cards tablosundan unique_id ile kart + profile_id + pin_code oku
- * 2. pin_code ile kullanıcı PIN'ini kod içinde karşılaştır
- * 3. Doğruysa nfc_sessions'a yalnızca nfc_id, profile_id, fingerprint, expires_at insert et
+ * 1. nfc_cards tablosundan unique_id ile kart + profile_id + pin_hash oku
+ * 2. bcrypt.compare ile PIN doğrula
+ * 3. Doğruysa nfc_sessions'a kartın profile_id değeri ile oturum aç
  */
 export async function handlePinLogin(params: {
   uniqueId: string;

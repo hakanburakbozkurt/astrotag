@@ -29,6 +29,7 @@ const PIN_MAX_ATTEMPTS = 5;
 const PIN_LOCK_MS = 15 * 60 * 1000;
 const LOCKOUT_MESSAGE =
   "Çok fazla hatalı deneme. Lütfen daha sonra tekrar deneyin.";
+const PIN_NOT_SET_MESSAGE = "Şifre henüz oluşturulmamış.";
 
 export type VerifyPinResult =
   | { ok: true; redirectTo: string }
@@ -38,19 +39,32 @@ type NfcCardPinRow = {
   id: string;
   profile_id: string | null;
   is_active: boolean;
-  pin_code: string | null;
+  pin_hash: string | null;
   pin_failed_attempts: number;
   pin_locked_until: string | null;
 };
 
 const VERIFY_PIN_LOG = "[verifyPin]";
 
-function maskPinCode(pinCode: string | null | undefined): string | null {
-  if (!pinCode) {
+function isPinHashMissing(pinHash: string | null | undefined): boolean {
+  const trimmed = pinHash?.trim() ?? "";
+  if (!trimmed) {
+    return true;
+  }
+
+  return trimmed.toUpperCase() === "EMPTY";
+}
+
+function maskPinHash(hash: string | null | undefined): string | null {
+  if (!hash || isPinHashMissing(hash)) {
     return null;
   }
 
-  return "*".repeat(Math.min(pinCode.length, 8));
+  if (hash.length <= 12) {
+    return "***";
+  }
+
+  return `${hash.slice(0, 7)}…${hash.slice(-4)}`;
 }
 
 function sanitizeCardRowForLog(row: NfcCardPinRow | null | undefined) {
@@ -60,7 +74,7 @@ function sanitizeCardRowForLog(row: NfcCardPinRow | null | undefined) {
 
   return {
     ...row,
-    pin_code: maskPinCode(row.pin_code),
+    pin_hash: maskPinHash(row.pin_hash),
   };
 }
 
@@ -289,8 +303,8 @@ async function resolveRedirectAfterLogin(
 }
 
 /**
- * nfc_cards.unique_id + pin_code doğrulama (service role — RLS bypass).
- * Başarılı girişte nfc_sessions insert (pin_code gönderilmez).
+ * nfc_cards.unique_id + pin_hash doğrulama (bcrypt).
+ * Başarılı girişte nfc_sessions insert — profile_id kart satırından gelir.
  */
 export async function verifyPin(
   uniqueId: string,
@@ -394,24 +408,32 @@ export async function verifyPin(
       return { ok: false, error: LOCKOUT_MESSAGE };
     }
 
-    if (!row.pin_code) {
+    if (isPinHashMissing(row.pin_hash)) {
       logVerifyPin("fail", {
-        failReason: "pin_not_set",
+        failReason: "pin_hash_not_set",
         cardId: row.id,
+        pinHashPlaceholder: row.pin_hash?.trim() || null,
         durationMs: Math.round(performance.now() - startedAt),
       });
-      return { ok: false, error: CARD_VERIFY_FAILURE_MESSAGE };
+      return { ok: false, error: PIN_NOT_SET_MESSAGE };
     }
 
-    const storedPin = normalizePinInput(String(row.pin_code));
+    const dbPinHash = row.pin_hash!.trim();
 
     logVerifyPin("pin_compare", {
       normalizedPinLength: normalizedPin.length,
-      storedPinMasked: maskPinCode(storedPin),
+      dbPinHash: maskPinHash(dbPinHash),
       pinFailedAttempts: row.pin_failed_attempts ?? 0,
     });
 
-    if (storedPin !== normalizedPin) {
+    const pinOk = await bcrypt.compare(normalizedPin, dbPinHash);
+
+    logVerifyPin("pin_compare_result", {
+      cardId: row.id,
+      pinOk,
+    });
+
+    if (!pinOk) {
       const failResult = await failVerification(
         row.id,
         row.pin_failed_attempts ?? 0
@@ -425,19 +447,17 @@ export async function verifyPin(
       return failResult;
     }
 
-    logVerifyPin("pin_compare_result", {
-      cardId: row.id,
-      pinOk: true,
-    });
-
     await resetPinAttempts(row.id);
 
-    const profileId = await ensureProfileForCard(row.id, row.profile_id);
+    const profileId =
+      row.profile_id?.trim() ||
+      (await ensureProfileForCard(row.id, row.profile_id));
 
     if (!profileId) {
       logVerifyPin("fail", {
-        failReason: "ensure_profile_failed_after_pin",
+        failReason: "profile_id_missing_on_card",
         cardId: row.id,
+        cardProfileId: row.profile_id,
         durationMs: Math.round(performance.now() - startedAt),
       });
       return { ok: false, error: CARD_VERIFY_FAILURE_MESSAGE };
