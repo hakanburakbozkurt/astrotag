@@ -11,9 +11,10 @@ import {
 } from "@/lib/nfc/constants";
 import { logNfcEvent } from "@/lib/nfc/error-logger";
 import {
-  NFC_CARD_PIN_SELECT,
+  NFC_CARD_PROFILE_SELECT,
   NFC_CARD_SLUG_COLUMN,
   NFC_CARD_TABLE,
+  NFC_CARD_VERIFY_SELECT,
 } from "@/lib/nfc/nfc-card-table";
 import {
   isNfcCardProfileComplete,
@@ -40,11 +41,79 @@ type NfcCardPinRow = {
   pin_hash: string | null;
   pin_failed_attempts: number;
   pin_locked_until: string | null;
-  full_name: string | null;
-  birth_date: string | null;
-  birth_time: string | null;
-  birth_location: string | null;
 };
+
+const VERIFY_PIN_LOG = "[verifyPin]";
+
+function maskPinHash(hash: string | null | undefined): string | null {
+  if (!hash) {
+    return null;
+  }
+
+  if (hash.length <= 12) {
+    return "***";
+  }
+
+  return `${hash.slice(0, 7)}…${hash.slice(-4)}`;
+}
+
+function serializeVerifyPinError(error: unknown): Record<string, unknown> {
+  if (error instanceof Error) {
+    return {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+    };
+  }
+
+  if (error && typeof error === "object") {
+    return { ...(error as Record<string, unknown>) };
+  }
+
+  return { raw: String(error) };
+}
+
+function logVerifyPin(step: string, payload: Record<string, unknown>): void {
+  console.log(`${VERIFY_PIN_LOG} ${step}`, JSON.stringify(payload, null, 2));
+}
+
+function sanitizeCardRowForLog(row: NfcCardPinRow | null | undefined) {
+  if (!row) {
+    return null;
+  }
+
+  return {
+    ...row,
+    pin_hash: maskPinHash(row.pin_hash),
+  };
+}
+
+async function loadCardProfileFields(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  cardId: string
+): Promise<NfcCardProfileFields | null> {
+  const queryStartedAt = performance.now();
+
+  const { data, error } = await admin
+    .from(NFC_CARD_TABLE)
+    .select(NFC_CARD_PROFILE_SELECT)
+    .eq("id", cardId)
+    .maybeSingle();
+
+  logVerifyPin("profile_query", {
+    cardId,
+    durationMs: Math.round(performance.now() - queryStartedAt),
+    hasData: Boolean(data),
+    error: error ? serializeVerifyPinError(error) : null,
+    data,
+  });
+
+  if (error || !data) {
+    return null;
+  }
+
+  return data;
+}
 
 function isPinLocked(lockedUntil: string | null): boolean {
   if (!lockedUntil) {
@@ -226,128 +295,275 @@ export async function verifyPin(
   uniqueId: string,
   inputPin: string
 ): Promise<VerifyPinResult> {
+  const startedAt = performance.now();
   const pinToVerify = String(inputPin).trim();
   const normalizedId = normalizeNfcUniqueId(uniqueId);
   const normalizedPin = normalizePinInput(pinToVerify);
 
-  if (!normalizedId || normalizedPin.length < 4 || normalizedPin.length > 8) {
-    return { ok: false, error: CARD_VERIFY_FAILURE_MESSAGE };
-  }
+  logVerifyPin("start", {
+    uniqueIdRaw: uniqueId,
+    uniqueIdNormalized: normalizedId,
+    inputPinRaw: inputPin,
+    pinToVerify,
+    normalizedPinLength: normalizedPin.length,
+    normalizedPinMasked:
+      normalizedPin.length > 0 ? "*".repeat(normalizedPin.length) : "",
+  });
 
-  const admin = createServiceRoleClient();
-  const { data: card, error } = await admin
-    .from(NFC_CARD_TABLE)
-    .select(NFC_CARD_PIN_SELECT)
-    .eq(NFC_CARD_SLUG_COLUMN, normalizedId)
-    .maybeSingle();
+  try {
+    if (!normalizedId || normalizedPin.length < 4 || normalizedPin.length > 8) {
+      logVerifyPin("fail", {
+        failReason: "invalid_input",
+        normalizedId: normalizedId || null,
+        normalizedPinLength: normalizedPin.length,
+        durationMs: Math.round(performance.now() - startedAt),
+      });
+      return { ok: false, error: CARD_VERIFY_FAILURE_MESSAGE };
+    }
 
-  if (error) {
-    logNfcEvent(
-      "error",
-      { layer: "action", handler: "verifyPin" },
-      "nfc_user_data sorgusu başarısız",
-      { uniqueId: normalizedId, code: error.code, message: error.message }
-    );
-    return { ok: false, error: CARD_VERIFY_FAILURE_MESSAGE };
-  }
+    const admin = createServiceRoleClient();
+    const queryStartedAt = performance.now();
 
-  if (!card) {
-    return { ok: false, error: CARD_VERIFY_FAILURE_MESSAGE };
-  }
+    const { data: card, error } = await admin
+      .from(NFC_CARD_TABLE)
+      .select(NFC_CARD_VERIFY_SELECT)
+      .eq(NFC_CARD_SLUG_COLUMN, normalizedId)
+      .maybeSingle();
 
-  const row = card as NfcCardPinRow;
+    logVerifyPin("card_query", {
+      table: NFC_CARD_TABLE,
+      slugColumn: NFC_CARD_SLUG_COLUMN,
+      slug: normalizedId,
+      select: NFC_CARD_VERIFY_SELECT,
+      durationMs: Math.round(performance.now() - queryStartedAt),
+      hasData: Boolean(card),
+      error: error ? serializeVerifyPinError(error) : null,
+      card: sanitizeCardRowForLog(card as NfcCardPinRow | null),
+    });
 
-  if (!row.is_active) {
-    return { ok: false, error: CARD_VERIFY_FAILURE_MESSAGE };
-  }
+    if (error) {
+      logNfcEvent(
+        "error",
+        { layer: "action", handler: "verifyPin" },
+        "nfc_user_data sorgusu başarısız",
+        { uniqueId: normalizedId, code: error.code, message: error.message }
+      );
+      logVerifyPin("fail", {
+        failReason: "db_query_error",
+        error: serializeVerifyPinError(error),
+        durationMs: Math.round(performance.now() - startedAt),
+      });
+      return { ok: false, error: CARD_VERIFY_FAILURE_MESSAGE };
+    }
 
-  if (isPinLocked(row.pin_locked_until)) {
-    return { ok: false, error: LOCKOUT_MESSAGE };
-  }
+    if (!card) {
+      logVerifyPin("fail", {
+        failReason: "card_not_found",
+        slug: normalizedId,
+        durationMs: Math.round(performance.now() - startedAt),
+      });
+      return { ok: false, error: CARD_VERIFY_FAILURE_MESSAGE };
+    }
 
-  if (!row.pin_hash) {
+    const row = card as NfcCardPinRow;
+
+    if (!row.is_active) {
+      logVerifyPin("fail", {
+        failReason: "card_inactive",
+        cardId: row.id,
+        durationMs: Math.round(performance.now() - startedAt),
+      });
+      return { ok: false, error: CARD_VERIFY_FAILURE_MESSAGE };
+    }
+
+    if (isPinLocked(row.pin_locked_until)) {
+      logVerifyPin("fail", {
+        failReason: "pin_locked",
+        cardId: row.id,
+        pinLockedUntil: row.pin_locked_until,
+        durationMs: Math.round(performance.now() - startedAt),
+      });
+      return { ok: false, error: LOCKOUT_MESSAGE };
+    }
+
+    if (!row.pin_hash) {
+      logVerifyPin("branch", {
+        branch: "no_pin_hash_first_setup",
+        cardId: row.id,
+      });
+
+      const profileId = await ensureProfileForCard(row.id, row.profile_id);
+
+      if (!profileId) {
+        logVerifyPin("fail", {
+          failReason: "ensure_profile_failed",
+          cardId: row.id,
+          durationMs: Math.round(performance.now() - startedAt),
+        });
+        return { ok: false, error: CARD_VERIFY_FAILURE_MESSAGE };
+      }
+
+      try {
+        await setNfcSession({ profileId, nfcCardUuid: row.id });
+        await confirmStorageAccessAction();
+        await clearPendingNfcCardCookie();
+      } catch (sessionError) {
+        logVerifyPin("fail", {
+          failReason: "session_setup_failed_no_pin_hash",
+          cardId: row.id,
+          profileId,
+          error: serializeVerifyPinError(sessionError),
+          durationMs: Math.round(performance.now() - startedAt),
+        });
+        return { ok: false, error: CARD_VERIFY_FAILURE_MESSAGE };
+      }
+
+      logVerifyPin("success", {
+        branch: "no_pin_hash_first_setup",
+        redirectTo: PROFILE_SETUP_PATH,
+        cardId: row.id,
+        profileId,
+        durationMs: Math.round(performance.now() - startedAt),
+      });
+
+      return { ok: true, redirectTo: PROFILE_SETUP_PATH };
+    }
+
+    const dbPinHash = row.pin_hash;
+
+    logVerifyPin("pin_compare", {
+      inputPinRaw: inputPin,
+      pinToVerify,
+      normalizedPinLength: normalizedPin.length,
+      dbPinHash: maskPinHash(dbPinHash),
+      dbPinHashPrefix: dbPinHash?.slice(0, 7) ?? null,
+      pinFailedAttempts: row.pin_failed_attempts ?? 0,
+    });
+
+    const pinOk = await bcrypt.compare(normalizedPin, dbPinHash);
+
+    logVerifyPin("pin_compare_result", {
+      cardId: row.id,
+      pinOk,
+    });
+
+    if (!pinOk) {
+      const failResult = await failVerification(row.id, row.pin_failed_attempts ?? 0);
+      logVerifyPin("fail", {
+        failReason: "pin_mismatch",
+        cardId: row.id,
+        nextError: failResult.ok ? null : failResult.error,
+        durationMs: Math.round(performance.now() - startedAt),
+      });
+      return failResult;
+    }
+
+    await resetPinAttempts(row.id);
+
     const profileId = await ensureProfileForCard(row.id, row.profile_id);
 
     if (!profileId) {
+      logVerifyPin("fail", {
+        failReason: "ensure_profile_failed_after_pin",
+        cardId: row.id,
+        durationMs: Math.round(performance.now() - startedAt),
+      });
       return { ok: false, error: CARD_VERIFY_FAILURE_MESSAGE };
     }
 
     try {
-      await setNfcSession({ profileId, nfcCardUuid: row.id });
-      await confirmStorageAccessAction();
-      await clearPendingNfcCardCookie();
-    } catch {
+      await setNfcSession({
+        profileId,
+        nfcCardUuid: row.id,
+      });
+    } catch (sessionError) {
+      logNfcEvent(
+        "error",
+        { layer: "action", handler: "verifyPin/setNfcSession" },
+        "NFC oturumu oluşturulamadı",
+        {
+          uniqueId: normalizedId,
+          profileId,
+          message:
+            sessionError instanceof Error
+              ? sessionError.message
+              : String(sessionError),
+        }
+      );
+      logVerifyPin("fail", {
+        failReason: "set_nfc_session_failed",
+        cardId: row.id,
+        profileId,
+        error: serializeVerifyPinError(sessionError),
+        durationMs: Math.round(performance.now() - startedAt),
+      });
       return { ok: false, error: CARD_VERIFY_FAILURE_MESSAGE };
     }
 
-    return { ok: true, redirectTo: PROFILE_SETUP_PATH };
-  }
+    try {
+      await confirmStorageAccessAction();
+    } catch (storageError) {
+      logVerifyPin("fail", {
+        failReason: "confirm_storage_failed",
+        cardId: row.id,
+        profileId,
+        error: serializeVerifyPinError(storageError),
+        durationMs: Math.round(performance.now() - startedAt),
+      });
+      return { ok: false, error: CARD_VERIFY_FAILURE_MESSAGE };
+    }
 
-  const dbPinHash = row.pin_hash;
-  console.log(
-    "DEBUG_PIN_VERIFY: Girilen PIN:",
-    "'" + inputPin + "'",
-    "DB Hash:",
-    dbPinHash
-  );
+    await clearPendingNfcCardCookie();
 
-  const pinOk = await bcrypt.compare(normalizedPin, dbPinHash);
+    const profileFields =
+      (await loadCardProfileFields(admin, row.id)) ?? {
+        full_name: null,
+        birth_date: null,
+        birth_time: null,
+        birth_location: null,
+      };
 
-  if (!pinOk) {
-    return failVerification(row.id, row.pin_failed_attempts ?? 0);
-  }
+    const redirectTo = await resolveRedirectAfterLogin(profileFields);
 
-  await resetPinAttempts(row.id);
+    logNfcEvent(
+      "info",
+      { layer: "action", handler: "verifyPin" },
+      "PIN doğrulama başarılı — NFC oturumu açıldı",
+      { uniqueId: normalizedId, redirectTo, profileId }
+    );
 
-  const profileId = await ensureProfileForCard(row.id, row.profile_id);
-
-  if (!profileId) {
-    return { ok: false, error: CARD_VERIFY_FAILURE_MESSAGE };
-  }
-
-  try {
-    await setNfcSession({
+    logVerifyPin("success", {
+      cardId: row.id,
       profileId,
-      nfcCardUuid: row.id,
+      redirectTo,
+      profileComplete: isNfcCardProfileComplete(profileFields),
+      durationMs: Math.round(performance.now() - startedAt),
     });
-  } catch (sessionError) {
+
+    return { ok: true, redirectTo };
+  } catch (error) {
+    logVerifyPin("exception", {
+      uniqueIdRaw: uniqueId,
+      uniqueIdNormalized: normalizedId,
+      inputPinRaw: inputPin,
+      pinToVerify,
+      normalizedPinLength: normalizedPin.length,
+      error: serializeVerifyPinError(error),
+      durationMs: Math.round(performance.now() - startedAt),
+    });
+
     logNfcEvent(
       "error",
-      { layer: "action", handler: "verifyPin/setNfcSession" },
-      "NFC oturumu oluşturulamadı",
+      { layer: "action", handler: "verifyPin" },
+      "verifyPin beklenmeyen hata",
       {
         uniqueId: normalizedId,
-        profileId,
-        message:
-          sessionError instanceof Error ? sessionError.message : String(sessionError),
+        message: error instanceof Error ? error.message : String(error),
       }
     );
+
     return { ok: false, error: CARD_VERIFY_FAILURE_MESSAGE };
   }
-
-  try {
-    await confirmStorageAccessAction();
-  } catch {
-    return { ok: false, error: CARD_VERIFY_FAILURE_MESSAGE };
-  }
-
-  await clearPendingNfcCardCookie();
-
-  const redirectTo = await resolveRedirectAfterLogin({
-    full_name: row.full_name,
-    birth_date: row.birth_date,
-    birth_time: row.birth_time,
-    birth_location: row.birth_location,
-  });
-
-  logNfcEvent(
-    "info",
-    { layer: "action", handler: "verifyPin" },
-    "PIN doğrulama başarılı — NFC oturumu açıldı",
-    { uniqueId: normalizedId, redirectTo, profileId }
-  );
-
-  return { ok: true, redirectTo };
 }
 
 /** Profil kurulum / ayarlar — kart PIN hash güncelleme */

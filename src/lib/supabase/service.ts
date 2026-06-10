@@ -14,6 +14,15 @@ export function createServiceRoleClient(): SupabaseClient {
       autoRefreshToken: false,
       persistSession: false,
     },
+    global: {
+      fetch: (url, options = {}) => {
+        const timeoutMs = Number(process.env.SUPABASE_FETCH_TIMEOUT_MS ?? 15000);
+        return fetch(url, {
+          ...options,
+          signal: options.signal ?? AbortSignal.timeout(timeoutMs),
+        });
+      },
+    },
   });
 }
 

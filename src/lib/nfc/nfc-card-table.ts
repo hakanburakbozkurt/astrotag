@@ -18,6 +18,10 @@ export const NFC_CARD_AUTH_SELECT =
 export const NFC_CARD_PIN_SELECT =
   "id, profile_id, is_active, pin_hash, pin_failed_attempts, pin_locked_until, full_name, birth_date, birth_time, birth_location" as const;
 
+/** PIN doğrulama — yalnızca auth sütunları (hızlı sorgu; profil alanları ayrı okunur) */
+export const NFC_CARD_VERIFY_SELECT =
+  "id, profile_id, is_active, pin_hash, pin_failed_attempts, pin_locked_until" as const;
+
 export const NFC_CARD_PROFILE_SELECT =
   "full_name, birth_date, birth_time, birth_location" as const;
 
