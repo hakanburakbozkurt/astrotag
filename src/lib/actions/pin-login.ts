@@ -13,7 +13,16 @@ export async function handlePinLogin(params: {
   pin?: string;
   pin_code?: string;
 }): Promise<PinLoginResult> {
+  console.log("--- [DEBUG] handlePinLogin SERVER ACTION TETIKLENDI ---", {
+    uniqueId: params.uniqueId,
+    hasPin: Boolean(params.pin ?? params.pin_code),
+    pinLength: (params.pin ?? params.pin_code ?? "").length,
+    at: new Date().toISOString(),
+  });
+
   return withNfcAction("handlePinLogin", async () => {
+    console.log("--- [DEBUG] handlePinLogin withNfcAction icinde ---");
+
     const pin = params.pin ?? params.pin_code ?? "";
     const result = await verifyPin(params.uniqueId, pin);
 

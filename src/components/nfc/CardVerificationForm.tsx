@@ -46,6 +46,11 @@ export default function CardVerificationForm({
     setLoading(true);
     setError(null);
 
+    console.log("--- [DEBUG] CardVerificationForm loginAction client submit ---", {
+      cardId,
+      pinLength: pinCode.length,
+    });
+
     try {
       const result = await handlePinLogin({
         uniqueId: cardId,

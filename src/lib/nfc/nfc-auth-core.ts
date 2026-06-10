@@ -295,6 +295,13 @@ export async function verifyPin(
   uniqueId: string,
   inputPin: string
 ): Promise<VerifyPinResult> {
+  console.log("--- [DEBUG] API VERIFY PIN TETIKLENDI ---");
+  console.log("[verifyPin] function entered (try-catch DISINDA)", {
+    uniqueId,
+    inputPinLength: String(inputPin ?? "").length,
+    at: new Date().toISOString(),
+  });
+
   const startedAt = performance.now();
   const pinToVerify = String(inputPin).trim();
   const normalizedId = normalizeNfcUniqueId(uniqueId);
@@ -563,6 +570,11 @@ export async function verifyPin(
     );
 
     return { ok: false, error: CARD_VERIFY_FAILURE_MESSAGE };
+  } finally {
+    console.log("[verifyPin] function finished (try-catch finally)", {
+      uniqueId,
+      durationMs: Math.round(performance.now() - startedAt),
+    });
   }
 }
 
