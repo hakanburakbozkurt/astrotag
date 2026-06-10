@@ -317,23 +317,24 @@ export async function createEphemeralNfcSession(params: {
     const { data, error } = await supabase
       .from("nfc_sessions")
       .insert(payload)
-      .select("id")
-      .single();
+      .select("*");
 
     if (error) {
       logSupabaseErrorRaw("nfc_sessions.insert (insert response)", error);
       await logNfcSessionInsertFailure(payload, validationIssues, error);
-      throw new Error(`NFC oturumu oluşturulamadı: ${error.message}`);
+      throw error;
     }
 
-    if (!data?.id) {
+    const insertedRow = Array.isArray(data) ? data[0] : data;
+
+    if (!insertedRow?.id) {
       console.error(
         "[createEphemeralNfcSession] nfc_sessions.insert başarısız — id dönmedi",
         JSON.stringify(
           {
             handler: "createEphemeralNfcSession",
             payload,
-            returnedRow: data,
+            returnedRow: insertedRow ?? data,
             schemaHint: NFC_SESSIONS_SCHEMA_HINT,
           },
           null,
@@ -345,34 +346,25 @@ export async function createEphemeralNfcSession(params: {
 
     console.log(
       "[createEphemeralNfcSession] nfc_sessions.insert başarılı",
-      JSON.stringify({ sessionId: data.id, profileId, nfcId }, null, 2)
-    );
-
-    return data.id as string;
-  } catch (error) {
-    if (error instanceof Error && error.message.startsWith("NFC oturumu")) {
-      throw error;
-    }
-
-    console.error(
-      "[createEphemeralNfcSession] nfc_sessions.insert beklenmeyen hata",
       JSON.stringify(
-        {
-          handler: "createEphemeralNfcSession",
-          payload,
-          error:
-            error instanceof Error
-              ? { name: error.name, message: error.message, stack: error.stack }
-              : String(error),
-        },
+        { sessionId: insertedRow.id, profileId, nfcId, row: insertedRow },
         null,
         2
       )
     );
 
-    throw error instanceof Error
-      ? error
-      : new Error("NFC oturumu oluşturulamadı.");
+    return insertedRow.id as string;
+  } catch (error) {
+    console.error(
+      "--- [CRITICAL] INSERT HATA DETAYI ---",
+      JSON.stringify(
+        error,
+        error && typeof error === "object"
+          ? Object.getOwnPropertyNames(error)
+          : undefined
+      )
+    );
+    throw error;
   }
 }
 
