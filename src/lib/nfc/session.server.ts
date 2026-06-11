@@ -26,13 +26,13 @@ import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-/** nfc_sessions insert — beklenen sütunlar (migration 262490 / 262300) */
+/** nfc_sessions insert — gönderilen sütunlar */
 const NFC_SESSIONS_SCHEMA_HINT = {
   id: "uuid — gönderilmez, default gen_random_uuid()",
   profile_id: "uuid NOT NULL — FK profiles(id)",
   nfc_id: "uuid — FK nfc_user_data(id); eski şemada nfc_cards(id)",
   expires_at: "timestamptz NOT NULL — ISO 8601",
-  fingerprint: "text nullable — null gönderilebilir",
+  fingerprint: "text nullable — insert edilmez (DB default null)",
   user_agent: "text nullable — insert edilmez",
   created_at: "timestamptz — gönderilmez, default now()",
 } as const;
@@ -40,7 +40,6 @@ const NFC_SESSIONS_SCHEMA_HINT = {
 type NfcSessionInsertPayload = {
   profile_id: string;
   nfc_id: string;
-  fingerprint: null;
   expires_at: string;
 };
 
@@ -263,7 +262,6 @@ export async function createEphemeralNfcSession(params: {
   const payload: NfcSessionInsertPayload = {
     profile_id: profileId,
     nfc_id: nfcId,
-    fingerprint: null,
     expires_at: expiresAt.toISOString(),
   };
 
@@ -276,7 +274,7 @@ export async function createEphemeralNfcSession(params: {
         table: "nfc_sessions",
         columnsSent: Object.keys(payload),
         payload,
-        columnsNotSent: ["id", "created_at", "user_agent", "pin_code"],
+        columnsNotSent: ["id", "created_at", "user_agent", "fingerprint", "pin_code"],
         schemaHint: NFC_SESSIONS_SCHEMA_HINT,
       },
       null,
