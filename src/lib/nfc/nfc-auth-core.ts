@@ -436,7 +436,23 @@ export async function verifyPin(
       pinFailedAttempts: row.pin_failed_attempts ?? 0,
     });
 
+    console.log(
+      "--- COMPARE DEBUG --- Gelen:",
+      normalizedPin,
+      "Hash:",
+      dbPinHash,
+      "Aşama:",
+      "compare öncesi"
+    );
     const pinOk = await bcrypt.compare(normalizedPin, dbPinHash);
+    console.log(
+      "--- COMPARE DEBUG --- Gelen:",
+      normalizedPin,
+      "Hash:",
+      dbPinHash,
+      "Sonuç:",
+      pinOk
+    );
 
     logVerifyPin("pin_compare_result", {
       cardId: row.id,
