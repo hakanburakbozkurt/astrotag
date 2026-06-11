@@ -420,6 +420,16 @@ export async function verifyPin(
 
     const dbPinHash = row.pin_hash!.trim();
 
+    console.log(
+      "DEBUG: DB Pin Hash Değeri:",
+      dbPinHash,
+      "Uzunluk:",
+      dbPinHash?.length,
+      "Tip:",
+      typeof dbPinHash
+    );
+    console.log("DEBUG: Girdiğim Pin:", normalizedPin);
+
     logVerifyPin("pin_compare", {
       normalizedPinLength: normalizedPin.length,
       dbPinHash: maskPinHash(dbPinHash),
