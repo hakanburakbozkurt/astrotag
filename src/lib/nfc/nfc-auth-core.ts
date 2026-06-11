@@ -346,11 +346,20 @@ export async function verifyPin(
     const admin = createServiceRoleClient();
     const queryStartedAt = performance.now();
 
+    // PIN doğrulama: resolveNfcCardForAuth / unstable_cache kullanılmaz — her seferinde taze DB
     const { data: card, error } = await admin
       .from(NFC_CARDS_TABLE)
       .select(NFC_CARDS_PIN_LOGIN_SELECT)
       .eq(NFC_CARDS_SLUG_COLUMN, normalizedId)
       .maybeSingle();
+
+    console.error("[verifyPin] DB sorgusu tamamlandı (cache yok — doğrudan nfc_cards)", {
+      unique_id: normalizedId,
+      cacheBypass: true,
+      durationMs: Math.round(performance.now() - queryStartedAt),
+      hasData: Boolean(card),
+      dbError: error ? serializeVerifyPinError(error) : null,
+    });
 
     logVerifyPin("card_query", {
       table: NFC_CARDS_TABLE,
@@ -420,15 +429,19 @@ export async function verifyPin(
 
     const dbPinHash = row.pin_hash!.trim();
 
-    console.log(
+    console.error(
       "DEBUG: DB Pin Hash Değeri:",
-      dbPinHash,
-      "Uzunluk:",
-      dbPinHash?.length,
-      "Tip:",
-      typeof dbPinHash
+      {
+        unique_id: normalizedId,
+        dbPinHash,
+        uzunluk: dbPinHash?.length,
+        tip: typeof dbPinHash,
+      }
     );
-    console.log("DEBUG: Girdiğim Pin:", normalizedPin);
+    console.error("DEBUG: Girdiğim Pin:", {
+      unique_id: normalizedId,
+      normalizedPin,
+    });
 
     logVerifyPin("pin_compare", {
       normalizedPinLength: normalizedPin.length,
@@ -436,23 +449,20 @@ export async function verifyPin(
       pinFailedAttempts: row.pin_failed_attempts ?? 0,
     });
 
-    console.log(
-      "--- COMPARE DEBUG --- Gelen:",
-      normalizedPin,
-      "Hash:",
-      dbPinHash,
-      "Aşama:",
-      "compare öncesi"
-    );
+    console.error("--- COMPARE DEBUG --- compare öncesi", {
+      unique_id: normalizedId,
+      gelen: normalizedPin,
+      hash: dbPinHash,
+      hashUzunluk: dbPinHash.length,
+      hashTip: typeof dbPinHash,
+    });
     const pinOk = await bcrypt.compare(normalizedPin, dbPinHash);
-    console.log(
-      "--- COMPARE DEBUG --- Gelen:",
-      normalizedPin,
-      "Hash:",
-      dbPinHash,
-      "Sonuç:",
-      pinOk
-    );
+    console.error("--- COMPARE DEBUG --- compare sonrası", {
+      unique_id: normalizedId,
+      gelen: normalizedPin,
+      hash: dbPinHash,
+      sonuc: pinOk,
+    });
 
     logVerifyPin("pin_compare_result", {
       cardId: row.id,
