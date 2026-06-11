@@ -451,40 +451,51 @@ export async function verifyPin(
 
     const dbPinHashRaw = row.pin_hash ?? "";
     const dbPinHash = dbPinHashRaw.trim();
-    const comparePin = normalizedPin.trim();
-    const hashEdgeDebug = inspectPinHashEdges(dbPinHashRaw, dbPinHash);
+
+    console.log("[verifyPin] DB pin_hash doğrulama", {
+      unique_id: normalizedId,
+      cardId: row.id,
+      table: NFC_CARDS_TABLE,
+      slugColumn: NFC_CARDS_SLUG_COLUMN,
+      searchedSlug: normalizedId,
+      pinHashFromDb: row.pin_hash,
+      pinHashRawLength: dbPinHashRaw.length,
+      pinHashTrimmed: dbPinHash,
+      pinHashTrimmedLength: dbPinHash.length,
+      ...inspectPinHashEdges(dbPinHashRaw, dbPinHash),
+    });
+
+    if (!dbPinHash) {
+      throw new Error(
+        `[verifyPin] dbPinHash boş veya undefined — unique_id: ${normalizedId}, cardId: ${row.id}`
+      );
+    }
+
+    if (typeof bcrypt.compare !== "function") {
+      throw new Error("[verifyPin] bcrypt.compare yüklenemedi — bcryptjs import hatası");
+    }
 
     logVerifyPin("pin_compare", {
-      normalizedPinLength: comparePin.length,
+      inputPin: pinToVerify,
+      normalizedPin,
       dbPinHash: maskPinHash(dbPinHash),
       pinFailedAttempts: row.pin_failed_attempts ?? 0,
-      hashEdgeDebug,
     });
 
-    console.log("Gelen Şifre:", comparePin, {
-      unique_id: normalizedId,
-      uzunluk: comparePin.length,
-      json: JSON.stringify(comparePin),
-    });
-    console.log("Veritabanındaki Hash:", dbPinHash, {
-      unique_id: normalizedId,
-      ...hashEdgeDebug,
-    });
-
-    const pinOk = await bcrypt.compare(comparePin, dbPinHash);
-
-    console.log("Karşılaştırma Sonucu:", pinOk, {
-      unique_id: normalizedId,
-      gelenSifre: comparePin,
-      hashUzunluk: dbPinHash.length,
-    });
+    console.log("--- BCRYPT DEBUG ---");
+    console.log("Input PIN:", pinToVerify);
+    console.log("DB Hash:", dbPinHash);
+    console.log("Hash Type:", typeof dbPinHash);
+    console.log("Input Type:", typeof pinToVerify);
+    const match = await bcrypt.compare(pinToVerify, dbPinHash);
+    console.log("Bcrypt Result:", match);
 
     logVerifyPin("pin_compare_result", {
       cardId: row.id,
-      pinOk,
+      pinOk: match,
     });
 
-    if (!pinOk) {
+    if (!match) {
       const failResult = await failVerification(
         row.id,
         row.pin_failed_attempts ?? 0
