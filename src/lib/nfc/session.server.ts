@@ -1,5 +1,6 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { createClient } from "@supabase/supabase-js";
@@ -527,20 +528,17 @@ export type NfcCardAuthLookupResult =
   | ({ ok: true } & NfcCardAuthEntry)
   | NfcCardAuthLookupFailure;
 
+const NFC_CARD_AUTH_CACHE_TTL_SECONDS = 60;
+
 /**
- * Kayıt / giriş acil çıkışı — kart pasif olsa da DB kaydı varsa döner.
+ * Kart auth lookup — doğrudan DB (cache miss).
  */
-export async function resolveNfcCardForAuth(
-  uniqueId: string
+async function queryNfcCardForAuth(
+  normalizedId: string,
+  rawUniqueId: string
 ): Promise<NfcCardAuthLookupResult> {
   const ctx = { layer: "action" as const, handler: "resolveNfcCardForAuth" };
-  const normalizedId = normalizeNfcUniqueId(uniqueId);
-
-  if (!normalizedId.startsWith("at_")) {
-    return { ok: false, reason: "not_found" };
-  }
-
-  const queryMeta = nfcCardQueryMeta(normalizedId, uniqueId);
+  const queryMeta = nfcCardQueryMeta(normalizedId, rawUniqueId);
 
   console.log("[resolveNfcCardForAuth] DB sorgusu başlıyor:", queryMeta);
 
@@ -596,5 +594,30 @@ export async function resolveNfcCardForAuth(
   }
 }
 
-/** Kart doğrulama sayfası — React cache ile istek başına tek sorgu */
+/**
+ * Kayıt / giriş acil çıkışı — kart pasif olsa da DB kaydı varsa döner.
+ * unstable_cache: aynı kart slug'ı 60 sn boyunca DB'ye tekrar gitmez.
+ */
+export async function resolveNfcCardForAuth(
+  uniqueId: string
+): Promise<NfcCardAuthLookupResult> {
+  const normalizedId = normalizeNfcUniqueId(uniqueId);
+
+  if (!normalizedId.startsWith("at_")) {
+    return { ok: false, reason: "not_found" };
+  }
+
+  const readCached = unstable_cache(
+    () => queryNfcCardForAuth(normalizedId, uniqueId),
+    ["resolveNfcCardForAuth", normalizedId],
+    {
+      revalidate: NFC_CARD_AUTH_CACHE_TTL_SECONDS,
+      tags: [`nfc-card-auth:${normalizedId}`],
+    }
+  );
+
+  return readCached();
+}
+
+/** Kart doğrulama sayfası — istek içi React cache + 60 sn unstable_cache */
 export const getNfcCardForAuthEntry = cache(resolveNfcCardForAuth);
