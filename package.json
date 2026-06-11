@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "reset-pin": "node scripts/reset-pin.js"
+    "reset-pin": "node scripts/reset-pin.js",
+    "hash-pin-test": "node scripts/hash-pin-test.js"
   },
   "dependencies": {
     "@react-spring/web": "^10.1.0",

@@ -130,6 +130,28 @@ function logVerifyPin(step: string, payload: Record<string, unknown>): void {
   console.log(`${VERIFY_PIN_LOG} ${step}`, JSON.stringify(payload, null, 2));
 }
 
+function inspectPinHashEdges(
+  rawHash: string | null | undefined,
+  trimmedHash: string
+): Record<string, unknown> {
+  const raw = rawHash ?? "";
+
+  return {
+    rawLength: raw.length,
+    trimmedLength: trimmedHash.length,
+    trimmedDiffersFromRaw: raw !== trimmedHash,
+    leadingWhitespace: raw.length > 0 && raw !== raw.trimStart(),
+    trailingWhitespace: raw.length > 0 && raw !== raw.trimEnd(),
+    firstCharCode: trimmedHash.length > 0 ? trimmedHash.charCodeAt(0) : null,
+    lastCharCode:
+      trimmedHash.length > 0
+        ? trimmedHash.charCodeAt(trimmedHash.length - 1)
+        : null,
+    hashJson: JSON.stringify(trimmedHash),
+    looksLikeBcrypt: trimmedHash.startsWith("$2"),
+  };
+}
+
 function isPinLocked(lockedUntil: string | null): boolean {
   if (!lockedUntil) {
     return false;
@@ -318,9 +340,9 @@ export async function verifyPin(
   });
 
   const startedAt = performance.now();
-  const pinToVerify = String(inputPin).trim();
+  const pinToVerify = String(inputPin ?? "").trim();
   const normalizedId = normalizeNfcUniqueId(uniqueId);
-  const normalizedPin = normalizePinInput(pinToVerify);
+  const normalizedPin = normalizePinInput(pinToVerify).trim();
 
   logVerifyPin("start", {
     uniqueIdRaw: uniqueId,
@@ -427,41 +449,34 @@ export async function verifyPin(
       return { ok: false, error: PIN_NOT_SET_MESSAGE };
     }
 
-    const dbPinHash = row.pin_hash!.trim();
-
-    console.error(
-      "DEBUG: DB Pin Hash Değeri:",
-      {
-        unique_id: normalizedId,
-        dbPinHash,
-        uzunluk: dbPinHash?.length,
-        tip: typeof dbPinHash,
-      }
-    );
-    console.error("DEBUG: Girdiğim Pin:", {
-      unique_id: normalizedId,
-      normalizedPin,
-    });
+    const dbPinHashRaw = row.pin_hash ?? "";
+    const dbPinHash = dbPinHashRaw.trim();
+    const comparePin = normalizedPin.trim();
+    const hashEdgeDebug = inspectPinHashEdges(dbPinHashRaw, dbPinHash);
 
     logVerifyPin("pin_compare", {
-      normalizedPinLength: normalizedPin.length,
+      normalizedPinLength: comparePin.length,
       dbPinHash: maskPinHash(dbPinHash),
       pinFailedAttempts: row.pin_failed_attempts ?? 0,
+      hashEdgeDebug,
     });
 
-    console.error("--- COMPARE DEBUG --- compare öncesi", {
+    console.log("Gelen Şifre:", comparePin, {
       unique_id: normalizedId,
-      gelen: normalizedPin,
-      hash: dbPinHash,
-      hashUzunluk: dbPinHash.length,
-      hashTip: typeof dbPinHash,
+      uzunluk: comparePin.length,
+      json: JSON.stringify(comparePin),
     });
-    const pinOk = await bcrypt.compare(normalizedPin, dbPinHash);
-    console.error("--- COMPARE DEBUG --- compare sonrası", {
+    console.log("Veritabanındaki Hash:", dbPinHash, {
       unique_id: normalizedId,
-      gelen: normalizedPin,
-      hash: dbPinHash,
-      sonuc: pinOk,
+      ...hashEdgeDebug,
+    });
+
+    const pinOk = await bcrypt.compare(comparePin, dbPinHash);
+
+    console.log("Karşılaştırma Sonucu:", pinOk, {
+      unique_id: normalizedId,
+      gelenSifre: comparePin,
+      hashUzunluk: dbPinHash.length,
     });
 
     logVerifyPin("pin_compare_result", {
