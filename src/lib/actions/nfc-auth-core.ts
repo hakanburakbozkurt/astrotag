@@ -1,7 +1,5 @@
 "use server";
 
-import { randomUUID } from "crypto";
-import { STARTING_ENERGY } from "@/lib/constants/cosmic";
 import { nfcCardValidationErrorMessage } from "@/lib/nfc/card-validation-messages";
 import { NFC_CARD_TABLE } from "@/lib/nfc/nfc-card-table";
 import { syncAnonymousProfileToUser } from "@/lib/nfc/profile-sync.server";
@@ -16,11 +14,15 @@ import {
 import { canBindClaimedCard, claimNfcCard } from "@/lib/nfc/nfc-ownership.server";
 import { assertNfcUserDataCardForSession } from "@/lib/nfc/nfc-user-data-card.server";
 import {
+  resolveProfileForNfcCard,
+  syncProfileNfcUid,
+} from "@/lib/nfc/nfc-profile-link.server";
+import {
   getNfcSession,
   setNfcSession,
   validateNfcCardActive,
 } from "@/lib/nfc/session.server";
-import { generateReferralCode } from "@/lib/referral";
+import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import { logNfcEvent } from "@/lib/nfc/error-logger";
 
@@ -198,56 +200,33 @@ async function establishNfcSessionForUser(params: {
   });
 
   const admin = createServiceRoleClient();
+  const slug = normalizeNfcUniqueId(params.uniqueId);
 
   let profileId = params.profileId;
 
   if (!profileId) {
-    profileId = randomUUID();
-    const referralCode = generateReferralCode();
-
-    const { error: profileError } = await admin.from("profiles").insert({
-      id: profileId,
-      user_id: params.userId ?? null,
-      name: "",
-      birth_date: "1970-01-01",
-      birth_time: "00:00:00",
-      birth_place: "",
-      relationship_status: "İlişki Yok",
-      cosmic_energy: STARTING_ENERGY,
-      energy_bonus: 0,
-      referral_code: referralCode,
-      nfc_uid: params.uniqueId.trim(),
+    profileId = await resolveProfileForNfcCard(admin, {
+      nfcCardUuid: params.nfcCardUuid,
+      slug,
+      cardProfileId: null,
     });
 
-    if (profileError) {
+    if (!profileId) {
       console.error(
-        "[NFC_AUTH_DEBUG]: Hata sebebi profiles.insert — yeni profil satırı oluşturulamadı"
+        "[NFC_AUTH_DEBUG]: Hata sebebi resolveProfileForNfcCard — profil çözümlenemedi"
       );
       return establishFailure(
-        "profiles.insert — yeni profil satırı oluşturulamadı",
-        "profiles.insert",
-        profileError,
-        { profileId, uniqueId: params.uniqueId, userId: params.userId }
+        "resolveProfileForNfcCard — profil çözümlenemedi",
+        "resolveProfileForNfcCard",
+        new Error("profileId tanımsız"),
+        { uniqueId: params.uniqueId, nfcCardUuid: params.nfcCardUuid }
       );
     }
+  } else {
+    await syncProfileNfcUid(admin, profileId, slug);
+  }
 
-    const { error: cardError } = await admin
-      .from(NFC_CARD_TABLE)
-      .update({ profile_id: profileId })
-      .eq("id", params.nfcCardUuid);
-
-    if (cardError) {
-      console.error(
-        "[NFC_AUTH_DEBUG]: Hata sebebi nfc_user_data.update.profile_id — karta profil bağlanamadı"
-      );
-      return establishFailure(
-        "nfc_user_data.update.profile_id — karta profil bağlanamadı",
-        "nfc_user_data.update.profile_id",
-        cardError,
-        { nfcCardUuid: params.nfcCardUuid, profileId }
-      );
-    }
-  } else if (params.userId) {
+  if (params.userId) {
     const { error: linkError } = await admin
       .from("profiles")
       .update({ user_id: params.userId })

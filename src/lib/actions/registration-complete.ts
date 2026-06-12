@@ -3,6 +3,7 @@
 import { DASHBOARD_PATH } from "@/lib/nfc/constants";
 import { logNfcError } from "@/lib/nfc/error-logger";
 import { NFC_CARD_TABLE } from "@/lib/nfc/nfc-card-table";
+import { syncProfileNfcUid } from "@/lib/nfc/nfc-profile-link.server";
 import { requireProtectedNfcAccess } from "@/lib/nfc/protected-access.server";
 import { withNfcAction } from "@/lib/nfc/with-nfc-action.server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
@@ -109,6 +110,8 @@ export async function saveRegistrationComplete(
       );
       return { success: false, error: "Kayıt güncellenemedi." };
     }
+
+    await syncProfileNfcUid(admin, access.profileId, access.uniqueId);
 
     const { error: profileError } = await admin
       .from("profiles")

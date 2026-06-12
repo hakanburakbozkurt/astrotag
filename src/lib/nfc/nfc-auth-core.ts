@@ -1,6 +1,5 @@
 import "server-only";
 
-import { randomUUID } from "crypto";
 import bcrypt from "bcryptjs";
 import {
   CARD_VERIFY_FAILURE_MESSAGE,
@@ -12,6 +11,7 @@ import {
   NFC_CARD_TABLE,
 } from "@/lib/nfc/nfc-card-table";
 import { normalizePinInput } from "@/lib/nfc/pin-input";
+import { resolveProfileForNfcCard } from "@/lib/nfc/nfc-profile-link.server";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 
@@ -186,94 +186,18 @@ async function failVerification(
   return { ok: false, error: CARD_VERIFY_FAILURE_MESSAGE };
 }
 
-async function resolveClaimedProfileId(
-  admin: ReturnType<typeof createServiceRoleClient>,
-  cardId: string
-): Promise<string | null> {
-  const { data, error } = await admin
-    .from(NFC_CARD_TABLE)
-    .select("profile_id")
-    .eq("id", cardId)
-    .maybeSingle();
-
-  if (error) {
-    logNfcEvent(
-      "error",
-      { layer: "action", handler: "verifyPin/resolveClaimedProfileId" },
-      "Kart sahipliği okunamadı",
-      { cardId, code: error.code, message: error.message }
-    );
-    return null;
-  }
-
-  return data?.profile_id ?? null;
-}
-
 async function ensureProfileForCard(
   cardId: string,
-  profileId: string | null
+  profileId: string | null,
+  slug: string
 ): Promise<string | null> {
-  if (profileId) {
-    return profileId;
-  }
-
   const admin = createServiceRoleClient();
 
-  const existingProfileId = await resolveClaimedProfileId(admin, cardId);
-  if (existingProfileId) {
-    return existingProfileId;
-  }
-
-  const newProfileId = randomUUID();
-
-  const { error: insertError } = await admin.from("profiles").insert({
-    id: newProfileId,
-    name: "",
-    birth_date: "1970-01-01",
-    birth_time: "00:00:00",
-    birth_place: "",
-    birth_city: "",
-    birth_district: "",
-    relationship_status: "İlişki Yok",
-    cosmic_energy: 0,
-    energy_bonus: 0,
+  return resolveProfileForNfcCard(admin, {
+    nfcCardUuid: cardId,
+    slug,
+    cardProfileId: profileId,
   });
-
-  if (insertError) {
-    logNfcEvent(
-      "error",
-      { layer: "action", handler: "verifyPin/ensureProfileForCard" },
-      "Profil oluşturulamadı",
-      { cardId, code: insertError.code, message: insertError.message }
-    );
-    return null;
-  }
-
-  const { data: linked, error: linkError } = await admin
-    .from(NFC_CARD_TABLE)
-    .update({
-      profile_id: newProfileId,
-    })
-    .eq("id", cardId)
-    .is("profile_id", null)
-    .select("profile_id")
-    .maybeSingle();
-
-  if (linkError) {
-    logNfcEvent(
-      "error",
-      { layer: "action", handler: "verifyPin/ensureProfileForCard" },
-      "Karta profil bağlanamadı",
-      { cardId, profileId: newProfileId, code: linkError.code }
-    );
-    return null;
-  }
-
-  if (linked?.profile_id) {
-    return linked.profile_id;
-  }
-
-  return resolveClaimedProfileId(admin, cardId);
 }
 
 /**
@@ -463,9 +387,11 @@ export async function verifyPin(
 
     await resetPinAttempts(row.id);
 
-    const profileId =
-      row.profile_id?.trim() ||
-      (await ensureProfileForCard(row.id, row.profile_id));
+    const profileId = await ensureProfileForCard(
+      row.id,
+      row.profile_id,
+      normalizedId
+    );
 
     if (!profileId) {
       logVerifyPin("fail", {

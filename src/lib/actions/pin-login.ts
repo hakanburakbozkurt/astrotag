@@ -10,6 +10,7 @@ import {
   REGISTRATION_COMPLETE_PATH,
 } from "@/lib/nfc/constants";
 import { assertNfcUserDataCardForSession } from "@/lib/nfc/nfc-user-data-card.server";
+import { syncProfileNfcUid } from "@/lib/nfc/nfc-profile-link.server";
 import { normalizePinInput } from "@/lib/nfc/pin-input";
 import { resolveRedirectAfterPinLogin } from "@/lib/nfc/profile-readiness.server";
 import { getNfcSession, setNfcSession } from "@/lib/nfc/session.server";
@@ -63,6 +64,8 @@ export async function handlePinLogin(params: {
     }
 
     const nfcCardUuid = cardAssert.card.id;
+
+    await syncProfileNfcUid(admin, pinResult.profileId, uniqueId);
 
     try {
       await setNfcSession({
