@@ -24,8 +24,7 @@ export default function ProfileSetupPage() {
               AstroTag
             </h1>
             <p className="mt-3 text-sm leading-relaxed text-white/45">
-              Ad, doğum bilgilerinizi ve kart PIN kodunuzu girin. İlk girişte bu
-              adım zorunludur.
+              Doğum bilgilerinizi girin; ardından yıldız haritanız açılacak.
             </p>
           </div>
 

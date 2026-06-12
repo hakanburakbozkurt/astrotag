@@ -12,10 +12,11 @@ import CosmicJournal from "./CosmicJournal";
 import DashboardHeader from "./DashboardHeader";
 import AITarotPanel from "./AITarotPanel";
 import NatalChartPanel from "../natal-chart/NatalChartPanel";
-import { DASHBOARD_MODULES, type DashboardModule } from "./modules/config";
+import { DASHBOARD_MODULES, type DashboardModule, type ModuleId } from "./modules/config";
 
 interface CosmicDashboardProps {
   user: UserData;
+  openModuleId?: ModuleId | null;
 }
 
 function ModulePlaceholder({
@@ -59,7 +60,7 @@ function ModulePlaceholder({
   );
 }
 
-export default function CosmicDashboard({ user }: CosmicDashboardProps) {
+export default function CosmicDashboard({ user, openModuleId }: CosmicDashboardProps) {
   const { safePush, isRouterReady } = useSafeRouter();
   const [isMounted, setIsMounted] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
@@ -68,6 +69,18 @@ export default function CosmicDashboard({ user }: CosmicDashboardProps) {
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!isMounted || !openModuleId) {
+      return;
+    }
+
+    const module = DASHBOARD_MODULES.find((item) => item.id === openModuleId);
+
+    if (module) {
+      setActiveModule(module);
+    }
+  }, [isMounted, openModuleId]);
 
   const handleModuleSelect = (module: DashboardModule) => {
     if (module.href) {

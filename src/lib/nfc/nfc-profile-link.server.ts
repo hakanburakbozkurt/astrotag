@@ -149,7 +149,7 @@ export async function syncProfileNfcUid(
   });
 }
 
-async function createProfileForNfcCard(
+export async function createProfileForNfcCard(
   supabase: SupabaseClient,
   nfcCardUuid: string,
   slug: string

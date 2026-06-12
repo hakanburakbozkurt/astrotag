@@ -6,7 +6,7 @@ import { clearPendingNfcCardCookie } from "@/lib/nfc/device-cookies.server";
 import {
   DASHBOARD_PATH,
   INVALID_NFC_CARD_MESSAGE,
-  REGISTRATION_COMPLETE_PATH,
+  PROFILE_SETUP_PATH,
 } from "@/lib/nfc/constants";
 import { assertNfcUserDataCardForSession } from "@/lib/nfc/nfc-user-data-card.server";
 import { syncProfileNfcUid } from "@/lib/nfc/nfc-profile-link.server";
@@ -25,7 +25,7 @@ export type PinLoginResult =
  * PIN girişi (handlePinLogin):
  * 1. checkCardPin — pin_code eşleşmezse "Hatalı PIN"
  * 2. nfc_user_data.id FK doğrulama — geçersizse oturum açılmaz
- * 3. nfc_sessions oluştur → profil kapısı → /kayit-tamamla veya /dashboard
+ * 3. nfc_sessions oluştur → profile-setup veya /dashboard
  */
 export async function handlePinLogin(params: {
   uniqueId: string;
@@ -86,10 +86,10 @@ export async function handlePinLogin(params: {
       return { ok: false, error: INVALID_NFC_CARD_MESSAGE };
     }
 
-    const redirectTo = await resolveRedirectAfterPinLogin(admin, {
-      uniqueId,
-      nfcCardUuid,
-    });
+    const redirectTo = await resolveRedirectAfterPinLogin(
+      admin,
+      pinResult.profileId
+    );
 
     const session = await getNfcSession();
     const sessionMatchesCard =
@@ -119,7 +119,7 @@ export async function handlePinLogin(params: {
           sessionMatchesCard,
         }
       );
-      return { ok: true, redirectTo: REGISTRATION_COMPLETE_PATH };
+      return { ok: true, redirectTo: PROFILE_SETUP_PATH };
     }
 
     return { ok: true, redirectTo };

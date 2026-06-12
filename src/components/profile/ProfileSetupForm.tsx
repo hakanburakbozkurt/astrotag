@@ -10,25 +10,17 @@ import {
 import { HOME_PATH } from "@/lib/nfc/constants";
 import { navigateAfterNfcAuth } from "@/lib/nfc/post-auth-nav.client";
 
-const fieldClass =
-  "mt-2 h-12 w-full min-w-0 rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-amber-400/30 [color-scheme:dark]";
+const labelClass = "block w-full min-w-0 max-w-full";
+const labelTextClass =
+  "text-[10px] uppercase tracking-[0.2em] text-white/60";
 
-type ProfileSetupFormProps = {
-  submitLabel?: string;
-  pinLabel?: string;
-};
-
-export default function ProfileSetupForm({
-  submitLabel = "Kaydet ve Devam Et",
-  pinLabel = "PIN Kodunuz",
-}: ProfileSetupFormProps) {
+export default function ProfileSetupForm() {
   const [name, setName] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [birthTime, setBirthTime] = useState("");
   const [birthCity, setBirthCity] = useState("");
   const [birthDistrict, setBirthDistrict] = useState("");
-  const [pin, setPin] = useState("");
-  const [pinConfirm, setPinConfirm] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sessionOk, setSessionOk] = useState<boolean | null>(null);
@@ -48,6 +40,7 @@ export default function ProfileSetupForm({
         setBirthTime(prefill.birthTime);
         setBirthCity(prefill.birthCity);
         setBirthDistrict(prefill.birthDistrict);
+        setPhoneNumber(prefill.phoneNumber);
       }
 
       setSessionOk(true);
@@ -57,10 +50,7 @@ export default function ProfileSetupForm({
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
 
-    if (isSubmitting || pin !== pinConfirm) {
-      if (pin !== pinConfirm) {
-        setError("PIN kodları eşleşmiyor.");
-      }
+    if (isSubmitting) {
       return;
     }
 
@@ -73,7 +63,7 @@ export default function ProfileSetupForm({
       birthTime,
       birthCity,
       birthDistrict,
-      pin,
+      phoneNumber: phoneNumber.trim() || undefined,
     });
 
     if (!result.success) {
@@ -82,7 +72,7 @@ export default function ProfileSetupForm({
       return;
     }
 
-    navigateAfterNfcAuth("/dashboard");
+    navigateAfterNfcAuth(result.redirectTo);
   };
 
   if (sessionOk !== true) {
@@ -94,128 +84,91 @@ export default function ProfileSetupForm({
   return (
     <form
       onSubmit={(event) => void handleSubmit(event)}
-      className="flex w-full min-w-0 flex-col gap-5"
+      className="grid w-full min-w-0 max-w-full grid-cols-1 gap-5"
     >
-      <label htmlFor="name" className="block w-full min-w-0">
-        <span className="text-[10px] uppercase tracking-[0.2em] text-white/60">Ad</span>
+      <label htmlFor="name" className={labelClass}>
+        <span className={labelTextClass}>Ad Soyad</span>
         <input
           id="name"
           value={name}
           onChange={(event) => setName(event.target.value)}
           required
-          placeholder="Adınız"
-          className={fieldClass}
+          autoComplete="name"
+          placeholder="Adınız Soyadınız"
+          className="registration-field-input"
         />
       </label>
 
-      <label htmlFor="birthDate" className="block w-full min-w-0">
-        <span className="text-[10px] uppercase tracking-[0.2em] text-white/60">
-          Doğum Tarihi
-        </span>
+      <label htmlFor="birthDate" className={labelClass}>
+        <span className={labelTextClass}>Doğum Tarihi</span>
         <input
           id="birthDate"
           type="date"
           value={birthDate}
           onChange={(event) => setBirthDate(event.target.value)}
           required
-          className={fieldClass}
+          className="registration-field-input"
         />
       </label>
 
-      <label htmlFor="birthTime" className="block w-full min-w-0">
-        <span className="text-[10px] uppercase tracking-[0.2em] text-white/60">
-          Doğum Saati
-        </span>
+      <label htmlFor="birthTime" className={labelClass}>
+        <span className={labelTextClass}>Doğum Saati</span>
         <input
           id="birthTime"
           type="time"
           value={birthTime}
           onChange={(event) => setBirthTime(event.target.value)}
           required
-          className={fieldClass}
+          className="registration-field-input"
         />
       </label>
 
-      <label htmlFor="birthCity" className="block w-full min-w-0">
-        <span className="text-[10px] uppercase tracking-[0.2em] text-white/60">İl</span>
+      <label htmlFor="birthCity" className={labelClass}>
+        <span className={labelTextClass}>İl</span>
         <input
           id="birthCity"
           value={birthCity}
           onChange={(event) => setBirthCity(event.target.value)}
           required
           placeholder="İstanbul"
-          className={fieldClass}
+          className="registration-field-input"
         />
       </label>
 
-      <label htmlFor="birthDistrict" className="block w-full min-w-0">
-        <span className="text-[10px] uppercase tracking-[0.2em] text-white/60">İlçe</span>
+      <label htmlFor="birthDistrict" className={labelClass}>
+        <span className={labelTextClass}>İlçe</span>
         <input
           id="birthDistrict"
           value={birthDistrict}
           onChange={(event) => setBirthDistrict(event.target.value)}
           required
           placeholder="Kadıköy"
-          className={fieldClass}
+          className="registration-field-input"
         />
       </label>
 
-      <div className="mt-2 border-t border-white/10 pt-5">
-        <p className="mb-4 text-center text-[11px] uppercase tracking-[0.2em] text-amber-400/70">
-          PIN Yönetimi
-        </p>
-
-        <label htmlFor="pin" className="block w-full min-w-0">
-          <span className="text-[10px] uppercase tracking-[0.2em] text-white/60">
-            {pinLabel}
-          </span>
-          <input
-            id="pin"
-            type="password"
-            inputMode="numeric"
-            autoComplete="off"
-            minLength={4}
-            maxLength={8}
-            value={pin}
-            onChange={(event) =>
-              setPin(event.target.value.replace(/\D/g, "").slice(0, 8))
-            }
-            required
-            placeholder="••••"
-            className={`${fieldClass} text-center text-xl tracking-[0.45em]`}
-          />
-        </label>
-
-        <label htmlFor="pinConfirm" className="mt-4 block w-full min-w-0">
-          <span className="text-[10px] uppercase tracking-[0.2em] text-white/60">
-            PIN Tekrar
-          </span>
-          <input
-            id="pinConfirm"
-            type="password"
-            inputMode="numeric"
-            autoComplete="off"
-            minLength={4}
-            maxLength={8}
-            value={pinConfirm}
-            onChange={(event) =>
-              setPinConfirm(event.target.value.replace(/\D/g, "").slice(0, 8))
-            }
-            required
-            placeholder="••••"
-            className={`${fieldClass} text-center text-xl tracking-[0.45em]`}
-          />
-        </label>
-      </div>
+      <label htmlFor="phoneNumber" className={labelClass}>
+        <span className={labelTextClass}>Telefon (opsiyonel)</span>
+        <input
+          id="phoneNumber"
+          type="tel"
+          inputMode="tel"
+          value={phoneNumber}
+          onChange={(event) => setPhoneNumber(event.target.value)}
+          autoComplete="tel"
+          placeholder="05XX XXX XX XX"
+          className="registration-field-input"
+        />
+      </label>
 
       {error ? <p className="text-sm text-red-300/80">{error}</p> : null}
 
       <button
         type="submit"
-        disabled={isSubmitting || pin.length < 4}
+        disabled={isSubmitting}
         className="min-h-12 w-full rounded-xl border border-amber-400/30 bg-amber-400/10 py-3 text-sm font-medium text-amber-100 transition hover:bg-amber-400/20 disabled:opacity-60"
       >
-        {isSubmitting ? "Kaydediliyor..." : submitLabel}
+        {isSubmitting ? "Kaydediliyor..." : "Kaydet"}
       </button>
     </form>
   );

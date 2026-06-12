@@ -3,7 +3,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   DASHBOARD_PATH,
-  REGISTRATION_COMPLETE_PATH,
+  PROFILE_SETUP_PATH,
 } from "@/lib/nfc/constants";
 import {
   NFC_CARD_SLUG_COLUMN,
@@ -14,7 +14,77 @@ import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 const PLACEHOLDER_BIRTH_DATE = "1970-01-01";
 const PLACEHOLDER_BIRTH_TIME = "00:00:00";
 
-/** nfc_user_data — PIN sonrası kayıt tamamlama kontrolü */
+export type ProfileGateFields = {
+  name: string | null;
+  birth_date: string | null;
+  is_profile_complete?: boolean | null;
+};
+
+/** PIN sonrası yönlendirme — name veya birth_date eksik mi? */
+export function isProfileBasicInfoMissing(
+  profile: ProfileGateFields
+): boolean {
+  const name = profile.name?.trim() ?? "";
+  const birthDate = profile.birth_date?.trim() ?? "";
+
+  if (!name) {
+    return true;
+  }
+
+  if (!birthDate || birthDate === PLACEHOLDER_BIRTH_DATE) {
+    return true;
+  }
+
+  return false;
+}
+
+export async function loadProfileGateFields(
+  supabase: SupabaseClient,
+  profileId: string
+): Promise<ProfileGateFields | null> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("name, birth_date, is_profile_complete")
+    .eq("id", profileId)
+    .maybeSingle();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return data;
+}
+
+/**
+ * PIN başarılı → profile-setup veya dashboard (yıldız haritası).
+ * profiles: is_profile_complete veya name/birth_date eksikliği.
+ */
+export async function resolveRedirectAfterPinLogin(
+  supabase: SupabaseClient,
+  profileId: string
+): Promise<string> {
+  const profile = await loadProfileGateFields(supabase, profileId);
+
+  console.log("[resolveRedirectAfterPinLogin] profiles gate", {
+    profileId,
+    found: Boolean(profile),
+    name: profile?.name ?? null,
+    birth_date: profile?.birth_date ?? null,
+    is_profile_complete: profile?.is_profile_complete ?? null,
+  });
+
+  if (!profile) {
+    return PROFILE_SETUP_PATH;
+  }
+
+  if (profile.is_profile_complete === true && !isProfileBasicInfoMissing(profile)) {
+    return DASHBOARD_PATH;
+  }
+
+  return PROFILE_SETUP_PATH;
+}
+
+/** @deprecated nfc_user_data kayıt akışı — profiles gate kullan */
 export type NfcUserDataRegistrationFields = {
   full_name: string | null;
   birth_date: string | null;
@@ -74,6 +144,24 @@ function logRegistrationFieldChecks(
 
 const NFC_USER_DATA_REGISTRATION_SELECT =
   "full_name, birth_date, phone_number, is_claimed" as const;
+
+/** Middleware / dashboard — profiles kurulum tamamlandı mı? */
+export async function isProfileReadyForDashboard(
+  supabase: SupabaseClient,
+  profileId: string
+): Promise<boolean> {
+  const profile = await loadProfileGateFields(supabase, profileId);
+
+  if (!profile) {
+    return false;
+  }
+
+  if (profile.is_profile_complete === true && !isProfileBasicInfoMissing(profile)) {
+    return true;
+  }
+
+  return false;
+}
 
 /** nfc_user_data — oturumdaki kart UUID ile (session.nfc_id ile aynı satır) */
 export async function loadNfcUserDataRegistrationByCardId(
@@ -141,59 +229,6 @@ export async function loadNfcUserDataRegistrationByProfileId(
   return data;
 }
 
-/**
- * PIN başarılı → kayıt tamamla veya dashboard.
- * Karar yalnızca oturumdaki kart satırına (nfc_user_data.id) göre verilir.
- */
-export async function resolveRedirectAfterPinLogin(
-  supabase: SupabaseClient,
-  params: { uniqueId: string; nfcCardUuid: string }
-): Promise<string> {
-  const normalizedSlug = normalizeNfcUniqueId(params.uniqueId);
-  const registration = await loadNfcUserDataRegistrationByCardId(
-    supabase,
-    params.nfcCardUuid
-  );
-
-  logRegistrationFieldChecks("resolveRedirectAfterPinLogin", registration, {
-    uniqueId: normalizedSlug,
-    nfcCardUuid: params.nfcCardUuid,
-    slugFromRow: registration?.nfc_id ?? null,
-    slugMatch: registration?.nfc_id === normalizedSlug,
-  });
-
-  if (!registration) {
-    console.log(
-      "[resolveRedirectAfterPinLogin] → /kayit-tamamla (satır bulunamadı)"
-    );
-    return REGISTRATION_COMPLETE_PATH;
-  }
-
-  if (registration.nfc_id !== normalizedSlug) {
-    console.log(
-      "[resolveRedirectAfterPinLogin] → /kayit-tamamla (slug oturum kartı ile eşleşmiyor)",
-      {
-        expectedSlug: normalizedSlug,
-        rowSlug: registration.nfc_id,
-        nfcCardUuid: params.nfcCardUuid,
-      }
-    );
-    return REGISTRATION_COMPLETE_PATH;
-  }
-
-  if (!isNfcUserDataRegistrationComplete(registration)) {
-    console.log(
-      "[resolveRedirectAfterPinLogin] → /kayit-tamamla (profil tamamlanmamış — dashboard yasak)"
-    );
-    return REGISTRATION_COMPLETE_PATH;
-  }
-
-  console.log(
-    "[resolveRedirectAfterPinLogin] → /dashboard (is_claimed + alanlar tam)"
-  );
-  return DASHBOARD_PATH;
-}
-
 /** nfc_user_data — kart profil tamamlama alanları */
 export type NfcCardProfileFields = {
   full_name: string | null;
@@ -209,6 +244,7 @@ export type ProfileSetupFields = {
   birth_time: string | null;
   birth_city: string | null;
   birth_district: string | null;
+  phone_number?: string | null;
 };
 
 export function needsNfcCardProfileSetup(card: NfcCardProfileFields): boolean {
@@ -306,7 +342,7 @@ export async function loadProfileSetupFields(
 ): Promise<ProfileSetupFields | null> {
   const { data, error } = await supabase
     .from("profiles")
-    .select("name, birth_date, birth_time, birth_city, birth_district")
+    .select("name, birth_date, birth_time, birth_city, birth_district, phone_number")
     .eq("id", profileId)
     .maybeSingle();
 

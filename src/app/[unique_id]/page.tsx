@@ -1,7 +1,10 @@
+import { revalidateTag } from "next/cache";
 import CardVerificationEntry from "@/components/nfc/CardVerificationEntry";
 import { logNfcEvent } from "@/lib/nfc/error-logger";
+import { ensureNfcCardForProfile } from "@/lib/nfc/nfc-provision.server";
 import { getNfcCardForAuthEntry } from "@/lib/nfc/session.server";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
+import { createServiceRoleClient } from "@/lib/supabase/service";
 
 type PageProps = {
   params: Promise<{ unique_id: string }>;
@@ -11,6 +14,43 @@ type PageProps = {
 export default async function RootCardEntryPage({ params }: PageProps) {
   const { unique_id: rawId } = await params;
   const uniqueId = normalizeNfcUniqueId(rawId);
+
+  try {
+    const admin = createServiceRoleClient();
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("nfc_uid", uniqueId)
+      .maybeSingle();
+
+    if (profile?.id) {
+      const link = await ensureNfcCardForProfile(uniqueId, profile.id, admin);
+
+      if (link) {
+        revalidateTag(`nfc-card-auth:${uniqueId}`, "max");
+        logNfcEvent(
+          "info",
+          { layer: "action", handler: "RootCardEntryPage" },
+          "NFC okuma — kart profile bağlandı",
+          {
+            uniqueId,
+            profileId: profile.id,
+            nfcCardUuid: link.nfcCardUuid,
+          }
+        );
+      }
+    }
+  } catch (error) {
+    logNfcEvent(
+      "warn",
+      { layer: "action", handler: "RootCardEntryPage/provision" },
+      "Kart bağlama atlandı",
+      {
+        uniqueId,
+        message: error instanceof Error ? error.message : String(error),
+      }
+    );
+  }
 
   let cardLookup: Awaited<ReturnType<typeof getNfcCardForAuthEntry>> | "fetch_error";
 

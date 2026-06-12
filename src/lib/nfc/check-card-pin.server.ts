@@ -7,7 +7,7 @@ import {
   NFC_CARD_SLUG_COLUMN,
   NFC_CARD_TABLE,
 } from "@/lib/nfc/nfc-card-table";
-import { resolveProfileForNfcCard } from "@/lib/nfc/nfc-profile-link.server";
+import { ensureNfcCardForProfile } from "@/lib/nfc/nfc-provision.server";
 import { normalizePinInput } from "@/lib/nfc/pin-input";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 import { createServiceRoleClient } from "@/lib/supabase/service";
@@ -25,21 +25,19 @@ export type CheckCardPinResult = CheckCardPinSuccess | { ok: false; error: strin
 
 type NfcCardRow = {
   id: string;
-  profile_id: string | null;
   is_active: boolean;
 };
 
-type ProfilePinRow = {
+type ProfileAuthRow = {
   id: string;
-  nfc_uid: string | null;
   pin_code: string | null;
 };
 
 /**
- * NFC okutulduğunda:
- * 1. profiles tablosunda nfc_uid ile profil bul
- * 2. profiles.pin_code ile girilen PIN'i karşılaştır
- * 3. Doğruysa kartı profile bağla ve oturum açmaya izin ver
+ * NFC + PIN doğrulama (profiles merkezli):
+ * 1. profiles.nfc_uid ile profil bul
+ * 2. profiles.pin_code eşleşmesi — yanlışsa "Hatalı şifre"
+ * 3. nfc_user_data kartını profile bağla (oturum FK)
  */
 export async function checkCardPin(
   uniqueId: string,
@@ -54,34 +52,9 @@ export async function checkCardPin(
 
   const admin = createServiceRoleClient();
 
-  const { data: card, error: cardError } = await admin
-    .from(NFC_CARD_TABLE)
-    .select(NFC_CARD_AUTH_SELECT)
-    .eq(NFC_CARD_SLUG_COLUMN, slug)
-    .maybeSingle();
-
-  if (cardError) {
-    logNfcEvent("error", CTX, "Kart sorgusu başarısız", {
-      slug,
-      code: cardError.code,
-      message: cardError.message,
-    });
-    return { ok: false, error: INVALID_PIN_MESSAGE };
-  }
-
-  if (!card) {
-    return { ok: false, error: INVALID_PIN_MESSAGE };
-  }
-
-  const cardRow = card as NfcCardRow;
-
-  if (!cardRow.is_active) {
-    return { ok: false, error: INVALID_PIN_MESSAGE };
-  }
-
   const { data: profile, error: profileError } = await admin
     .from("profiles")
-    .select("id, nfc_uid, pin_code")
+    .select("id, pin_code")
     .eq("nfc_uid", slug)
     .maybeSingle();
 
@@ -94,55 +67,45 @@ export async function checkCardPin(
     return { ok: false, error: INVALID_PIN_MESSAGE };
   }
 
-  let profileRow = profile as ProfilePinRow | null;
-
-  if (!profileRow?.id) {
-    const resolvedProfileId = await resolveProfileForNfcCard(admin, {
-      nfcCardUuid: cardRow.id,
-      slug,
-      cardProfileId: cardRow.profile_id,
-    });
-
-    if (!resolvedProfileId) {
-      return { ok: false, error: INVALID_PIN_MESSAGE };
-    }
-
-    const { data: resolved, error: resolvedError } = await admin
-      .from("profiles")
-      .select("id, nfc_uid, pin_code")
-      .eq("id", resolvedProfileId)
-      .maybeSingle();
-
-    if (resolvedError || !resolved?.id) {
-      return { ok: false, error: INVALID_PIN_MESSAGE };
-    }
-
-    profileRow = resolved as ProfilePinRow;
-  }
-
-  const profileId = profileRow.id.trim();
-  const storedPin = profileRow.pin_code?.trim() ?? "";
-
-  if (storedPin && storedPin !== normalizedPin) {
+  if (!profile?.id) {
+    logNfcEvent("warn", CTX, "nfc_uid ile profil bulunamadı", { slug });
     return { ok: false, error: INVALID_PIN_MESSAGE };
   }
 
-  if (!storedPin) {
-    logNfcEvent("info", CTX, "PIN henüz atanmamış — kayıt tamamlama bekleniyor", {
-      profileId,
-      slug,
-    });
+  const profileRow = profile as ProfileAuthRow;
+  const profileId = profileRow.id.trim();
+  const storedPin = profileRow.pin_code?.trim() ?? "";
+
+  if (!storedPin || storedPin !== normalizedPin) {
+    return { ok: false, error: INVALID_PIN_MESSAGE };
   }
 
-  await resolveProfileForNfcCard(admin, {
-    nfcCardUuid: cardRow.id,
-    slug,
-    cardProfileId: profileId,
-  });
+  const cardLink = await ensureNfcCardForProfile(slug, profileId, admin);
+
+  if (!cardLink?.nfcCardUuid) {
+    logNfcEvent("error", CTX, "Kart profile bağlanamadı", { slug, profileId });
+    return { ok: false, error: INVALID_PIN_MESSAGE };
+  }
+
+  const { data: card, error: cardError } = await admin
+    .from(NFC_CARD_TABLE)
+    .select(NFC_CARD_AUTH_SELECT)
+    .eq("id", cardLink.nfcCardUuid)
+    .maybeSingle();
+
+  if (cardError || !card) {
+    return { ok: false, error: INVALID_PIN_MESSAGE };
+  }
+
+  const cardRow = card as NfcCardRow;
+
+  if (!cardRow.is_active) {
+    return { ok: false, error: INVALID_PIN_MESSAGE };
+  }
 
   return {
     ok: true,
-    nfcCardUuid: cardRow.id,
+    nfcCardUuid: cardLink.nfcCardUuid,
     profileId,
     slug,
   };

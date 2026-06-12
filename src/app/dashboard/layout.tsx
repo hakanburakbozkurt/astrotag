@@ -2,16 +2,13 @@ import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import {
   HOME_PATH,
-  REGISTRATION_COMPLETE_PATH,
+  PROFILE_SETUP_PATH,
 } from "@/lib/nfc/constants";
-import {
-  isNfcUserDataRegistrationComplete,
-  loadNfcUserDataRegistrationByProfileId,
-} from "@/lib/nfc/profile-readiness.server";
+import { isProfileReadyForDashboard } from "@/lib/nfc/profile-readiness.server";
 import { getNfcSession } from "@/lib/nfc/session.server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 
-/** Dashboard — NFC oturumu + nfc_user_data kayıt tamamlama zorunlu */
+/** Dashboard — NFC oturumu + profiles kurulumu zorunlu */
 export default async function DashboardLayout({
   children,
 }: {
@@ -24,28 +21,19 @@ export default async function DashboardLayout({
     redirect(HOME_PATH);
   }
 
-  let registration = null;
-
   try {
     const admin = createServiceRoleClient();
-    registration = await loadNfcUserDataRegistrationByProfileId(
-      admin,
-      session.profileId
-    );
+    const ready = await isProfileReadyForDashboard(admin, session.profileId);
+
+    if (!ready) {
+      console.log("[DashboardLayout] Profil eksik — /profile-setup", {
+        profileId: session.profileId,
+      });
+      redirect(PROFILE_SETUP_PATH);
+    }
   } catch (error) {
     console.error("[DashboardLayout] Profil guard sorgusu başarısız", error);
-    redirect(REGISTRATION_COMPLETE_PATH);
-  }
-
-  if (
-    !registration ||
-    !isNfcUserDataRegistrationComplete(registration)
-  ) {
-    console.log("[DashboardLayout] Kayıt eksik — /kayit-tamamla", {
-      profileId: session.profileId,
-      hasRegistration: Boolean(registration),
-    });
-    redirect(REGISTRATION_COMPLETE_PATH);
+    redirect(PROFILE_SETUP_PATH);
   }
 
   return children;

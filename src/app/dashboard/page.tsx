@@ -1,15 +1,19 @@
 "use client";
 
-import { useEffect } from "react";
 import Link from "next/link";
+import { useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import CosmicDashboard from "@/components/dashboard/CosmicDashboard";
 import Starfield from "@/components/Starfield";
 import { clientRedirect } from "@/lib/auth/client-redirect.client";
 import { useRequireAuth, useUserProfile } from "@/lib/auth";
-import { REGISTRATION_COMPLETE_PATH } from "@/lib/nfc/constants";
+import { PROFILE_SETUP_PATH } from "@/lib/nfc/constants";
+import type { ModuleId } from "@/components/dashboard/modules/config";
 
 export default function DashboardPage() {
   useRequireAuth();
+  const searchParams = useSearchParams();
+  const openModuleId = searchParams.get("module") as ModuleId | null;
   const { userData, profileStatus, isLoading, error } = useUserProfile();
 
   useEffect(() => {
@@ -18,7 +22,7 @@ export default function DashboardPage() {
     }
 
     if (profileStatus === "empty" || (!userData && profileStatus !== "error")) {
-      clientRedirect(REGISTRATION_COMPLETE_PATH);
+      clientRedirect(PROFILE_SETUP_PATH);
     }
   }, [isLoading, profileStatus, userData]);
 
@@ -45,10 +49,10 @@ export default function DashboardPage() {
             {error ?? "Profil bilgileri yüklenemedi."}
           </p>
           <Link
-            href={REGISTRATION_COMPLETE_PATH}
+            href={PROFILE_SETUP_PATH}
             className="mt-6 rounded-xl border border-amber-400/30 px-5 py-2.5 text-sm text-amber-100"
           >
-            Kaydı Tamamla
+            Profili Tamamla
           </Link>
         </div>
       </div>
@@ -69,7 +73,7 @@ export default function DashboardPage() {
   return (
     <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto">
       <Starfield />
-      <CosmicDashboard user={userData} />
+      <CosmicDashboard user={userData} openModuleId={openModuleId} />
     </div>
   );
 }

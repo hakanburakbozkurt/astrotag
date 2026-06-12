@@ -22,8 +22,8 @@ import {
   STORAGE_VERIFIED_COOKIE,
 } from "@/lib/nfc/constants";
 import {
-  isNfcUserDataRegistrationComplete,
-  loadNfcUserDataRegistrationByProfileId,
+  isProfileReadyForDashboard,
+  loadProfileGateFields,
 } from "@/lib/nfc/profile-readiness.server";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 import {
@@ -572,7 +572,7 @@ export async function runSecurityGate(
         const deny = {
           allowed: false as const,
           reason: "profile_incomplete" as const,
-          redirectTo: REGISTRATION_COMPLETE_PATH,
+          redirectTo: PROFILE_SETUP_PATH,
         };
         logGateDeny(
           request,
@@ -585,27 +585,21 @@ export async function runSecurityGate(
         return deny;
       }
 
-      const registrationFields = await loadNfcUserDataRegistrationByProfileId(
-        supabase,
-        profileId
-      );
+      const profileReady = await isProfileReadyForDashboard(supabase, profileId);
 
-      if (
-        !registrationFields ||
-        !isNfcUserDataRegistrationComplete(registrationFields)
-      ) {
+      if (!profileReady) {
         const deny = {
           allowed: false as const,
           reason: "profile_incomplete" as const,
-          redirectTo: REGISTRATION_COMPLETE_PATH,
+          redirectTo: PROFILE_SETUP_PATH,
         };
         logGateDeny(
           request,
           deny.reason,
           deny.redirectTo,
           diagnostics,
-          "Profil eksik → kurulum sayfasına yönlendir",
-          { profileId, profileComplete: false }
+          "Profil kurulumu eksik → profile-setup",
+          { profileId, profileReady: false }
         );
         return deny;
       }

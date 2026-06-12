@@ -67,7 +67,7 @@ export default function CardVerificationEntry({
 
   return (
     <AuthMobileShell
-      title="Doğrulama"
+      title="Şifreni Gir"
       subtitle="Devam etmek için PIN kodunuzu girin."
     >
       <div className="relative z-10 rounded-[28px] border border-white/10 bg-[#0f172a]/90 p-6 backdrop-blur-xl sm:p-8 pointer-events-auto">
