@@ -155,7 +155,7 @@ export async function saveProfileSetup(
 
     return {
       success: true,
-      redirectTo: `${DASHBOARD_PATH}?module=natal-chart`,
+      redirectTo: DASHBOARD_PATH,
     };
   });
 }

@@ -6,15 +6,23 @@ import ProfileSetupForm from "@/components/profile/ProfileSetupForm";
 
 export default function ProfileSetupPage() {
   return (
-    <main className="relative min-h-dvh overflow-x-hidden">
+    <main className="relative min-h-dvh overflow-x-hidden bg-[#070b14]">
       <Starfield />
+
+      <div
+        className="pointer-events-none absolute inset-0 opacity-40"
+        style={{
+          background:
+            "radial-gradient(ellipse 80% 50% at 50% 0%, rgba(251,191,36,0.12) 0%, transparent 65%)",
+        }}
+      />
 
       <div className="relative mx-auto flex min-h-dvh w-full max-w-md items-center px-4 py-10 sm:px-6">
         <motion.section
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="w-full min-w-0 rounded-[28px] border border-white/10 bg-[#0f172a]/85 p-6 backdrop-blur-2xl sm:p-8"
+          className="profile-setup-glass w-full min-w-0 overflow-hidden rounded-[28px] p-6 sm:p-8"
         >
           <div className="text-center">
             <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-amber-400/70">
@@ -24,11 +32,11 @@ export default function ProfileSetupPage() {
               AstroTag
             </h1>
             <p className="mt-3 text-sm leading-relaxed text-white/45">
-              Doğum bilgilerinizi girin; ardından yıldız haritanız açılacak.
+              Doğum bilgilerinizi tamamlayın; ardından yıldız haritanıza geçin.
             </p>
           </div>
 
-          <div className="mt-8">
+          <div className="mt-8 w-full min-w-0">
             <ProfileSetupForm />
           </div>
         </motion.section>

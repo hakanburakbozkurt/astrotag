@@ -214,4 +214,119 @@ body::after {
     opacity: 0.55;
     cursor: pointer;
   }
+
+  /* profile-setup — glassmorphism form */
+  .profile-setup-glass {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: linear-gradient(
+      145deg,
+      rgba(15, 23, 42, 0.72) 0%,
+      rgba(7, 11, 20, 0.55) 100%
+    );
+    box-shadow:
+      0 24px 64px rgba(0, 0, 0, 0.45),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .profile-setup-field {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .profile-setup-label {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.55);
+  }
+
+  .profile-setup-input {
+    box-sizing: border-box;
+    height: 3rem;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    border-radius: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.04);
+    padding: 0 1rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: #fff;
+    outline: none;
+    transition:
+      border-color 0.15s ease,
+      background-color 0.15s ease,
+      box-shadow 0.15s ease;
+    color-scheme: dark;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .profile-setup-input::placeholder {
+    color: rgba(255, 255, 255, 0.28);
+  }
+
+  .profile-setup-input:focus {
+    border-color: rgba(251, 191, 36, 0.45);
+    background: rgba(255, 255, 255, 0.07);
+    box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.18);
+  }
+
+  .profile-setup-input[type="date"],
+  .profile-setup-input[type="time"] {
+    display: block;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  .profile-setup-input[type="date"]::-webkit-date-and-time-value,
+  .profile-setup-input[type="time"]::-webkit-date-and-time-value {
+    min-width: 0;
+    text-align: left;
+  }
+
+  .profile-setup-input[type="date"]::-webkit-datetime-edit,
+  .profile-setup-input[type="date"]::-webkit-datetime-edit-fields-wrapper,
+  .profile-setup-input[type="time"]::-webkit-datetime-edit {
+    min-width: 0;
+  }
+
+  .profile-setup-submit {
+    min-height: 3rem;
+    width: 100%;
+    border-radius: 1rem;
+    border: 1px solid rgba(251, 191, 36, 0.35);
+    background: linear-gradient(
+      180deg,
+      rgba(251, 191, 36, 0.22) 0%,
+      rgba(245, 158, 11, 0.12) 100%
+    );
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: rgba(255, 251, 235, 0.95);
+    backdrop-filter: blur(8px);
+    transition:
+      background 0.15s ease,
+      border-color 0.15s ease;
+  }
+
+  .profile-setup-submit:hover:not(:disabled) {
+    background: linear-gradient(
+      180deg,
+      rgba(251, 191, 36, 0.32) 0%,
+      rgba(245, 158, 11, 0.18) 100%
+    );
+  }
+
+  .profile-setup-submit:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
 }

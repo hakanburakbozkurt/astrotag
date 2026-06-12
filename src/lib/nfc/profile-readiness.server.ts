@@ -77,7 +77,7 @@ export async function resolveRedirectAfterPinLogin(
     return PROFILE_SETUP_PATH;
   }
 
-  if (profile.is_profile_complete === true && !isProfileBasicInfoMissing(profile)) {
+  if (profile?.is_profile_complete === true) {
     return DASHBOARD_PATH;
   }
 
@@ -150,17 +150,17 @@ export async function isProfileReadyForDashboard(
   supabase: SupabaseClient,
   profileId: string
 ): Promise<boolean> {
+  return isProfileComplete(supabase, profileId);
+}
+
+/** is_profile_complete === true */
+export async function isProfileComplete(
+  supabase: SupabaseClient,
+  profileId: string
+): Promise<boolean> {
   const profile = await loadProfileGateFields(supabase, profileId);
 
-  if (!profile) {
-    return false;
-  }
-
-  if (profile.is_profile_complete === true && !isProfileBasicInfoMissing(profile)) {
-    return true;
-  }
-
-  return false;
+  return profile?.is_profile_complete === true;
 }
 
 /** nfc_user_data — oturumdaki kart UUID ile (session.nfc_id ile aynı satır) */

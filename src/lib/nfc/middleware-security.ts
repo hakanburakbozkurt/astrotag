@@ -17,13 +17,13 @@ import {
   PROFILE_COMPLETE_PATH,
   PROFILE_SETUP_PATH,
   REGISTRATION_COMPLETE_PATH,
+  SESSION_EXPIRED_PATH,
   PUBLIC_PATHS,
   PUBLIC_PROFILE_PREFIX,
   STORAGE_VERIFIED_COOKIE,
 } from "@/lib/nfc/constants";
 import {
-  isProfileReadyForDashboard,
-  loadProfileGateFields,
+  isProfileComplete,
 } from "@/lib/nfc/profile-readiness.server";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 import {
@@ -175,7 +175,8 @@ export type SecurityDenyReason =
   | "session_expired"
   | "invalid_card_route"
   | "unauthorized_route"
-  | "profile_incomplete";
+  | "profile_incomplete"
+  | "profile_complete";
 
 export type SecurityGateResult =
   | { allowed: true }
@@ -324,6 +325,41 @@ export function shouldRedirectUnknownToHome(pathname: string): boolean {
 
 function isStorageCheckRequired(pathname: string): boolean {
   return isProtectedPath(pathname);
+}
+
+/** Oturum varken profile-setup dışında serbest geçiş (incomplete profil) */
+function isProfileSetupExemptPath(pathname: string): boolean {
+  if (pathname === PROFILE_SETUP_PATH) {
+    return true;
+  }
+
+  if (pathname === REGISTRATION_COMPLETE_PATH) {
+    return true;
+  }
+
+  if (isNfcCardRouteBypass(pathname)) {
+    return true;
+  }
+
+  if (isAuthCallbackPath(pathname)) {
+    return true;
+  }
+
+  if (pathname === SESSION_EXPIRED_PATH || pathname === PRIVATE_MODE_PATH) {
+    return true;
+  }
+
+  if (
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/api/debug-log") ||
+    pathname === "/manifest.json" ||
+    pathname === "/sw.js" ||
+    pathname.startsWith("/.well-known")
+  ) {
+    return true;
+  }
+
+  return false;
 }
 
 /** Dashboard ve AI API — tam profil zorunlu; kurulum sayfaları hariç */
@@ -564,10 +600,48 @@ export async function runSecurityGate(
       return { allowed: true };
     }
 
-    if (requiresCompleteProfile(pathname)) {
-      const profileId =
-        request.cookies.get(NFC_PROFILE_COOKIE)?.value?.trim() ?? "";
+    const profileId =
+      request.cookies.get(NFC_PROFILE_COOKIE)?.value?.trim() ?? "";
 
+    if (profileId) {
+      const profileComplete = await isProfileComplete(supabase, profileId);
+
+      if (!profileComplete && !isProfileSetupExemptPath(pathname)) {
+        const deny = {
+          allowed: false as const,
+          reason: "profile_incomplete" as const,
+          redirectTo: PROFILE_SETUP_PATH,
+        };
+        logGateDeny(
+          request,
+          deny.reason,
+          deny.redirectTo,
+          diagnostics,
+          "is_profile_complete=false → profile-setup zorunlu",
+          { profileId, pathname }
+        );
+        return deny;
+      }
+
+      if (profileComplete && pathname === PROFILE_SETUP_PATH) {
+        const deny = {
+          allowed: false as const,
+          reason: "profile_complete" as const,
+          redirectTo: DASHBOARD_PATH,
+        };
+        logGateDeny(
+          request,
+          deny.reason,
+          deny.redirectTo,
+          diagnostics,
+          "Profil tamam → dashboard",
+          { profileId }
+        );
+        return deny;
+      }
+    }
+
+    if (requiresCompleteProfile(pathname)) {
       if (!profileId) {
         const deny = {
           allowed: false as const,
@@ -585,9 +659,9 @@ export async function runSecurityGate(
         return deny;
       }
 
-      const profileReady = await isProfileReadyForDashboard(supabase, profileId);
+      const profileComplete = await isProfileComplete(supabase, profileId);
 
-      if (!profileReady) {
+      if (!profileComplete) {
         const deny = {
           allowed: false as const,
           reason: "profile_incomplete" as const,
@@ -598,8 +672,8 @@ export async function runSecurityGate(
           deny.reason,
           deny.redirectTo,
           diagnostics,
-          "Profil kurulumu eksik → profile-setup",
-          { profileId, profileReady: false }
+          "Dashboard/API — profil tamamlanmamış",
+          { profileId }
         );
         return deny;
       }

@@ -4,7 +4,7 @@ import {
   HOME_PATH,
   PROFILE_SETUP_PATH,
 } from "@/lib/nfc/constants";
-import { isProfileReadyForDashboard } from "@/lib/nfc/profile-readiness.server";
+import { isProfileComplete } from "@/lib/nfc/profile-readiness.server";
 import { getNfcSession } from "@/lib/nfc/session.server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 
@@ -23,7 +23,7 @@ export default async function DashboardLayout({
 
   try {
     const admin = createServiceRoleClient();
-    const ready = await isProfileReadyForDashboard(admin, session.profileId);
+    const ready = await isProfileComplete(admin, session.profileId);
 
     if (!ready) {
       console.log("[DashboardLayout] Profil eksik — /profile-setup", {
