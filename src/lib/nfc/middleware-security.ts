@@ -559,6 +559,11 @@ export async function runSecurityGate(
       return deny;
     }
 
+    /** Oturum doğrulandı — kayıt sayfasında profil durumundan bağımsız kal */
+    if (pathname === REGISTRATION_COMPLETE_PATH) {
+      return { allowed: true };
+    }
+
     if (requiresCompleteProfile(pathname)) {
       const profileId =
         request.cookies.get(NFC_PROFILE_COOKIE)?.value?.trim() ?? "";
@@ -606,40 +611,6 @@ export async function runSecurityGate(
           { profileId, profileComplete: false }
         );
         return deny;
-      }
-    }
-
-    if (pathname === REGISTRATION_COMPLETE_PATH && supabase) {
-      const profileId =
-        request.cookies.get(NFC_PROFILE_COOKIE)?.value?.trim() ?? "";
-
-      if (profileId) {
-        const cardProfileFields = await loadNfcCardProfileFieldsByProfileId(
-          supabase,
-          profileId
-        );
-
-        if (
-          cardProfileFields &&
-          isNfcUserDataRegistrationComplete({
-            full_name: cardProfileFields.full_name,
-            birth_date: cardProfileFields.birth_date,
-          })
-        ) {
-          const deny = {
-            allowed: false as const,
-            reason: "unauthorized_route" as const,
-            redirectTo: DASHBOARD_PATH,
-          };
-          logGateDeny(
-            request,
-            deny.reason,
-            deny.redirectTo,
-            diagnostics,
-            "/kayit-tamamla — profil zaten tamam, dashboard'a yönlendir"
-          );
-          return deny;
-        }
       }
     }
 

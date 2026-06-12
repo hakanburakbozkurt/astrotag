@@ -1,13 +1,10 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { checkNfcSessionAction } from "@/lib/actions/nfc-auth";
 import {
   loadRegistrationCompletePrefill,
   saveRegistrationComplete,
 } from "@/lib/actions/registration-complete";
-import { clientRedirect } from "@/lib/auth/client-redirect.client";
-import { HOME_PATH } from "@/lib/nfc/constants";
 import { navigateAfterNfcAuth } from "@/lib/nfc/post-auth-nav.client";
 
 const fieldClass =
@@ -18,25 +15,20 @@ export default function RegistrationCompleteForm() {
   const [birthDate, setBirthDate] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingPrefill, setIsLoadingPrefill] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [sessionOk, setSessionOk] = useState<boolean | null>(null);
 
   useEffect(() => {
     void (async () => {
-      const session = await checkNfcSessionAction();
-      if (!session.authenticated) {
-        clientRedirect(HOME_PATH);
-        return;
-      }
-
       const prefill = await loadRegistrationCompletePrefill();
+
       if (prefill) {
         setFullName(prefill.fullName);
         setBirthDate(prefill.birthDate);
         setPhoneNumber(prefill.phoneNumber);
       }
 
-      setSessionOk(true);
+      setIsLoadingPrefill(false);
     })();
   }, []);
 
@@ -65,9 +57,9 @@ export default function RegistrationCompleteForm() {
     navigateAfterNfcAuth(result.redirectTo);
   }
 
-  if (sessionOk !== true) {
+  if (isLoadingPrefill) {
     return (
-      <p className="text-center text-sm text-white/45">Oturum kontrol ediliyor...</p>
+      <p className="text-center text-sm text-white/45">Form yükleniyor...</p>
     );
   }
 
