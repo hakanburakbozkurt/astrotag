@@ -69,5 +69,8 @@ export const NFC_CARD_OWNED_BY_OTHER_MESSAGE = "Bu kart başkasına ait.";
 
 export const CARD_VERIFY_FAILURE_MESSAGE = "Hatalı Bilgi";
 
+/** nfc_user_data'da kart kaydı yok veya oturum FK hedefi geçersiz */
+export const INVALID_NFC_CARD_MESSAGE = "Geçersiz Kart";
+
 /** @deprecated use NFC_FINGERPRINT_COOKIE */
 export const NFC_DEVICE_COOKIE = NFC_FINGERPRINT_COOKIE;

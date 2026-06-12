@@ -56,7 +56,7 @@ if (existingHash) {
 }
 
 console.log("");
-console.log("Supabase SQL (nfc_cards.pin_hash güncelleme örneği):");
+console.log("Supabase SQL (nfc_user_data.pin_hash güncelleme örneği):");
 console.log(
-  `UPDATE nfc_cards SET pin_hash = '${hash}' WHERE unique_id = 'at_2f8a9c4d';`
+  `UPDATE nfc_user_data SET pin_hash = '${hash}' WHERE nfc_id = 'at_2f8a9c4d';`
 );

@@ -1,21 +1,31 @@
 "use server";
 
+import { confirmStorageAccessAction } from "@/lib/actions/nfc-auth";
 import { verifyPin } from "@/lib/nfc/nfc-auth-core";
-import { HOME_PATH, REGISTRATION_COMPLETE_PATH, DASHBOARD_PATH } from "@/lib/nfc/constants";
+import { clearPendingNfcCardCookie } from "@/lib/nfc/device-cookies.server";
+import {
+  DASHBOARD_PATH,
+  HOME_PATH,
+  INVALID_NFC_CARD_MESSAGE,
+  REGISTRATION_COMPLETE_PATH,
+} from "@/lib/nfc/constants";
+import { assertNfcUserDataCardForSession } from "@/lib/nfc/nfc-user-data-card.server";
 import { normalizePinInput } from "@/lib/nfc/pin-input";
 import { resolveRedirectAfterPinLogin } from "@/lib/nfc/profile-readiness.server";
-import { getNfcSession } from "@/lib/nfc/session.server";
+import { getNfcSession, setNfcSession } from "@/lib/nfc/session.server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import { withNfcAction } from "@/lib/nfc/with-nfc-action.server";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 
-/** PIN girişi — her zaman redirectTo döner (gateway + iç kapı) */
-export type PinLoginResult = { redirectTo: string };
+export type PinLoginResult =
+  | { ok: true; redirectTo: string }
+  | { ok: false; error: string };
 
 /**
  * PIN girişi (handlePinLogin):
- * 1. Gateway — verifyPin; yanlış PIN → / (içeri alma)
- * 2. İç kapı — nfc_user_data (oturum kart UUID) → /kayit-tamamla veya /dashboard
+ * 1. Gateway — verifyPin; yanlış PIN → /
+ * 2. nfc_user_data.id FK doğrulama — geçersizse oturum açılmaz
+ * 3. nfc_sessions oluştur → profil kapısı → /kayit-tamamla veya /dashboard
  */
 export async function handlePinLogin(params: {
   uniqueId: string;
@@ -29,28 +39,64 @@ export async function handlePinLogin(params: {
     const pinResult = await verifyPin(uniqueId, pin_code);
 
     if (!pinResult.ok) {
-      console.log("[handlePinLogin] PIN yanlış — ana sayfaya yönlendir", {
+      console.log("[handlePinLogin] PIN doğrulama başarısız — ana sayfaya yönlendir", {
         uniqueId,
+        error: pinResult.error,
       });
-      return { redirectTo: HOME_PATH };
+      return { ok: true, redirectTo: HOME_PATH };
     }
 
     const admin = createServiceRoleClient();
 
-    // Yönlendirme kararı: verifyPin + oturum yazımı bittikten sonra, taze DB satırı
-    const redirectTo = await resolveRedirectAfterPinLogin(admin, {
+    const cardAssert = await assertNfcUserDataCardForSession(admin, {
       uniqueId,
       nfcCardUuid: pinResult.nfcCardUuid,
     });
 
+    if (!cardAssert.ok) {
+      console.error("[handlePinLogin] Oturum açılmadı — nfc_user_data FK hedefi geçersiz", {
+        uniqueId,
+        pinResultNfcId: pinResult.nfcCardUuid,
+        error: cardAssert.error,
+      });
+      return { ok: false, error: cardAssert.error };
+    }
+
+    const nfcCardUuid = cardAssert.card.id;
+
+    try {
+      await setNfcSession({
+        profileId: pinResult.profileId,
+        nfcCardUuid,
+      });
+      await confirmStorageAccessAction();
+      await clearPendingNfcCardCookie();
+    } catch (sessionError) {
+      console.error("[handlePinLogin] nfc_sessions oluşturulamadı", {
+        uniqueId,
+        nfcCardUuid,
+        profileId: pinResult.profileId,
+        error:
+          sessionError instanceof Error
+            ? sessionError.message
+            : String(sessionError),
+      });
+      return { ok: false, error: INVALID_NFC_CARD_MESSAGE };
+    }
+
+    const redirectTo = await resolveRedirectAfterPinLogin(admin, {
+      uniqueId,
+      nfcCardUuid,
+    });
+
     const session = await getNfcSession();
     const sessionMatchesCard =
-      session?.nfcId === pinResult.nfcCardUuid &&
+      session?.nfcId === nfcCardUuid &&
       session?.profileId === pinResult.profileId;
 
-    console.log("[handlePinLogin] PIN doğru — profil kapısı", {
+    console.log("[handlePinLogin] PIN doğru — oturum + profil kapısı", {
       uniqueId,
-      nfcCardUuid: pinResult.nfcCardUuid,
+      nfcCardUuid,
       profileId: pinResult.profileId,
       redirectTo,
       sessionPresent: Boolean(session),
@@ -71,9 +117,9 @@ export async function handlePinLogin(params: {
           sessionMatchesCard,
         }
       );
-      return { redirectTo: REGISTRATION_COMPLETE_PATH };
+      return { ok: true, redirectTo: REGISTRATION_COMPLETE_PATH };
     }
 
-    return { redirectTo };
+    return { ok: true, redirectTo };
   });
 }

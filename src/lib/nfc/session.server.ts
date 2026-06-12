@@ -21,6 +21,7 @@ import {
   NFC_CARD_TABLE,
   nfcCardQueryMeta,
 } from "@/lib/nfc/nfc-card-table";
+import { loadNfcUserDataCardById } from "@/lib/nfc/nfc-user-data-card.server";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 
 const UUID_RE =
@@ -308,6 +309,27 @@ export async function createEphemeralNfcSession(params: {
 
     await logNfcSessionInsertFailure(payload, validationIssues, validationError);
     throw new Error(`NFC oturumu oluşturulamadı: ${validationError.message}`);
+  }
+
+  const nfcUserDataRow = await loadNfcUserDataCardById(supabase, nfcId);
+
+  if (!nfcUserDataRow) {
+    const fkError = {
+      code: "FK_TARGET_MISSING",
+      message: `nfc_id ${nfcId} nfc_user_data tablosunda bulunamadı`,
+      details: null,
+      hint: "nfc_sessions.nfc_id yalnızca nfc_user_data.id olabilir (nfc_cards.id kullanılamaz)",
+    };
+
+    console.error(
+      "[createEphemeralNfcSession] FK hedefi yok — insert iptal",
+      JSON.stringify({ payload, fkError }, null, 2)
+    );
+
+    await logNfcSessionInsertFailure(payload, validationIssues, fkError);
+    throw new Error(
+      "NFC oturumu oluşturulamadı: nfc_user_data kart kaydı bulunamadı."
+    );
   }
 
   try {

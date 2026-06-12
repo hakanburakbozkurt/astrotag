@@ -3,16 +3,18 @@
 import { randomUUID } from "crypto";
 import { STARTING_ENERGY } from "@/lib/constants/cosmic";
 import { nfcCardValidationErrorMessage } from "@/lib/nfc/card-validation-messages";
+import { NFC_CARD_TABLE } from "@/lib/nfc/nfc-card-table";
+import { syncAnonymousProfileToUser } from "@/lib/nfc/profile-sync.server";
+import { clearPendingNfcCardCookie } from "@/lib/nfc/device-cookies.server";
+import { confirmStorageAccessAction } from "@/lib/actions/nfc-auth";
 import {
+  INVALID_NFC_CARD_MESSAGE,
   DASHBOARD_PATH,
   NFC_CARD_OWNED_BY_OTHER_MESSAGE,
   PROFILE_COMPLETE_PATH,
 } from "@/lib/nfc/constants";
 import { canBindClaimedCard, claimNfcCard } from "@/lib/nfc/nfc-ownership.server";
-import { NFC_CARD_TABLE } from "@/lib/nfc/nfc-card-table";
-import { syncAnonymousProfileToUser } from "@/lib/nfc/profile-sync.server";
-import { clearPendingNfcCardCookie } from "@/lib/nfc/device-cookies.server";
-import { confirmStorageAccessAction } from "@/lib/actions/nfc-auth";
+import { assertNfcUserDataCardForSession } from "@/lib/nfc/nfc-user-data-card.server";
 import {
   getNfcSession,
   setNfcSession,
@@ -276,10 +278,28 @@ async function establishNfcSessionForUser(params: {
     );
   }
 
+  const cardAssert = await assertNfcUserDataCardForSession(admin, {
+    uniqueId: params.uniqueId,
+    nfcCardUuid: params.nfcCardUuid,
+  });
+
+  if (!cardAssert.ok) {
+    console.error(
+      "[NFC_AUTH_DEBUG]: Hata sebebi nfc_user_data FK — kart id geçersiz",
+      {
+        uniqueId: params.uniqueId,
+        nfcCardUuid: params.nfcCardUuid,
+      }
+    );
+    return { ok: false, error: INVALID_NFC_CARD_MESSAGE };
+  }
+
+  const nfcCardUuid = cardAssert.card.id;
+
   try {
     await setNfcSession({
       profileId,
-      nfcCardUuid: params.nfcCardUuid,
+      nfcCardUuid,
     });
   } catch (error) {
     console.error(
@@ -291,7 +311,7 @@ async function establishNfcSessionForUser(params: {
       error,
       {
         profileId,
-        nfcCardUuid: params.nfcCardUuid,
+        nfcCardUuid,
         uniqueId: params.uniqueId,
       }
     );

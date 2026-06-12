@@ -47,7 +47,7 @@ async function main() {
     process.exit(1);
   }
 
-  const url = `${supabaseUrl.replace(/\/$/, "")}/rest/v1/nfc_cards?unique_id=eq.${encodeURIComponent(uniqueId)}&select=id,unique_id,pin_hash`;
+  const url = `${supabaseUrl.replace(/\/$/, "")}/rest/v1/nfc_user_data?nfc_id=eq.${encodeURIComponent(uniqueId)}&select=id,nfc_id,pin_hash`;
   const response = await fetch(url, {
     headers: {
       apikey: serviceRoleKey,

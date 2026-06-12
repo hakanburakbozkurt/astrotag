@@ -56,6 +56,11 @@ export default function CardVerificationForm({
         pin_code: pinDigits,
       });
 
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+
       navigateAfterNfcAuth(result.redirectTo);
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);

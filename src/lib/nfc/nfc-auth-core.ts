@@ -2,8 +2,6 @@ import "server-only";
 
 import { randomUUID } from "crypto";
 import bcrypt from "bcryptjs";
-import { confirmStorageAccessAction } from "@/lib/actions/nfc-auth";
-import { clearPendingNfcCardCookie } from "@/lib/nfc/device-cookies.server";
 import {
   CARD_VERIFY_FAILURE_MESSAGE,
 } from "@/lib/nfc/constants";
@@ -14,7 +12,6 @@ import {
   NFC_CARD_TABLE,
 } from "@/lib/nfc/nfc-card-table";
 import { normalizePinInput } from "@/lib/nfc/pin-input";
-import { setNfcSession } from "@/lib/nfc/session.server";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 
@@ -281,7 +278,7 @@ async function ensureProfileForCard(
 
 /**
  * nfc_user_data.nfc_id + pin_hash doğrulama (bcrypt).
- * Başarılı girişte nfc_sessions insert — nfc_id = nfc_user_data.id (uuid).
+ * Oturum oluşturma handlePinLogin / establishNfcSessionForUser tarafında yapılır.
  */
 export async function verifyPin(
   uniqueId: string,
@@ -353,7 +350,7 @@ export async function verifyPin(
       logNfcEvent(
         "error",
         { layer: "action", handler: "verifyPin" },
-        "nfc_cards sorgusu başarısız",
+        "nfc_user_data sorgusu başarısız",
         { uniqueId: normalizedId, code: error.code, message: error.message }
       );
       logVerifyPin("fail", {
@@ -480,55 +477,11 @@ export async function verifyPin(
       return { ok: false, error: CARD_VERIFY_FAILURE_MESSAGE };
     }
 
-    try {
-      await setNfcSession({
-        profileId,
-        nfcCardUuid: row.id,
-      });
-    } catch (sessionError) {
-      logNfcEvent(
-        "error",
-        { layer: "action", handler: "verifyPin/setNfcSession" },
-        "NFC oturumu oluşturulamadı",
-        {
-          uniqueId: normalizedId,
-          profileId,
-          message:
-            sessionError instanceof Error
-              ? sessionError.message
-              : String(sessionError),
-        }
-      );
-      logVerifyPin("fail", {
-        failReason: "set_nfc_session_failed",
-        cardId: row.id,
-        profileId,
-        error: serializeVerifyPinError(sessionError),
-        durationMs: Math.round(performance.now() - startedAt),
-      });
-      return { ok: false, error: CARD_VERIFY_FAILURE_MESSAGE };
-    }
-
-    try {
-      await confirmStorageAccessAction();
-    } catch (storageError) {
-      logVerifyPin("fail", {
-        failReason: "confirm_storage_failed",
-        cardId: row.id,
-        profileId,
-        error: serializeVerifyPinError(storageError),
-        durationMs: Math.round(performance.now() - startedAt),
-      });
-      return { ok: false, error: CARD_VERIFY_FAILURE_MESSAGE };
-    }
-
-    await clearPendingNfcCardCookie();
-
     logNfcEvent(
       "info",
       { layer: "action", handler: "verifyPin" },
-      "PIN doğrulama başarılı — NFC oturumu açıldı",
-      { uniqueId: normalizedId, profileId }
+      "PIN doğrulama başarılı — oturum henüz açılmadı",
+      { uniqueId: normalizedId, profileId, nfcCardUuid: row.id }
     );
 
     logVerifyPin("success", {
