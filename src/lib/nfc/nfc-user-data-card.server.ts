@@ -72,7 +72,6 @@ export async function loadNfcUserDataCardById(
 
 /**
  * Oturum açmadan önce: kart nfc_user_data'da kayıtlı ve slug eşleşiyor mu?
- * nfc_cards.id veya eski uuid asla kabul edilmez.
  */
 export async function assertNfcUserDataCardForSession(
   supabase: SupabaseClient,
@@ -99,7 +98,7 @@ export async function assertNfcUserDataCardForSession(
 
     if (!cardById || cardById.id !== cardBySlug.id) {
       console.error(
-        "[assertNfcUserDataCardForSession] Geçersiz Kart — id slug ile eşleşmiyor (muhtemelen nfc_cards.id)",
+        "[assertNfcUserDataCardForSession] Geçersiz Kart — id slug ile eşleşmiyor",
         {
           slug: normalizedSlug,
           slugRowId: cardBySlug.id,

@@ -31,7 +31,7 @@ const UUID_RE =
 const NFC_SESSIONS_SCHEMA_HINT = {
   id: "uuid — gönderilmez, default gen_random_uuid()",
   profile_id: "uuid NOT NULL — FK profiles(id)",
-  nfc_id: "uuid — FK nfc_user_data(id); eski şemada nfc_cards(id)",
+  nfc_id: "uuid NOT NULL — FK nfc_user_data(id)",
   expires_at: "timestamptz NOT NULL — ISO 8601",
   fingerprint: "text nullable — insert edilmez (DB default null)",
   user_agent: "text nullable — insert edilmez",
@@ -118,11 +118,11 @@ async function logNfcSessionInsertFailure(
     validationIssues.length > 0
       ? "payload_validation_failed"
       : error.code === "23503"
-        ? cardLookup.data && !profileLookup.data
+        ? !profileLookup.data
           ? "foreign_key_profile_id_missing_in_profiles"
-          : cardLookup.data
-            ? "foreign_key_nfc_id_wrong_target_table_likely_nfc_cards_not_nfc_user_data"
-            : "foreign_key_nfc_id_not_found_in_nfc_user_data"
+          : !cardLookup.data
+            ? "foreign_key_nfc_id_not_found_in_nfc_user_data"
+            : "foreign_key_nfc_id_invalid"
         : error.code === "42501"
           ? "permission_denied_rls_or_grants"
           : error.code === "23502"
@@ -318,7 +318,7 @@ export async function createEphemeralNfcSession(params: {
       code: "FK_TARGET_MISSING",
       message: `nfc_id ${nfcId} nfc_user_data tablosunda bulunamadı`,
       details: null,
-      hint: "nfc_sessions.nfc_id yalnızca nfc_user_data.id olabilir (nfc_cards.id kullanılamaz)",
+      hint: "nfc_sessions.nfc_id yalnızca nfc_user_data.id (uuid PK) olmalıdır",
     };
 
     console.error(

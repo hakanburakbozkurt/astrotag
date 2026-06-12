@@ -120,14 +120,14 @@ async function main() {
   }
 
   if (!uniqueId || !pin) {
-    console.error("HATA: unique_id ve PIN boş olamaz.");
+    console.error("HATA: nfc_id ve PIN boş olamaz.");
     process.exit(1);
   }
 
   const pinHash = bcrypt.hashSync(pin, BCRYPT_ROUNDS);
 
   console.log("--- reset-pin ---");
-  console.log("unique_id:", uniqueId);
+  console.log("nfc_id:", uniqueId);
   console.log("PIN uzunluğu:", pin.length);
   console.log("Üretilen hash (bcrypt.hashSync, rounds=10):", pinHash);
   console.log("Hash uzunluğu:", pinHash.length);
