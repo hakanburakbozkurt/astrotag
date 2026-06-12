@@ -113,7 +113,7 @@ export default function CardVerificationForm({
         noValidate
       >
         <label htmlFor="pin_code" className="text-[11px] uppercase tracking-widest text-white/45">
-          PIN
+          PIN Kodu
         </label>
         <input
           id="pin_code"

@@ -7,13 +7,15 @@ import {
 } from "@/lib/actions/registration-complete";
 import { navigateAfterNfcAuth } from "@/lib/nfc/post-auth-nav.client";
 
-const fieldClass =
-  "mt-2 h-12 w-full min-w-0 rounded-2xl border border-white/10 bg-[#070b14]/60 px-4 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-amber-400/40 focus:ring-1 focus:ring-amber-400/20 [color-scheme:dark]";
+const labelClass = "block w-full min-w-0 max-w-full";
+const labelTextClass =
+  "text-[10px] uppercase tracking-[0.22em] text-white/55";
 
 export default function RegistrationCompleteForm() {
   const [fullName, setFullName] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [pinCode, setPinCode] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingPrefill, setIsLoadingPrefill] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,6 +48,7 @@ export default function RegistrationCompleteForm() {
       fullName,
       birthDate,
       phoneNumber,
+      pinCode,
     });
 
     if (!result.success) {
@@ -66,12 +69,10 @@ export default function RegistrationCompleteForm() {
   return (
     <form
       onSubmit={(event) => void handleSubmit(event)}
-      className="flex w-full min-w-0 flex-col gap-5"
+      className="grid w-full min-w-0 max-w-full grid-cols-1 gap-5"
     >
-      <label htmlFor="full_name" className="block w-full min-w-0">
-        <span className="text-[10px] uppercase tracking-[0.22em] text-white/55">
-          Ad Soyad
-        </span>
+      <label htmlFor="full_name" className={labelClass}>
+        <span className={labelTextClass}>Ad Soyad</span>
         <input
           id="full_name"
           name="full_name"
@@ -80,14 +81,12 @@ export default function RegistrationCompleteForm() {
           required
           autoComplete="name"
           placeholder="Adınız Soyadınız"
-          className={fieldClass}
+          className="registration-field-input"
         />
       </label>
 
-      <label htmlFor="birth_date" className="block w-full min-w-0">
-        <span className="text-[10px] uppercase tracking-[0.22em] text-white/55">
-          Doğum Tarihi
-        </span>
+      <label htmlFor="birth_date" className={labelClass}>
+        <span className={labelTextClass}>Doğum Tarihi</span>
         <input
           id="birth_date"
           name="birth_date"
@@ -95,14 +94,12 @@ export default function RegistrationCompleteForm() {
           value={birthDate}
           onChange={(event) => setBirthDate(event.target.value)}
           required
-          className={fieldClass}
+          className="registration-field-input"
         />
       </label>
 
-      <label htmlFor="phone_number" className="block w-full min-w-0">
-        <span className="text-[10px] uppercase tracking-[0.22em] text-white/55">
-          Telefon
-        </span>
+      <label htmlFor="phone_number" className={labelClass}>
+        <span className={labelTextClass}>Telefon</span>
         <input
           id="phone_number"
           name="phone_number"
@@ -113,7 +110,27 @@ export default function RegistrationCompleteForm() {
           required
           autoComplete="tel"
           placeholder="05XX XXX XX XX"
-          className={fieldClass}
+          className="registration-field-input"
+        />
+      </label>
+
+      <label htmlFor="pin_code" className={labelClass}>
+        <span className={labelTextClass}>PIN Kodu</span>
+        <input
+          id="pin_code"
+          name="pin_code"
+          type="password"
+          inputMode="numeric"
+          autoComplete="off"
+          value={pinCode}
+          onChange={(event) =>
+            setPinCode(event.target.value.replace(/\D/g, "").slice(0, 8))
+          }
+          required
+          minLength={4}
+          maxLength={8}
+          placeholder="••••"
+          className="registration-field-input tracking-[0.35em]"
         />
       </label>
 

@@ -1,11 +1,10 @@
 "use server";
 
 import { confirmStorageAccessAction } from "@/lib/actions/nfc-auth";
-import { verifyPin } from "@/lib/nfc/nfc-auth-core";
+import { checkCardPin } from "@/lib/nfc/check-card-pin.server";
 import { clearPendingNfcCardCookie } from "@/lib/nfc/device-cookies.server";
 import {
   DASHBOARD_PATH,
-  HOME_PATH,
   INVALID_NFC_CARD_MESSAGE,
   REGISTRATION_COMPLETE_PATH,
 } from "@/lib/nfc/constants";
@@ -24,7 +23,7 @@ export type PinLoginResult =
 
 /**
  * PIN girişi (handlePinLogin):
- * 1. Gateway — verifyPin; yanlış PIN → /
+ * 1. checkCardPin — pin_code eşleşmezse "Hatalı PIN"
  * 2. nfc_user_data.id FK doğrulama — geçersizse oturum açılmaz
  * 3. nfc_sessions oluştur → profil kapısı → /kayit-tamamla veya /dashboard
  */
@@ -37,14 +36,14 @@ export async function handlePinLogin(params: {
   const uniqueId = normalizeNfcUniqueId(params.uniqueId);
 
   return withNfcAction("handlePinLogin", async () => {
-    const pinResult = await verifyPin(uniqueId, pin_code);
+    const pinResult = await checkCardPin(uniqueId, pin_code);
 
     if (!pinResult.ok) {
-      console.log("[handlePinLogin] PIN doğrulama başarısız — ana sayfaya yönlendir", {
+      console.log("[handlePinLogin] PIN doğrulama başarısız", {
         uniqueId,
         error: pinResult.error,
       });
-      return { ok: true, redirectTo: HOME_PATH };
+      return { ok: false, error: pinResult.error };
     }
 
     const admin = createServiceRoleClient();

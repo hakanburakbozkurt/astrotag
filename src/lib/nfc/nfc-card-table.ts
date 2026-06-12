@@ -12,9 +12,13 @@ import "server-only";
 export const NFC_CARD_TABLE = "nfc_user_data" as const;
 export const NFC_CARD_SLUG_COLUMN = "nfc_id" as const;
 
-/** PIN girişi — nfc_user_data (handlePinLogin / verifyPin) */
+/** PIN girişi — nfc_user_data (handlePinLogin / checkCardPin) */
 export const NFC_CARD_PIN_LOGIN_SELECT =
-  "id, nfc_id, profile_id, is_active, pin_hash, pin_failed_attempts, pin_locked_until" as const;
+  "id, nfc_id, profile_id, is_active, pin_code, pin_hash, pin_failed_attempts, pin_locked_until" as const;
+
+/** pin_code doğrulama — checkCardPin */
+export const NFC_CARD_PIN_CODE_SELECT =
+  "id, nfc_id, profile_id, is_active, pin_code" as const;
 
 export const NFC_CARD_AUTH_SELECT =
   "id, is_active, profile_id, is_claimed, owner_id" as const;

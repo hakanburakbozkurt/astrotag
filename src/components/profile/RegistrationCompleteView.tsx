@@ -48,7 +48,7 @@ export default function RegistrationCompleteView() {
               </p>
             </div>
 
-            <div className="mt-8">
+            <div className="mt-8 w-full min-w-0 max-w-full">
               <RegistrationCompleteForm />
             </div>
           </div>

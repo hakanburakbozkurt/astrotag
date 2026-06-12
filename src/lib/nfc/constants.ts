@@ -72,5 +72,8 @@ export const CARD_VERIFY_FAILURE_MESSAGE = "Hatalı Bilgi";
 /** nfc_user_data'da kart kaydı yok veya oturum FK hedefi geçersiz */
 export const INVALID_NFC_CARD_MESSAGE = "Geçersiz Kart";
 
+/** pin_code eşleşmedi */
+export const INVALID_PIN_MESSAGE = "Hatalı PIN";
+
 /** @deprecated use NFC_FINGERPRINT_COOKIE */
 export const NFC_DEVICE_COOKIE = NFC_FINGERPRINT_COOKIE;

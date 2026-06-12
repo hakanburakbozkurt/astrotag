@@ -159,4 +159,59 @@ body::after {
       rgba(245, 158, 11, 0.2) 100%
     );
   }
+
+  /* Kayıt tamamla — tüm inputlar aynı genişlik (date picker dahil) */
+  .registration-field-input {
+    margin-top: 0.5rem;
+    box-sizing: border-box;
+    height: 3rem;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    border-radius: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(7, 11, 20, 0.6);
+    padding: 0 1rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: #fff;
+    outline: none;
+    transition:
+      border-color 0.15s ease,
+      box-shadow 0.15s ease;
+    color-scheme: dark;
+  }
+
+  .registration-field-input::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+  }
+
+  .registration-field-input:focus {
+    border-color: rgba(251, 191, 36, 0.4);
+    box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.2);
+  }
+
+  .registration-field-input[type="date"] {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  .registration-field-input[type="date"]::-webkit-date-and-time-value {
+    min-width: 0;
+    text-align: left;
+  }
+
+  .registration-field-input[type="date"]::-webkit-datetime-edit,
+  .registration-field-input[type="date"]::-webkit-datetime-edit-fields-wrapper {
+    min-width: 0;
+  }
+
+  .registration-field-input[type="date"]::-webkit-calendar-picker-indicator {
+    opacity: 0.55;
+    cursor: pointer;
+  }
 }

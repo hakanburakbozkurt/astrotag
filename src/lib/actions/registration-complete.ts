@@ -4,6 +4,7 @@ import { DASHBOARD_PATH } from "@/lib/nfc/constants";
 import { logNfcError } from "@/lib/nfc/error-logger";
 import { NFC_CARD_TABLE } from "@/lib/nfc/nfc-card-table";
 import { syncProfileNfcUid } from "@/lib/nfc/nfc-profile-link.server";
+import { normalizePinInput } from "@/lib/nfc/pin-input";
 import { requireProtectedNfcAccess } from "@/lib/nfc/protected-access.server";
 import { withNfcAction } from "@/lib/nfc/with-nfc-action.server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
@@ -12,6 +13,7 @@ export type RegistrationCompleteInput = {
   fullName: string;
   birthDate: string;
   phoneNumber: string;
+  pinCode: string;
 };
 
 export type RegistrationCompletePrefill = {
@@ -78,8 +80,9 @@ export async function saveRegistrationComplete(
     const fullName = input.fullName.trim();
     const birthDate = input.birthDate.trim();
     const phoneNumber = input.phoneNumber.trim();
+    const pinCode = normalizePinInput(input.pinCode);
 
-    if (!fullName || !birthDate || !phoneNumber) {
+    if (!fullName || !birthDate || !phoneNumber || pinCode.length < 4) {
       return { success: false, error: "Tüm alanlar zorunludur." };
     }
 
@@ -118,6 +121,7 @@ export async function saveRegistrationComplete(
       .update({
         name: fullName,
         birth_date: birthDate,
+        pin_code: pinCode,
       })
       .eq("id", access.profileId);
 
