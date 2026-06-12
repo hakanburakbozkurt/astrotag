@@ -84,7 +84,13 @@ export default function CosmicDashboard({ user }: CosmicDashboardProps) {
   };
 
   if (!isMounted) {
-    return null;
+    return (
+      <div className="relative min-h-dvh overflow-y-auto px-4 py-10 sm:px-6 sm:py-14">
+        <div className="relative mx-auto max-w-2xl">
+          <p className="text-center text-sm text-white/45">Dashboard yükleniyor...</p>
+        </div>
+      </div>
+    );
   }
 
   return (

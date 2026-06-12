@@ -1,30 +1,43 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import CosmicDashboard from "@/components/dashboard/CosmicDashboard";
 import Starfield from "@/components/Starfield";
+import { clientRedirect } from "@/lib/auth/client-redirect.client";
 import { useRequireAuth, useUserProfile } from "@/lib/auth";
+import { REGISTRATION_COMPLETE_PATH } from "@/lib/nfc/constants";
 
 export default function DashboardPage() {
   useRequireAuth();
   const { userData, profileStatus, isLoading, error } = useUserProfile();
 
+  useEffect(() => {
+    if (isLoading || profileStatus === "loading") {
+      return;
+    }
+
+    if (profileStatus === "empty" || (!userData && profileStatus !== "error")) {
+      clientRedirect(REGISTRATION_COMPLETE_PATH);
+    }
+  }, [isLoading, profileStatus, userData]);
+
   if (isLoading) {
     return (
-      <main className="relative min-h-dvh">
+      <div className="relative flex min-h-0 flex-1 flex-col">
         <Starfield />
-        <div className="relative flex min-h-dvh items-center justify-center px-4">
+        <div className="relative flex flex-1 items-center justify-center px-4">
           <p className="text-sm text-white/45">Kozmik bağlantı kuruluyor...</p>
         </div>
-      </main>
+      </div>
     );
   }
 
   if (profileStatus === "error") {
     return (
-      <main className="relative min-h-dvh">
+      <div className="relative flex min-h-0 flex-1 flex-col">
         <Starfield />
-        <div className="relative mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center px-4 text-center">
+        <div className="relative mx-auto flex flex-1 max-w-md flex-col items-center justify-center px-4 text-center">
           <p className="text-[10px] uppercase tracking-[0.25em] text-red-300/70">
             Profil Hatası
           </p>
@@ -32,42 +45,31 @@ export default function DashboardPage() {
             {error ?? "Profil bilgileri yüklenemedi."}
           </p>
           <Link
-            href="/login"
+            href={REGISTRATION_COMPLETE_PATH}
             className="mt-6 rounded-xl border border-amber-400/30 px-5 py-2.5 text-sm text-amber-100"
           >
-            Giriş Sayfasına Dön
+            Kaydı Tamamla
           </Link>
         </div>
-      </main>
+      </div>
     );
   }
 
   if (profileStatus === "empty" || !userData) {
     return (
-      <main className="relative min-h-dvh">
+      <div className="relative flex min-h-0 flex-1 flex-col">
         <Starfield />
-        <div className="relative mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center px-4 text-center">
-          <p className="text-[10px] uppercase tracking-[0.25em] text-amber-400/70">
-            Profil Eksik
-          </p>
-          <p className="mt-3 text-sm text-white/60">
-            Doğum haritası bilgileriniz henüz tamamlanmamış.
-          </p>
-          <Link
-            href="/profile/complete"
-            className="mt-6 rounded-xl border border-amber-400/30 px-5 py-2.5 text-sm text-amber-100"
-          >
-            Profili Tamamla
-          </Link>
+        <div className="relative flex flex-1 items-center justify-center px-4">
+          <p className="text-sm text-white/45">Kayıt sayfasına yönlendiriliyorsunuz...</p>
         </div>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="relative min-h-dvh overflow-y-auto">
+    <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto">
       <Starfield />
       <CosmicDashboard user={userData} />
-    </main>
+    </div>
   );
 }

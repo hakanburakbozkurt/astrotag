@@ -3,11 +3,11 @@
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import {
   getProtectedNfcAccess,
+  ProtectedNfcAccessError,
   requireProtectedNfcAccess,
 } from "@/lib/nfc/protected-access.server";
 import {
   SupabaseActionError,
-  redirectToLogin,
   formatCountdown,
 } from "@/lib/supabase-action-error";
 import type {
@@ -68,9 +68,14 @@ export async function requireAuthUserId(): Promise<string> {
   try {
     const access = await requireProtectedNfcAccess();
     return access.profileId;
-  } catch {
-    redirectToLogin();
-    throw new SupabaseActionError("Oturum bulunamadı. Giriş sayfasına yönlendiriliyorsunuz.");
+  } catch (error) {
+    if (error instanceof ProtectedNfcAccessError) {
+      throw new SupabaseActionError(
+        "Oturum Sona Erdi veya Geçersiz Erişim"
+      );
+    }
+
+    throw error;
   }
 }
 
@@ -84,7 +89,14 @@ function mapSupabaseError(error: { message: string } | null, fallback: string): 
 
 export async function getUserProfile(): Promise<UserData | null> {
   try {
-    const userId = await requireAuthUserId();
+    const access = await getProtectedNfcAccess();
+
+    if (!access?.profileId) {
+      console.warn("[getUserProfile] NFC oturumu yok veya geçersiz");
+      return null;
+    }
+
+    const userId = access.profileId;
     const supabase = getServiceClient();
     const { data, error } = await supabase
       .from(PROFILE_TABLE)
@@ -95,17 +107,32 @@ export async function getUserProfile(): Promise<UserData | null> {
       .maybeSingle();
 
     if (error) {
-      mapSupabaseError(error, "Profil alınamadı.");
+      console.error("[getUserProfile] profiles sorgu hatası", {
+        profileId: userId,
+        message: error.message,
+        code: error.code,
+      });
+      return null;
     }
 
-    if (!data?.name?.trim()) {
+    if (!data) {
+      console.warn("[getUserProfile] Profil satırı yok", { profileId: userId });
+      return null;
+    }
+
+    const name = data.name?.trim() ?? "";
+
+    if (!name) {
+      console.log("[getUserProfile] Profil adı boş — kayıt tamamlanmamış", {
+        profileId: userId,
+      });
       return null;
     }
 
     return {
-      name: data.name,
-      birthDate: data.birth_date,
-      birthTime: data.birth_time,
+      name,
+      birthDate: data.birth_date ?? "",
+      birthTime: data.birth_time ?? "00:00:00",
       birthPlace: data.birth_place ?? "",
       relationshipStatus: data.relationship_status ?? "İlişki Yok",
       cosmicEnergy: data.cosmic_energy ?? 0,
@@ -117,11 +144,8 @@ export async function getUserProfile(): Promise<UserData | null> {
       partnerBirthPlace: data.partner_birth_place,
     };
   } catch (error) {
-    if (error instanceof SupabaseActionError) {
-      throw error;
-    }
-
-    throw new SupabaseActionError("Profil okunurken bir hata oluştu.");
+    console.error("[getUserProfile] Beklenmeyen hata", error);
+    return null;
   }
 }
 
