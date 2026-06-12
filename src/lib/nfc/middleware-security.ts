@@ -23,7 +23,7 @@ import {
 } from "@/lib/nfc/constants";
 import {
   isNfcUserDataRegistrationComplete,
-  loadNfcCardProfileFieldsByProfileId,
+  loadNfcUserDataRegistrationByProfileId,
 } from "@/lib/nfc/profile-readiness.server";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 import {
@@ -585,17 +585,14 @@ export async function runSecurityGate(
         return deny;
       }
 
-      const cardProfileFields = await loadNfcCardProfileFieldsByProfileId(
+      const registrationFields = await loadNfcUserDataRegistrationByProfileId(
         supabase,
         profileId
       );
 
       if (
-        !cardProfileFields ||
-        !isNfcUserDataRegistrationComplete({
-          full_name: cardProfileFields.full_name,
-          birth_date: cardProfileFields.birth_date,
-        })
+        !registrationFields ||
+        !isNfcUserDataRegistrationComplete(registrationFields)
       ) {
         const deny = {
           allowed: false as const,

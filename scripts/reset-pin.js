@@ -1,5 +1,5 @@
 /**
- * Acil durum: nfc_cards.pin_hash güncelleme
+ * Acil durum: nfc_user_data.pin_hash güncelleme
  *
  * Kullanım (proje kökünden):
  *   node scripts/reset-pin.js
@@ -138,13 +138,13 @@ async function main() {
     supabaseUrl,
     serviceRoleKey,
     "GET",
-    `nfc_cards?unique_id=eq.${encodedUniqueId}&select=id,unique_id,pin_hash,is_active`
+    `nfc_user_data?nfc_id=eq.${encodedUniqueId}&select=id,nfc_id,pin_hash,is_active`
   );
 
   const existing = Array.isArray(existingRows) ? existingRows[0] : null;
 
   if (!existing) {
-    console.error(`HATA: nfc_cards tablosunda unique_id='${uniqueId}' bulunamadı.`);
+    console.error(`HATA: nfc_user_data tablosunda nfc_id='${uniqueId}' bulunamadı.`);
     process.exit(1);
   }
 
@@ -155,7 +155,7 @@ async function main() {
     supabaseUrl,
     serviceRoleKey,
     "PATCH",
-    `nfc_cards?unique_id=eq.${encodedUniqueId}`,
+    `nfc_user_data?nfc_id=eq.${encodedUniqueId}`,
     {
       pin_hash: pinHash,
       pin_set_at: new Date().toISOString(),
@@ -182,7 +182,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`PIN '${pin}' → unique_id '${uniqueId}' için ayarlandı. Uygulamada tekrar dene.`);
+  console.log(`PIN '${pin}' → nfc_id '${uniqueId}' için ayarlandı. Uygulamada tekrar dene.`);
 }
 
 main().catch((error) => {

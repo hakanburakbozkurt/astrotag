@@ -9,10 +9,9 @@ import {
 } from "@/lib/nfc/constants";
 import { logNfcEvent } from "@/lib/nfc/error-logger";
 import {
+  NFC_CARD_PIN_LOGIN_SELECT,
+  NFC_CARD_SLUG_COLUMN,
   NFC_CARD_TABLE,
-  NFC_CARDS_PIN_LOGIN_SELECT,
-  NFC_CARDS_SLUG_COLUMN,
-  NFC_CARDS_TABLE,
 } from "@/lib/nfc/nfc-card-table";
 import { normalizePinInput } from "@/lib/nfc/pin-input";
 import { setNfcSession } from "@/lib/nfc/session.server";
@@ -25,7 +24,14 @@ const LOCKOUT_MESSAGE =
   "Çok fazla hatalı deneme. Lütfen daha sonra tekrar deneyin.";
 const PIN_NOT_SET_MESSAGE = "Şifre henüz oluşturulmamış.";
 
-export type VerifyPinResult = { ok: true } | { ok: false; error: string };
+export type VerifyPinSuccess = {
+  ok: true;
+  nfcCardUuid: string;
+  profileId: string;
+  slug: string;
+};
+
+export type VerifyPinResult = VerifyPinSuccess | { ok: false; error: string };
 
 type NfcCardPinRow = {
   id: string;
@@ -132,7 +138,7 @@ async function recordPinFailure(
     : null;
 
   const { error } = await admin
-    .from(NFC_CARDS_TABLE)
+    .from(NFC_CARD_TABLE)
     .update({
       pin_failed_attempts: nextAttempts,
       pin_locked_until: lockedUntil,
@@ -152,7 +158,7 @@ async function recordPinFailure(
 async function resetPinAttempts(cardId: string): Promise<void> {
   const admin = createServiceRoleClient();
   const { error } = await admin
-    .from(NFC_CARDS_TABLE)
+    .from(NFC_CARD_TABLE)
     .update({
       pin_failed_attempts: 0,
       pin_locked_until: null,
@@ -188,7 +194,7 @@ async function resolveClaimedProfileId(
   cardId: string
 ): Promise<string | null> {
   const { data, error } = await admin
-    .from(NFC_CARDS_TABLE)
+    .from(NFC_CARD_TABLE)
     .select("profile_id")
     .eq("id", cardId)
     .maybeSingle();
@@ -247,10 +253,9 @@ async function ensureProfileForCard(
   }
 
   const { data: linked, error: linkError } = await admin
-    .from(NFC_CARDS_TABLE)
+    .from(NFC_CARD_TABLE)
     .update({
       profile_id: newProfileId,
-      is_claimed: true,
     })
     .eq("id", cardId)
     .is("profile_id", null)
@@ -275,8 +280,8 @@ async function ensureProfileForCard(
 }
 
 /**
- * nfc_cards.unique_id + pin_hash doğrulama (bcrypt).
- * Başarılı girişte nfc_sessions insert — profile_id kart satırından gelir.
+ * nfc_user_data.nfc_id + pin_hash doğrulama (bcrypt).
+ * Başarılı girişte nfc_sessions insert — nfc_id = nfc_user_data.id (uuid).
  */
 export async function verifyPin(
   uniqueId: string,
@@ -320,13 +325,13 @@ export async function verifyPin(
 
     // PIN doğrulama: resolveNfcCardForAuth / unstable_cache kullanılmaz — her seferinde taze DB
     const { data: card, error } = await admin
-      .from(NFC_CARDS_TABLE)
-      .select(NFC_CARDS_PIN_LOGIN_SELECT)
-      .eq(NFC_CARDS_SLUG_COLUMN, normalizedId)
+      .from(NFC_CARD_TABLE)
+      .select(NFC_CARD_PIN_LOGIN_SELECT)
+      .eq(NFC_CARD_SLUG_COLUMN, normalizedId)
       .maybeSingle();
 
-    console.error("[verifyPin] DB sorgusu tamamlandı (cache yok — doğrudan nfc_cards)", {
-      unique_id: normalizedId,
+    console.error("[verifyPin] DB sorgusu tamamlandı (cache yok — doğrudan nfc_user_data)", {
+      nfc_id: normalizedId,
       cacheBypass: true,
       durationMs: Math.round(performance.now() - queryStartedAt),
       hasData: Boolean(card),
@@ -334,10 +339,10 @@ export async function verifyPin(
     });
 
     logVerifyPin("card_query", {
-      table: NFC_CARDS_TABLE,
-      slugColumn: NFC_CARDS_SLUG_COLUMN,
+      table: NFC_CARD_TABLE,
+      slugColumn: NFC_CARD_SLUG_COLUMN,
       slug: normalizedId,
-      select: NFC_CARDS_PIN_LOGIN_SELECT,
+      select: NFC_CARD_PIN_LOGIN_SELECT,
       durationMs: Math.round(performance.now() - queryStartedAt),
       hasData: Boolean(card),
       error: error ? serializeVerifyPinError(error) : null,
@@ -405,8 +410,8 @@ export async function verifyPin(
     console.log("[verifyPin] DB pin_hash doğrulama", {
       unique_id: normalizedId,
       cardId: row.id,
-      table: NFC_CARDS_TABLE,
-      slugColumn: NFC_CARDS_SLUG_COLUMN,
+      table: NFC_CARD_TABLE,
+      slugColumn: NFC_CARD_SLUG_COLUMN,
       searchedSlug: normalizedId,
       pinHashFromDb: row.pin_hash,
       pinHashRawLength: dbPinHashRaw.length,
@@ -529,10 +534,16 @@ export async function verifyPin(
     logVerifyPin("success", {
       cardId: row.id,
       profileId,
+      slug: normalizedId,
       durationMs: Math.round(performance.now() - startedAt),
     });
 
-    return { ok: true };
+    return {
+      ok: true,
+      nfcCardUuid: row.id,
+      profileId,
+      slug: normalizedId,
+    };
   } catch (error) {
     logVerifyPin("exception", {
       uniqueIdRaw: uniqueId,
