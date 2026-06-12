@@ -1,20 +1,20 @@
 "use server";
 
 import { verifyPin } from "@/lib/nfc/nfc-auth-core";
+import { HOME_PATH } from "@/lib/nfc/constants";
 import { normalizePinInput } from "@/lib/nfc/pin-input";
 import { resolveRedirectAfterPinLogin } from "@/lib/nfc/profile-readiness.server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import { withNfcAction } from "@/lib/nfc/with-nfc-action.server";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 
-export type PinLoginResult =
-  | { success: true; redirectTo: string }
-  | { success: false; error: string };
+/** PIN girişi — her zaman redirectTo döner (gateway + iç kapı) */
+export type PinLoginResult = { redirectTo: string };
 
 /**
  * PIN girişi (handlePinLogin):
- * 1. nfc_cards — PIN doğrula + oturum aç (verifyPin)
- * 2. nfc_user_data.full_name + birth_date — yönlendirme kararı
+ * 1. Gateway — verifyPin; yanlış PIN → / (içeri alma)
+ * 2. İç kapı — nfc_user_data full_name + birth_date → /kayit-tamamla veya /dashboard
  */
 export async function handlePinLogin(params: {
   uniqueId: string;
@@ -24,27 +24,24 @@ export async function handlePinLogin(params: {
   const pin_code = normalizePinInput(params.pin ?? params.pin_code ?? "");
   const uniqueId = normalizeNfcUniqueId(params.uniqueId);
 
-  console.log("[handlePinLogin] tetiklendi", {
-    uniqueId,
-    pinLength: pin_code.length,
-    at: new Date().toISOString(),
-  });
-
   return withNfcAction("handlePinLogin", async () => {
-    const result = await verifyPin(uniqueId, pin_code);
+    const pinResult = await verifyPin(uniqueId, pin_code);
 
-    if (!result.ok) {
-      return { success: false, error: result.error };
+    if (!pinResult.ok) {
+      console.log("[handlePinLogin] PIN yanlış — ana sayfaya yönlendir", {
+        uniqueId,
+      });
+      return { redirectTo: HOME_PATH };
     }
 
     const admin = createServiceRoleClient();
     const redirectTo = await resolveRedirectAfterPinLogin(admin, uniqueId);
 
-    console.log("[handlePinLogin] nfc_user_data profil kontrolü", {
+    console.log("[handlePinLogin] PIN doğru — profil kapısı", {
       uniqueId,
       redirectTo,
     });
 
-    return { success: true, redirectTo };
+    return { redirectTo };
   });
 }

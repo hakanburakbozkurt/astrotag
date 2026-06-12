@@ -54,7 +54,7 @@ export async function loadNfcUserDataRegistrationBySlug(
   return data;
 }
 
-/** PIN başarılı → kayıt tamamla veya dashboard */
+/** PIN başarılı → kayıt tamamla veya dashboard (nfc_user_data.full_name + birth_date) */
 export async function resolveRedirectAfterPinLogin(
   supabase: SupabaseClient,
   uniqueId: string

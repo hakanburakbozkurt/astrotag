@@ -22,7 +22,7 @@ import {
   STORAGE_VERIFIED_COOKIE,
 } from "@/lib/nfc/constants";
 import {
-  isNfcCardProfileComplete,
+  isNfcUserDataRegistrationComplete,
   loadNfcCardProfileFieldsByProfileId,
 } from "@/lib/nfc/profile-readiness.server";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
@@ -468,11 +468,26 @@ export async function runSecurityGate(
       return { allowed: true };
     }
 
-    if (
-      pathname === PROFILE_COMPLETE_PATH ||
-      pathname === PROFILE_SETUP_PATH ||
-      pathname === REGISTRATION_COMPLETE_PATH
-    ) {
+    /** /kayit-tamamla — yalnızca PIN oturumu (pending NFC çerezi yetmez) */
+    if (pathname === REGISTRATION_COMPLETE_PATH) {
+      if (!sessionId) {
+        const deny = {
+          allowed: false as const,
+          reason: "session_missing" as const,
+          redirectTo: HOME_PATH,
+        };
+        logGateDeny(
+          request,
+          deny.reason,
+          deny.redirectTo,
+          diagnostics,
+          "/kayit-tamamla — NFC oturumu yok (PIN girişi gerekli)"
+        );
+        return deny;
+      }
+    }
+
+    if (pathname === PROFILE_COMPLETE_PATH || pathname === PROFILE_SETUP_PATH) {
       const pendingNfc = request.cookies.get(PENDING_NFC_COOKIE)?.value?.trim();
       if (pendingNfc) {
         return { allowed: true };
@@ -552,7 +567,7 @@ export async function runSecurityGate(
         const deny = {
           allowed: false as const,
           reason: "profile_incomplete" as const,
-          redirectTo: PROFILE_SETUP_PATH,
+          redirectTo: REGISTRATION_COMPLETE_PATH,
         };
         logGateDeny(
           request,
@@ -570,11 +585,17 @@ export async function runSecurityGate(
         profileId
       );
 
-      if (!cardProfileFields || !isNfcCardProfileComplete(cardProfileFields)) {
+      if (
+        !cardProfileFields ||
+        !isNfcUserDataRegistrationComplete({
+          full_name: cardProfileFields.full_name,
+          birth_date: cardProfileFields.birth_date,
+        })
+      ) {
         const deny = {
           allowed: false as const,
           reason: "profile_incomplete" as const,
-          redirectTo: PROFILE_SETUP_PATH,
+          redirectTo: REGISTRATION_COMPLETE_PATH,
         };
         logGateDeny(
           request,
@@ -585,6 +606,40 @@ export async function runSecurityGate(
           { profileId, profileComplete: false }
         );
         return deny;
+      }
+    }
+
+    if (pathname === REGISTRATION_COMPLETE_PATH && supabase) {
+      const profileId =
+        request.cookies.get(NFC_PROFILE_COOKIE)?.value?.trim() ?? "";
+
+      if (profileId) {
+        const cardProfileFields = await loadNfcCardProfileFieldsByProfileId(
+          supabase,
+          profileId
+        );
+
+        if (
+          cardProfileFields &&
+          isNfcUserDataRegistrationComplete({
+            full_name: cardProfileFields.full_name,
+            birth_date: cardProfileFields.birth_date,
+          })
+        ) {
+          const deny = {
+            allowed: false as const,
+            reason: "unauthorized_route" as const,
+            redirectTo: DASHBOARD_PATH,
+          };
+          logGateDeny(
+            request,
+            deny.reason,
+            deny.redirectTo,
+            diagnostics,
+            "/kayit-tamamla — profil zaten tamam, dashboard'a yönlendir"
+          );
+          return deny;
+        }
       }
     }
 

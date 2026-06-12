@@ -1,39 +1,38 @@
-"use client";
+import { redirect } from "next/navigation";
+import RegistrationCompleteView from "@/components/profile/RegistrationCompleteView";
+import {
+  DASHBOARD_PATH,
+  HOME_PATH,
+} from "@/lib/nfc/constants";
+import { NFC_CARD_TABLE } from "@/lib/nfc/nfc-card-table";
+import {
+  isNfcUserDataRegistrationComplete,
+} from "@/lib/nfc/profile-readiness.server";
+import { getNfcSession } from "@/lib/nfc/session.server";
+import { createServiceRoleClient } from "@/lib/supabase/service";
 
-import { motion } from "framer-motion";
-import Starfield from "@/components/Starfield";
-import ProfileSetupForm from "@/components/profile/ProfileSetupForm";
+/** PIN oturumu sonrası kayıt tamamlama — oturum yoksa ana sayfa */
+export default async function KayitTamamlaPage() {
+  const session = await getNfcSession();
 
-export default function RegistrationCompletePage() {
-  return (
-    <main className="relative min-h-dvh overflow-x-hidden">
-      <Starfield />
+  if (!session) {
+    redirect(HOME_PATH);
+  }
 
-      <div className="relative mx-auto flex min-h-dvh w-full max-w-md items-center px-4 py-10 sm:px-6">
-        <motion.section
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="w-full min-w-0 rounded-[28px] border border-white/10 bg-[#0f172a]/85 p-6 backdrop-blur-2xl sm:p-8"
-        >
-          <div className="text-center">
-            <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-amber-400/70">
-              Kayıt Tamamla
-            </p>
-            <h1 className="mt-2 bg-gradient-to-b from-white to-amber-200/80 bg-clip-text text-2xl font-bold tracking-tight text-transparent sm:text-3xl">
-              AstroTag
-            </h1>
-            <p className="mt-3 text-sm leading-relaxed text-white/45">
-              Ad ve doğum bilgilerinizi tamamlayın. Bu adım olmadan panele
-              geçemezsiniz.
-            </p>
-          </div>
+  try {
+    const admin = createServiceRoleClient();
+    const { data } = await admin
+      .from(NFC_CARD_TABLE)
+      .select("full_name, birth_date")
+      .eq("id", session.nfcId)
+      .maybeSingle();
 
-          <div className="mt-8">
-            <ProfileSetupForm />
-          </div>
-        </motion.section>
-      </div>
-    </main>
-  );
+    if (data && isNfcUserDataRegistrationComplete(data)) {
+      redirect(DASHBOARD_PATH);
+    }
+  } catch {
+    redirect(HOME_PATH);
+  }
+
+  return <RegistrationCompleteView />;
 }
