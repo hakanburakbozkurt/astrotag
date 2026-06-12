@@ -2,7 +2,10 @@
 
 import { verifyPin } from "@/lib/nfc/nfc-auth-core";
 import { normalizePinInput } from "@/lib/nfc/pin-input";
+import { resolveRedirectAfterPinLogin } from "@/lib/nfc/profile-readiness.server";
+import { createServiceRoleClient } from "@/lib/supabase/service";
 import { withNfcAction } from "@/lib/nfc/with-nfc-action.server";
+import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 
 export type PinLoginResult =
   | { success: true; redirectTo: string }
@@ -10,9 +13,8 @@ export type PinLoginResult =
 
 /**
  * PIN girişi (handlePinLogin):
- * 1. nfc_cards tablosundan unique_id ile kart + profile_id + pin_hash oku
- * 2. bcrypt.compare ile PIN doğrula
- * 3. Doğruysa nfc_sessions'a kartın profile_id değeri ile oturum aç
+ * 1. nfc_cards — PIN doğrula + oturum aç (verifyPin)
+ * 2. nfc_user_data.full_name + birth_date — yönlendirme kararı
  */
 export async function handlePinLogin(params: {
   uniqueId: string;
@@ -20,20 +22,29 @@ export async function handlePinLogin(params: {
   pin_code?: string;
 }): Promise<PinLoginResult> {
   const pin_code = normalizePinInput(params.pin ?? params.pin_code ?? "");
+  const uniqueId = normalizeNfcUniqueId(params.uniqueId);
 
   console.log("[handlePinLogin] tetiklendi", {
-    uniqueId: params.uniqueId,
+    uniqueId,
     pinLength: pin_code.length,
     at: new Date().toISOString(),
   });
 
   return withNfcAction("handlePinLogin", async () => {
-    const result = await verifyPin(params.uniqueId, pin_code);
+    const result = await verifyPin(uniqueId, pin_code);
 
     if (!result.ok) {
       return { success: false, error: result.error };
     }
 
-    return { success: true, redirectTo: result.redirectTo };
+    const admin = createServiceRoleClient();
+    const redirectTo = await resolveRedirectAfterPinLogin(admin, uniqueId);
+
+    console.log("[handlePinLogin] nfc_user_data profil kontrolü", {
+      uniqueId,
+      redirectTo,
+    });
+
+    return { success: true, redirectTo };
   });
 }

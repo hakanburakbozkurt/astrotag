@@ -6,8 +6,6 @@ import { confirmStorageAccessAction } from "@/lib/actions/nfc-auth";
 import { clearPendingNfcCardCookie } from "@/lib/nfc/device-cookies.server";
 import {
   CARD_VERIFY_FAILURE_MESSAGE,
-  DASHBOARD_PATH,
-  PROFILE_SETUP_PATH,
 } from "@/lib/nfc/constants";
 import { logNfcEvent } from "@/lib/nfc/error-logger";
 import {
@@ -16,10 +14,6 @@ import {
   NFC_CARDS_SLUG_COLUMN,
   NFC_CARDS_TABLE,
 } from "@/lib/nfc/nfc-card-table";
-import {
-  isNfcCardProfileComplete,
-  type NfcCardProfileFields,
-} from "@/lib/nfc/profile-readiness.server";
 import { normalizePinInput } from "@/lib/nfc/pin-input";
 import { setNfcSession } from "@/lib/nfc/session.server";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
@@ -31,9 +25,7 @@ const LOCKOUT_MESSAGE =
   "Çok fazla hatalı deneme. Lütfen daha sonra tekrar deneyin.";
 const PIN_NOT_SET_MESSAGE = "Şifre henüz oluşturulmamış.";
 
-export type VerifyPinResult =
-  | { ok: true; redirectTo: string }
-  | { ok: false; error: string };
+export type VerifyPinResult = { ok: true } | { ok: false; error: string };
 
 type NfcCardPinRow = {
   id: string;
@@ -75,38 +67,6 @@ function sanitizeCardRowForLog(row: NfcCardPinRow | null | undefined) {
   return {
     ...row,
     pin_hash: maskPinHash(row.pin_hash),
-  };
-}
-
-async function loadProfileFieldsForRedirect(
-  admin: ReturnType<typeof createServiceRoleClient>,
-  profileId: string
-): Promise<NfcCardProfileFields> {
-  const { data, error } = await admin
-    .from("profiles")
-    .select("name, birth_date, birth_time, birth_city, birth_district")
-    .eq("id", profileId)
-    .maybeSingle();
-
-  if (error || !data) {
-    return {
-      full_name: null,
-      birth_date: null,
-      birth_time: null,
-      birth_location: null,
-    };
-  }
-
-  const location = [data.birth_city, data.birth_district]
-    .map((part) => part?.trim())
-    .filter(Boolean)
-    .join(", ");
-
-  return {
-    full_name: data.name,
-    birth_date: data.birth_date,
-    birth_time: data.birth_time,
-    birth_location: location || null,
   };
 }
 
@@ -312,16 +272,6 @@ async function ensureProfileForCard(
   }
 
   return resolveClaimedProfileId(admin, cardId);
-}
-
-async function resolveRedirectAfterLogin(
-  card: NfcCardProfileFields
-): Promise<string> {
-  if (!isNfcCardProfileComplete(card)) {
-    return PROFILE_SETUP_PATH;
-  }
-
-  return DASHBOARD_PATH;
 }
 
 /**
@@ -569,26 +519,20 @@ export async function verifyPin(
 
     await clearPendingNfcCardCookie();
 
-    const profileFields = await loadProfileFieldsForRedirect(admin, profileId);
-
-    const redirectTo = await resolveRedirectAfterLogin(profileFields);
-
     logNfcEvent(
       "info",
       { layer: "action", handler: "verifyPin" },
       "PIN doğrulama başarılı — NFC oturumu açıldı",
-      { uniqueId: normalizedId, redirectTo, profileId }
+      { uniqueId: normalizedId, profileId }
     );
 
     logVerifyPin("success", {
       cardId: row.id,
       profileId,
-      redirectTo,
-      profileComplete: isNfcCardProfileComplete(profileFields),
       durationMs: Math.round(performance.now() - startedAt),
     });
 
-    return { ok: true, redirectTo };
+    return { ok: true };
   } catch (error) {
     logVerifyPin("exception", {
       uniqueIdRaw: uniqueId,

@@ -24,6 +24,8 @@ export const LOGIN_PATH = HOME_PATH;
 export const DASHBOARD_PATH = "/dashboard";
 export const PROFILE_COMPLETE_PATH = "/profile/complete";
 export const PROFILE_SETUP_PATH = "/profile-setup";
+/** PIN sonrası eksik profil — nfc_user_data full_name / birth_date */
+export const REGISTRATION_COMPLETE_PATH = "/kayit-tamamla";
 export const CARD_ENTRY_PREFIX = "/c";
 /** NFC ile açılan herkese açık profil */
 export const PUBLIC_PROFILE_PREFIX = "/p";

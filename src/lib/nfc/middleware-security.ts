@@ -16,6 +16,7 @@ import {
   PRIVATE_MODE_PATH,
   PROFILE_COMPLETE_PATH,
   PROFILE_SETUP_PATH,
+  REGISTRATION_COMPLETE_PATH,
   PUBLIC_PATHS,
   PUBLIC_PROFILE_PREFIX,
   STORAGE_VERIFIED_COOKIE,
@@ -242,6 +243,7 @@ export function isProtectedPath(pathname: string): boolean {
     pathname.startsWith(DASHBOARD_PATH) ||
     pathname === PROFILE_COMPLETE_PATH ||
     pathname === PROFILE_SETUP_PATH ||
+    pathname === REGISTRATION_COMPLETE_PATH ||
     pathname.startsWith("/api/ai")
   );
 }
@@ -328,7 +330,8 @@ function isStorageCheckRequired(pathname: string): boolean {
 function requiresCompleteProfile(pathname: string): boolean {
   if (
     pathname === PROFILE_SETUP_PATH ||
-    pathname === PROFILE_COMPLETE_PATH
+    pathname === PROFILE_COMPLETE_PATH ||
+    pathname === REGISTRATION_COMPLETE_PATH
   ) {
     return false;
   }
@@ -465,7 +468,11 @@ export async function runSecurityGate(
       return { allowed: true };
     }
 
-    if (pathname === PROFILE_COMPLETE_PATH || pathname === PROFILE_SETUP_PATH) {
+    if (
+      pathname === PROFILE_COMPLETE_PATH ||
+      pathname === PROFILE_SETUP_PATH ||
+      pathname === REGISTRATION_COMPLETE_PATH
+    ) {
       const pendingNfc = request.cookies.get(PENDING_NFC_COOKIE)?.value?.trim();
       if (pendingNfc) {
         return { allowed: true };

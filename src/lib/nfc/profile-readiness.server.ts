@@ -1,7 +1,75 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { NFC_CARD_TABLE } from "@/lib/nfc/nfc-card-table";
+import {
+  DASHBOARD_PATH,
+  REGISTRATION_COMPLETE_PATH,
+} from "@/lib/nfc/constants";
+import {
+  NFC_CARD_SLUG_COLUMN,
+  NFC_CARD_TABLE,
+} from "@/lib/nfc/nfc-card-table";
+import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
+
+/** nfc_user_data — PIN sonrası kayıt tamamlama kontrolü */
+export type NfcUserDataRegistrationFields = {
+  full_name: string | null;
+  birth_date: string | null;
+};
+
+export function isNfcUserDataRegistrationComplete(
+  data: NfcUserDataRegistrationFields
+): boolean {
+  const name = data.full_name?.trim() ?? "";
+  const birthDate = data.birth_date?.trim() ?? "";
+
+  if (!name) {
+    return false;
+  }
+
+  if (!birthDate || birthDate === PLACEHOLDER_BIRTH_DATE) {
+    return false;
+  }
+
+  return true;
+}
+
+/** PIN girişi sonrası — nfc_user_data.full_name + birth_date */
+export async function loadNfcUserDataRegistrationBySlug(
+  supabase: SupabaseClient,
+  uniqueId: string
+): Promise<NfcUserDataRegistrationFields | null> {
+  const normalizedId = normalizeNfcUniqueId(uniqueId);
+
+  const { data, error } = await supabase
+    .from(NFC_CARD_TABLE)
+    .select("full_name, birth_date")
+    .eq(NFC_CARD_SLUG_COLUMN, normalizedId)
+    .maybeSingle();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return data;
+}
+
+/** PIN başarılı → kayıt tamamla veya dashboard */
+export async function resolveRedirectAfterPinLogin(
+  supabase: SupabaseClient,
+  uniqueId: string
+): Promise<string> {
+  const registration = await loadNfcUserDataRegistrationBySlug(
+    supabase,
+    uniqueId
+  );
+
+  if (!registration || !isNfcUserDataRegistrationComplete(registration)) {
+    return REGISTRATION_COMPLETE_PATH;
+  }
+
+  return DASHBOARD_PATH;
+}
 
 /** nfc_user_data — kart profil tamamlama alanları */
 export type NfcCardProfileFields = {

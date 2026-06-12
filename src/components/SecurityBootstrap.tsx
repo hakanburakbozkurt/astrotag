@@ -8,6 +8,7 @@ import {
   CARD_ENTRY_PREFIX,
   HOME_PATH,
   PROFILE_SETUP_PATH,
+  REGISTRATION_COMPLETE_PATH,
   PRIVATE_MODE_PATH,
   PUBLIC_PROFILE_PREFIX,
   AUTH_CALLBACK_PATH,
@@ -26,6 +27,10 @@ function shouldRunStorageCheck(pathname: string): boolean {
   }
 
   if (pathname === PROFILE_SETUP_PATH) {
+    return false;
+  }
+
+  if (pathname === REGISTRATION_COMPLETE_PATH) {
     return false;
   }
 

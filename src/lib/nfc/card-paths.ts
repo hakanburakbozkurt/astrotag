@@ -11,6 +11,7 @@ export const RESERVED_ROOT_SEGMENTS = new Set([
   "auth",
   "profile",
   "profile-setup",
+  "kayit-tamamla",
   "c",
   "p",
   "verify-otp",
