@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import type { CosmicReadingRecord } from "@/lib/actions/cosmic-journal";
+import type { CosmicReadingRecord } from "@/lib/cosmic-journal/types";
 import ReadingTypeBadge from "@/components/dashboard/ReadingTypeBadge";
 
 type ReadingDetailViewProps = {

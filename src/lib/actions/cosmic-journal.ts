@@ -3,19 +3,11 @@
 import { getNfcSessionProfileId } from "@/lib/nfc/session.server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import type { TarotReadingCard } from "@/lib/ai/tarot-pipeline-schemas";
-import {
-  type CosmicJournalFilter,
-  type CosmicReadingRecord,
-  type CosmicReadingType,
-  type SynastryReadingMeta,
-} from "@/lib/cosmic-journal/types";
-
-export type {
-  CosmicJournalFilter,
+import type {
   CosmicReadingRecord,
   CosmicReadingType,
   SynastryReadingMeta,
-};
+} from "@/lib/cosmic-journal/types";
 
 const COSMIC_READINGS_TABLE = "cosmic_readings";
 
@@ -82,7 +74,7 @@ function mapRowToRecord(row: {
 }
 
 export async function getCosmicJournalReadings(
-  filter: CosmicJournalFilter = "all",
+  filter: CosmicReadingType | "all" = "all",
   limit = 40
 ): Promise<CosmicReadingRecord[]> {
   const userId = await getServerAuthUserId();

@@ -4,9 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   getCosmicJournalReadings,
-  type CosmicJournalFilter,
-  type CosmicReadingRecord,
 } from "@/lib/actions/cosmic-journal";
+import type {
+  CosmicJournalFilter,
+  CosmicReadingRecord,
+} from "@/lib/cosmic-journal/types";
 import ReadingDetailView from "@/components/dashboard/ReadingDetailView";
 import ReadingTypeBadge from "@/components/dashboard/ReadingTypeBadge";
 
