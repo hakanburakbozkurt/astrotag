@@ -77,7 +77,7 @@ export default function PublicNfcProfileView({ profile }: PublicNfcProfileViewPr
         )}
 
         <p className="mt-8 text-center font-mono text-xs text-amber-400/80">
-          Kozmik enerji · {profile.cosmicEnergy}
+          Yıldız · {profile.starPoints}
         </p>
       </div>
 

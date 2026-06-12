@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 import type { UserData } from "@/types/user";
 import { fetchNatalInterpretation } from "@/lib/ai/natal-interpretation-client";
-import { consumeCosmicEnergy } from "@/lib/supabase-actions";
+import { consumeStarPoints } from "@/lib/supabase-actions";
 import { SupabaseActionError } from "@/lib/supabase-action-error";
 
 type InterpretationStatus = "idle" | "loading" | "ready" | "error";
@@ -22,7 +22,7 @@ export function useNatalInterpretation(userData: UserData | null) {
     setError(null);
 
     try {
-      await consumeCosmicEnergy();
+      await consumeStarPoints();
       const result = await fetchNatalInterpretation(userData);
       setInterpretation(result.interpretation);
       setStatus("ready");

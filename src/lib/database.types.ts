@@ -46,7 +46,7 @@ export type Database = {
           birth_date: string
           birth_place: string | null
           birth_time: string
-          cosmic_energy: number
+          star_points: number
           created_at: string | null
           id: string
           name: string
@@ -63,7 +63,7 @@ export type Database = {
           birth_date: string
           birth_place?: string | null
           birth_time: string
-          cosmic_energy?: number
+          star_points?: number
           created_at?: string | null
           id?: string
           name: string
@@ -80,7 +80,7 @@ export type Database = {
           birth_date?: string
           birth_place?: string | null
           birth_time?: string
-          cosmic_energy?: number
+          star_points?: number
           created_at?: string | null
           id?: string
           name?: string

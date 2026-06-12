@@ -18,7 +18,7 @@ export async function getServerUserProfile(
   const { data, error } = await supabase
     .from(PROFILE_TABLE)
     .select(
-      "name, birth_date, birth_time, birth_place, relationship_status, cosmic_energy, energy_bonus, referral_code, partner_name, partner_birth_date, partner_birth_time, partner_birth_place"
+      "name, birth_date, birth_time, birth_place, relationship_status, star_points, star_points_bonus, referral_code, partner_name, partner_birth_date, partner_birth_time, partner_birth_place"
     )
     .eq("id", userId)
     .maybeSingle();
@@ -38,8 +38,8 @@ export async function getServerUserProfile(
     birthTime: data.birth_time,
     birthPlace: data.birth_place ?? "",
     relationshipStatus: data.relationship_status ?? "İlişki Yok",
-    cosmicEnergy: data.cosmic_energy ?? 0,
-    energyBonus: data.energy_bonus ?? 0,
+    starPoints: data.star_points ?? 0,
+    starPointsBonus: data.star_points_bonus ?? 0,
     referralCode: data.referral_code,
     partnerName: data.partner_name,
     partnerBirthDate: normalizeDateForInput(data.partner_birth_date),

@@ -1,6 +1,6 @@
 "use server";
 
-import { STARTING_ENERGY } from "@/lib/constants/cosmic";
+import { STARTING_STAR_POINTS } from "@/lib/constants/cosmic";
 import { DASHBOARD_PATH } from "@/lib/nfc/constants";
 import { logNfcError } from "@/lib/nfc/error-logger";
 import { requireProtectedNfcAccess } from "@/lib/nfc/protected-access.server";
@@ -125,7 +125,7 @@ export async function saveProfileSetup(
         birth_district: birthDistrict,
         birth_place: birthPlace,
         phone_number: phoneNumber || null,
-        cosmic_energy: STARTING_ENERGY,
+        star_points: STARTING_STAR_POINTS,
         is_profile_complete: true,
       })
       .eq("id", access.profileId);

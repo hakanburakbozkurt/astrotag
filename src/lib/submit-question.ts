@@ -1,12 +1,16 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { getNfcSessionProfileId } from "@/lib/nfc/session.server";
+import { PROFILE_SETUP_PATH } from "@/lib/nfc/constants";
 import type { HoraryQuestion, HoraryQuestionInsert } from "@/types/database";
 import { SupabaseActionError, redirectToLogin } from "@/lib/supabase-action-error";
-import { consumeCosmicEnergyForQuestion } from "@/lib/supabase-actions";
+import { consumeStarPointsForQuestion } from "@/lib/supabase-actions";
+import { STAR_POINTS_COST_PER_ACTION } from "@/lib/constants/cosmic";
 
 const HORARY_QUESTIONS_TABLE = "horary_questions";
+const COSMIC_LOGS_TABLE = "cosmic_logs";
 const PROFILE_TABLE = "profiles";
 
 function mapSupabaseError(
@@ -45,6 +49,32 @@ export async function resolveProfileUserId(): Promise<string> {
   return profileId;
 }
 
+async function ensureProfileComplete(userId: string): Promise<void> {
+  const supabase = createSupabaseServiceClient();
+  const { data, error } = await supabase
+    .from(PROFILE_TABLE)
+    .select("is_profile_complete")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (error || data?.is_profile_complete !== true) {
+    redirect(PROFILE_SETUP_PATH);
+  }
+}
+
+async function logCosmicQuestion(userId: string, question: string): Promise<void> {
+  const supabase = createSupabaseServiceClient();
+  const { error } = await supabase.from(COSMIC_LOGS_TABLE).insert({
+    user_id: userId,
+    question,
+    star_points_delta: -STAR_POINTS_COST_PER_ACTION,
+  });
+
+  if (error) {
+    console.error("[cosmic_logs] insert failed:", error.message);
+  }
+}
+
 export async function submitHoraryQuestion(
   question: string
 ): Promise<HoraryQuestion> {
@@ -55,7 +85,9 @@ export async function submitHoraryQuestion(
     }
 
     const userId = await resolveProfileUserId();
-    await consumeCosmicEnergyForQuestion();
+    await ensureProfileComplete(userId);
+    await consumeStarPointsForQuestion();
+    await logCosmicQuestion(userId, trimmed);
 
     const supabase = createSupabaseServiceClient();
     const payload: HoraryQuestionInsert = {

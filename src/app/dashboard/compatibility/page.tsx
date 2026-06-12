@@ -16,7 +16,7 @@ import {
 import { hasPartnerFormData, partnerFormFromUserData } from "@/lib/partner-profile";
 import type { SynastryScoreResponse } from "@/lib/ai/synastry";
 import SynastryShareButton from "@/components/compatibility/SynastryShareButton";
-import { consumeCosmicEnergy } from "@/lib/supabase-actions";
+import { consumeStarPoints } from "@/lib/supabase-actions";
 import { SupabaseActionError } from "@/lib/supabase-action-error";
 
 const SCORE_CACHE_PREFIX = "compatibility_score_";
@@ -131,7 +131,7 @@ export default function CompatibilityPage() {
     setSelectedQuestion(trimmed);
 
     try {
-      await consumeCosmicEnergy();
+      await consumeStarPoints();
       const result = await fetchSynastryAnalysis(trimmed, userData, {
         compatibilityScore: score?.score,
         partnerName: partner?.partnerName,

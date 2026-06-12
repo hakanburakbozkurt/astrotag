@@ -1,6 +1,4 @@
-export const COSMIC_ENERGY_UPDATED_EVENT = "cosmic-energy-updated";
+export const STAR_POINTS_UPDATED_EVENT = "star-points-updated";
 
-export function dispatchCosmicEnergyUpdated(): void {
-  if (typeof window === "undefined") return;
-  window.dispatchEvent(new CustomEvent(COSMIC_ENERGY_UPDATED_EVENT));
-}
+/** @deprecated Use STAR_POINTS_UPDATED_EVENT */
+export const COSMIC_ENERGY_UPDATED_EVENT = STAR_POINTS_UPDATED_EVENT;

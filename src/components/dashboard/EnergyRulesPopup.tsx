@@ -1,15 +1,18 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { REFERRAL_ENERGY_BONUS } from "@/lib/constants/cosmic";
+import { REFERRAL_STAR_POINTS_BONUS } from "@/lib/constants/cosmic";
 
-export const ENERGY_RULES = [
-  "Yeni kayıt: 20 başlangıç enerjisi.",
-  "Enerji Doldur: 6 saatte bir +2 (maks. 100).",
-  "Tarot açılımı: −3 enerji. Diğer analizler: −1.",
-  `Referans bonusu: +${REFERRAL_ENERGY_BONUS} (100 limitinin üzerine).`,
-  "Aynı 3 tarot kartı 24 saat içinde önbellekten gelir (enerji harcanmaz).",
+export const STAR_POINTS_RULES = [
+  "Yeni kayıt: 20 başlangıç yıldızı.",
+  "Yıldız Doldur: 6 saatte bir +2 (maks. 100).",
+  "Tarot açılımı: −3 yıldız. Diğer analizler: −1.",
+  `Referans bonusu: +${REFERRAL_STAR_POINTS_BONUS} (100 limitinin üzerine).`,
+  "Aynı 3 tarot kartı 24 saat içinde önbellekten gelir (yıldız harcanmaz).",
 ] as const;
+
+/** @deprecated Use STAR_POINTS_RULES */
+export const ENERGY_RULES = STAR_POINTS_RULES;
 
 type EnergyRulesPopupProps = {
   open: boolean;
@@ -50,19 +53,19 @@ export function EnergyRulesPopup({ open, onClose }: EnergyRulesPopupProps) {
               }}
             >
               <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-amber-400/80">
-                SYS · ENERGY_RULES
+                SYS · STAR_POINTS_RULES
               </p>
               <h2
                 id="energy-rules-title"
                 className="mt-1 text-sm font-medium tracking-tight text-white/90"
               >
-                Enerji Kuralları
+                Yıldız Kuralları
               </h2>
             </div>
 
             <div className="max-h-[min(75dvh,24rem)] overflow-y-auto overscroll-contain px-5 py-4 sm:px-6 sm:py-5">
               <ul className="space-y-0">
-                {ENERGY_RULES.map((rule, index) => (
+                {STAR_POINTS_RULES.map((rule, index) => (
                   <li
                     key={rule}
                     className="mb-4 flex gap-3 border-b border-white/[0.05] pb-4 leading-[1.75] last:mb-0 last:border-0 last:pb-0"

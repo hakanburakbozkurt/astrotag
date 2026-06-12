@@ -115,7 +115,7 @@ export default function ReferralPanel() {
 
           {info.hasUsedReferral ? (
             <p className="text-sm text-white/50">
-              Bir referans kodu kullandınız. Bonus enerjiniz: +{info.energyBonus}
+              Bir referans kodu kullandınız. Bonus yıldızınız: +{info.starPointsBonus}
             </p>
           ) : (
             <form onSubmit={(event) => void handleSubmit(event)} className="space-y-3">

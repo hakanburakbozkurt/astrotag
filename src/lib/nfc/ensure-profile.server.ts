@@ -2,7 +2,7 @@ import "server-only";
 
 import { randomUUID } from "crypto";
 import { logNfcDebug } from "@/lib/nfc/nfc-debug.server";
-import { STARTING_ENERGY } from "@/lib/constants/cosmic";
+import { STARTING_STAR_POINTS } from "@/lib/constants/cosmic";
 import { generateReferralCode } from "@/lib/referral";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 import {
@@ -133,8 +133,8 @@ export async function ensureProfileForAuthUser(
     birth_time: "00:00:00",
     birth_place: "",
     relationship_status: "İlişki Yok",
-    cosmic_energy: STARTING_ENERGY,
-    energy_bonus: 0,
+    star_points: STARTING_STAR_POINTS,
+    star_points_bonus: 0,
     referral_code: referralCode,
     nfc_uid: normalizedSlug,
   });

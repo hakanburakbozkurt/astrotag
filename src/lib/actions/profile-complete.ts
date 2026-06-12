@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { STARTING_ENERGY } from "@/lib/constants/cosmic";
+import { STARTING_STAR_POINTS } from "@/lib/constants/cosmic";
 import { HOME_PATH } from "@/lib/nfc/constants";
 import { logNfcError } from "@/lib/nfc/error-logger";
 import { requireProtectedNfcAccess } from "@/lib/nfc/protected-access.server";
@@ -89,7 +89,7 @@ export async function completeUserProfile(
   const { data, error: readError } = await supabase
     .from("profiles")
     .select(
-      "name, birth_date, birth_time, birth_place, relationship_status, cosmic_energy, energy_bonus, referral_code, partner_name, partner_birth_date, partner_birth_time, partner_birth_place"
+      "name, birth_date, birth_time, birth_place, relationship_status, star_points, star_points_bonus, referral_code, partner_name, partner_birth_date, partner_birth_time, partner_birth_place"
     )
     .eq("id", profileId)
     .maybeSingle();
@@ -104,8 +104,8 @@ export async function completeUserProfile(
     birthTime: data.birth_time,
     birthPlace: data.birth_place ?? "",
     relationshipStatus: data.relationship_status ?? "İlişki Yok",
-    cosmicEnergy: data.cosmic_energy ?? STARTING_ENERGY,
-    energyBonus: data.energy_bonus ?? 0,
+    starPoints: data.star_points ?? STARTING_STAR_POINTS,
+    starPointsBonus: data.star_points_bonus ?? 0,
     referralCode: data.referral_code,
     partnerName: data.partner_name,
     partnerBirthDate: data.partner_birth_date ?? undefined,

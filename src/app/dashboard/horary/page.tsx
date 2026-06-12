@@ -2,23 +2,22 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Starfield from "@/components/Starfield";
 import { useRequireAuth, useUserProfile } from "@/lib/auth";
-import {
-  ENERGY_COST_PER_ACTION,
-} from "@/lib/constants/cosmic";
+import { STAR_POINTS_COST_PER_ACTION } from "@/lib/constants/cosmic";
 import { fetchHoraryReading } from "@/lib/ai/horary-client";
 import { submitHoraryQuestion } from "@/lib/submit-question";
 import {
-  getCosmicEnergy,
+  getStarPoints,
   getHoraryQuestion,
   updateHoraryAnswer,
 } from "@/lib/supabase-actions";
-import { SupabaseActionError } from "@/lib/supabase-action-error";
+import { PROFILE_SETUP_PATH } from "@/lib/nfc/constants";
 
 const HORARY_ERROR_MESSAGE =
-  "Yıldızlar şu an sessiz, lütfen tekrar dene.";
+  "Yıldızlar şu an ulaşılamaz, lütfen sonra tekrar dene";
 
 function HorarySpinner() {
   return (
@@ -41,24 +40,30 @@ function HorarySpinner() {
 
 export default function HoraryPage() {
   useRequireAuth();
+  const router = useRouter();
   const { userData, profileStatus, isLoading: profileLoading, error: profileError } =
     useUserProfile();
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<string | null>(null);
-  const [energy, setEnergy] = useState(0);
+  const [starPoints, setStarPoints] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasSubmitted, setHasSubmitted] = useState(false);
 
   useEffect(() => {
     if (!profileLoading && userData) {
-      void getCosmicEnergy()
-        .then(setEnergy)
-        .catch(() => setEnergy(userData.cosmicEnergy ?? 0));
+      void (async () => {
+        try {
+          const points = await getStarPoints();
+          setStarPoints(points);
+        } catch {
+          setStarPoints(userData.starPoints ?? 0);
+        }
+      })();
     }
   }, [profileLoading, userData]);
 
-  const handleSubmit = async (event: React.FormEvent) => {
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
 
     const trimmed = question.trim();
@@ -66,9 +71,9 @@ export default function HoraryPage() {
       return;
     }
 
-    if (energy < ENERGY_COST_PER_ACTION) {
+    if (starPoints < STAR_POINTS_COST_PER_ACTION) {
       setError(
-        `Bu işlem için ${ENERGY_COST_PER_ACTION} enerji gerekir. Mevcut: ${energy}`
+        `Bu işlem için ${STAR_POINTS_COST_PER_ACTION} yıldız gerekir. Mevcut: ${starPoints}`
       );
       return;
     }
@@ -90,19 +95,23 @@ export default function HoraryPage() {
 
       const saved = await getHoraryQuestion(record.id);
       if (!saved?.ai_answer?.trim()) {
-        throw new SupabaseActionError("Cevap veritabanından alınamadı.");
+        throw new Error("answer_missing");
       }
 
       setAnswer(saved.ai_answer);
-      setEnergy((current) => Math.max(0, current - ENERGY_COST_PER_ACTION));
+      setStarPoints((current) => Math.max(0, current - STAR_POINTS_COST_PER_ACTION));
     } catch (err) {
-      const message =
-        err instanceof SupabaseActionError
-          ? err.message
-          : err instanceof Error
-            ? err.message
-            : HORARY_ERROR_MESSAGE;
-      setError(message);
+      if (
+        typeof err === "object" &&
+        err !== null &&
+        "digest" in err &&
+        String((err as { digest?: string }).digest ?? "").includes("NEXT_REDIRECT")
+      ) {
+        router.push(PROFILE_SETUP_PATH);
+        return;
+      }
+
+      setError(HORARY_ERROR_MESSAGE);
       setHasSubmitted(false);
     } finally {
       setIsLoading(false);
@@ -164,7 +173,7 @@ export default function HoraryPage() {
             Anlık Kozmik Soru
           </h1>
           <p className="mt-3 text-sm text-white/40">
-            Kullanılabilir enerji: {energy}
+            Kullanılabilir Yıldız: {starPoints}
           </p>
         </motion.header>
 
@@ -200,11 +209,11 @@ export default function HoraryPage() {
                 disabled={
                   isLoading ||
                   !question.trim() ||
-                  energy < ENERGY_COST_PER_ACTION
+                  starPoints < STAR_POINTS_COST_PER_ACTION
                 }
                 className="w-full rounded-xl border border-amber-400/30 bg-amber-400/10 px-5 py-3 text-sm font-medium text-amber-100 transition hover:bg-amber-400/20 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Yıldızlara Sor (−1 Enerji)
+                Yıldızlara Sor (−1 Yıldız)
               </button>
             </form>
           ) : null}

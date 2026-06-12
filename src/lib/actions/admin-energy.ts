@@ -1,6 +1,6 @@
 "use server";
 
-import { MAX_COSMIC_ENERGY } from "@/lib/constants/cosmic";
+import { MAX_STAR_POINTS } from "@/lib/constants/cosmic";
 import { getNfcSessionProfileId } from "@/lib/nfc/session.server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 
@@ -78,7 +78,7 @@ export async function resetAllUsersCosmicEnergy(): Promise<ResetAllUsersEnergyRe
     const supabase = createSupabaseServiceClient();
     const { data: profiles, error: readError } = await supabase
       .from(PROFILE_TABLE)
-      .select("id, cosmic_energy");
+      .select("id, star_points");
 
     if (readError) {
       return {
@@ -89,13 +89,13 @@ export async function resetAllUsersCosmicEnergy(): Promise<ResetAllUsersEnergyRe
     }
 
     const rows = profiles ?? [];
-    const targetEnergy = MAX_COSMIC_ENERGY;
-    const toUpdate = rows.filter((row) => (row.cosmic_energy ?? 0) !== targetEnergy);
+    const targetStarPoints = MAX_STAR_POINTS;
+    const toUpdate = rows.filter((row) => (row.star_points ?? 0) !== targetStarPoints);
 
     if (toUpdate.length > 0) {
       const { error: updateError } = await supabase
         .from(PROFILE_TABLE)
-        .update({ cosmic_energy: targetEnergy })
+        .update({ star_points: targetStarPoints })
         .in(
           "id",
           toUpdate.map((row) => row.id)
@@ -112,11 +112,11 @@ export async function resetAllUsersCosmicEnergy(): Promise<ResetAllUsersEnergyRe
 
     return {
       success: true,
-      targetEnergy,
+      targetEnergy: targetStarPoints,
       updatedCount: toUpdate.length,
       alreadyAtMaxCount: rows.length - toUpdate.length,
       totalProfiles: rows.length,
-      message: `${toUpdate.length} kullanıcının enerjisi ${targetEnergy} olarak güncellendi.`,
+      message: `${toUpdate.length} kullanıcının yıldız puanı ${targetStarPoints} olarak güncellendi.`,
     };
   } catch (error) {
     return {

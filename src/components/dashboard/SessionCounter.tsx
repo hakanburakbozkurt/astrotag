@@ -4,16 +4,16 @@ import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { EnergyRulesPopup } from "@/components/dashboard/EnergyRulesPopup";
 import {
-  ENERGY_PER_CHARGE,
-  MAX_COSMIC_ENERGY,
+  MAX_STAR_POINTS,
+  STAR_POINTS_PER_CHARGE,
 } from "@/lib/constants/cosmic";
-import type { EnergyChargeState } from "@/lib/energy-charge";
+import type { StarPointsChargeState } from "@/lib/energy-charge";
 import {
-  chargeCosmicEnergy,
-  getEnergyChargeState,
+  chargeStarPoints,
+  getStarPointsChargeState,
 } from "@/lib/supabase-actions";
 import { formatCountdown, SupabaseActionError } from "@/lib/supabase-action-error";
-import { COSMIC_ENERGY_UPDATED_EVENT } from "@/lib/energy-events";
+import { STAR_POINTS_UPDATED_EVENT } from "@/lib/energy-events";
 
 function EnergyInfoButton() {
   const [open, setOpen] = useState(false);
@@ -22,7 +22,7 @@ function EnergyInfoButton() {
     <>
       <button
         type="button"
-        aria-label="Enerji kuralları"
+        aria-label="Yıldız kuralları"
         aria-expanded={open}
         aria-haspopup="dialog"
         onClick={() => setOpen((value) => !value)}
@@ -36,11 +36,11 @@ function EnergyInfoButton() {
 }
 
 export default function SessionCounter() {
-  const [chargeState, setChargeState] = useState<EnergyChargeState>({
-    energy: 0,
-    energyBonus: 0,
-    totalEnergy: 0,
-    lastEnergyCharge: null,
+  const [chargeState, setChargeState] = useState<StarPointsChargeState>({
+    starPoints: 0,
+    starPointsBonus: 0,
+    totalStarPoints: 0,
+    lastStarPointsCharge: null,
     canCharge: true,
     isFull: false,
     nextChargeAt: null,
@@ -53,19 +53,19 @@ export default function SessionCounter() {
   const refreshState = useCallback(async () => {
     try {
       setError(null);
-      const energyState = await getEnergyChargeState();
-      setChargeState(energyState);
+      const starPointsState = await getStarPointsChargeState();
+      setChargeState(starPointsState);
     } catch (err) {
       const message =
         err instanceof SupabaseActionError
           ? err.message
-          : "Enerji bilgisi alınamadı.";
+          : "Yıldız puanı bilgisi alınamadı.";
       setError(message);
       setChargeState({
-        energy: 0,
-        energyBonus: 0,
-        totalEnergy: 0,
-        lastEnergyCharge: null,
+        starPoints: 0,
+        starPointsBonus: 0,
+        totalStarPoints: 0,
+        lastStarPointsCharge: null,
         canCharge: false,
         isFull: false,
         nextChargeAt: null,
@@ -80,13 +80,13 @@ export default function SessionCounter() {
   }, [refreshState]);
 
   useEffect(() => {
-    const handleEnergyUpdated = () => {
+    const handleStarPointsUpdated = () => {
       void refreshState();
     };
 
-    window.addEventListener(COSMIC_ENERGY_UPDATED_EVENT, handleEnergyUpdated);
+    window.addEventListener(STAR_POINTS_UPDATED_EVENT, handleStarPointsUpdated);
     return () => {
-      window.removeEventListener(COSMIC_ENERGY_UPDATED_EVENT, handleEnergyUpdated);
+      window.removeEventListener(STAR_POINTS_UPDATED_EVENT, handleStarPointsUpdated);
     };
   }, [refreshState]);
 
@@ -110,37 +110,40 @@ export default function SessionCounter() {
     return () => clearInterval(interval);
   }, [chargeState.nextChargeAt, refreshState]);
 
-  const handleChargeEnergy = async () => {
+  const handleChargeStarPoints = async () => {
     if (isCharging || !chargeState.canCharge) return;
 
     setIsCharging(true);
     setError(null);
 
     try {
-      const result = await chargeCosmicEnergy();
+      const result = await chargeStarPoints();
       setChargeState(result.chargeState);
     } catch (err) {
       const message =
         err instanceof SupabaseActionError
           ? err.message
-          : "Enerji yüklenemedi.";
+          : "Yıldız puanı yüklenemedi.";
       setError(message);
     } finally {
       setIsCharging(false);
     }
   };
 
-  const { energy, energyBonus, totalEnergy } = chargeState;
-  const fillPercent = Math.min(100, Math.round((energy / MAX_COSMIC_ENERGY) * 100));
+  const { starPoints, starPointsBonus, totalStarPoints } = chargeState;
+  const fillPercent = Math.min(
+    100,
+    Math.round((starPoints / MAX_STAR_POINTS) * 100)
+  );
   const isOnCooldown = Boolean(chargeState.nextChargeAt);
 
   const buttonLabel = isCharging
     ? "Yükleniyor..."
     : chargeState.isFull
-      ? "Enerji Dolu (100/100)"
+      ? "Yıldızlar Dolu (100/100)"
       : isOnCooldown
         ? `Sonraki: ${cooldown}`
-        : `Enerji Doldur (+${ENERGY_PER_CHARGE})`;
+        : `Yıldız Doldur (+${STAR_POINTS_PER_CHARGE})`;
 
   return (
     <motion.section
@@ -151,25 +154,25 @@ export default function SessionCounter() {
     >
       <div className="flex items-center justify-between gap-3">
         <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-amber-400/70">
-          Kozmik Enerji
+          Kullanılabilir Yıldız
         </p>
         <EnergyInfoButton />
       </div>
 
       {isLoading ? (
-        <p className="mt-3 text-sm text-white/45">Enerji yükleniyor...</p>
+        <p className="mt-3 text-sm text-white/45">Yıldızlar yükleniyor...</p>
       ) : (
         <div className="mt-3 space-y-3">
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
             <p className="text-sm font-medium text-white/80">
-              Enerji:{" "}
+              Yıldız:{" "}
               <span className="font-mono text-amber-100">
-                {energy}/{MAX_COSMIC_ENERGY}
+                {starPoints}/{MAX_STAR_POINTS}
               </span>
             </p>
-            {energyBonus > 0 ? (
+            {starPointsBonus > 0 ? (
               <p className="text-xs text-emerald-300/80">
-                Bonus +{energyBonus} · Toplam {totalEnergy}
+                Bonus +{starPointsBonus} · Toplam {totalStarPoints}
               </p>
             ) : null}
           </div>
@@ -177,10 +180,10 @@ export default function SessionCounter() {
           <div
             className="h-3 w-full overflow-hidden rounded-full bg-white/[0.06]"
             role="progressbar"
-            aria-valuenow={energy}
+            aria-valuenow={starPoints}
             aria-valuemin={0}
-            aria-valuemax={MAX_COSMIC_ENERGY}
-            aria-label={`Kozmik enerji ${energy} / ${MAX_COSMIC_ENERGY}`}
+            aria-valuemax={MAX_STAR_POINTS}
+            aria-label={`Kullanılabilir yıldız ${starPoints} / ${MAX_STAR_POINTS}`}
           >
             <motion.div
               initial={false}
@@ -192,7 +195,7 @@ export default function SessionCounter() {
 
           <button
             type="button"
-            onClick={() => void handleChargeEnergy()}
+            onClick={() => void handleChargeStarPoints()}
             disabled={isCharging || !chargeState.canCharge}
             className="min-h-11 w-full rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm font-medium text-amber-100 transition hover:bg-amber-400/20 disabled:cursor-not-allowed disabled:opacity-60"
           >

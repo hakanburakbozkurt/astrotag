@@ -30,7 +30,7 @@ export async function getPublicProfileByUniqueId(
         birth_time,
         birth_place,
         relationship_status,
-        cosmic_energy
+        star_points
       )
     `
     )
@@ -48,7 +48,7 @@ export async function getPublicProfileByUniqueId(
         birth_time: string | null;
         birth_place: string | null;
         relationship_status: string | null;
-        cosmic_energy: number | null;
+        star_points: number | null;
       }
     | {
         name: string | null;
@@ -56,7 +56,7 @@ export async function getPublicProfileByUniqueId(
         birth_time: string | null;
         birth_place: string | null;
         relationship_status: string | null;
-        cosmic_energy: number | null;
+        star_points: number | null;
       }[]
     | null;
 
@@ -72,7 +72,7 @@ export async function getPublicProfileByUniqueId(
       birthTime: profile?.birth_time ?? null,
       birthPlace: profile?.birth_place ?? null,
       relationshipStatus: profile?.relationship_status ?? null,
-      cosmicEnergy: profile?.cosmic_energy ?? 0,
+      starPoints: profile?.star_points ?? 0,
       hasOwner: Boolean(data.owner_id),
     },
   };

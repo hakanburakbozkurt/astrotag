@@ -1,10 +1,10 @@
-export type PublicNfcProfile = {
+export interface PublicNfcProfile {
   uniqueId: string;
   name: string;
   birthDate: string | null;
   birthTime: string | null;
   birthPlace: string | null;
   relationshipStatus: string | null;
-  cosmicEnergy: number;
+  starPoints: number;
   hasOwner: boolean;
-};
+}

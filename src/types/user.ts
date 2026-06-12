@@ -4,14 +4,20 @@ export interface UserData {
   birthTime: string;
   birthPlace: string;
   relationshipStatus: string;
-  cosmicEnergy: number;
-  energyBonus: number;
+  starPoints: number;
+  starPointsBonus: number;
   referralCode?: string | null;
   partnerName?: string | null;
   partnerBirthDate?: string | null;
   partnerBirthTime?: string | null;
   partnerBirthPlace?: string | null;
 }
+
+/** @deprecated Use starPoints */
+export type UserDataLegacy = UserData & {
+  cosmicEnergy: number;
+  energyBonus: number;
+};
 
 export function hasPartnerData(user: UserData): boolean {
   return Boolean(
