@@ -55,7 +55,10 @@ type GateDiagnostics = {
       wouldRedirectToHome: boolean;
     };
     isNfcCardRoutePath: boolean;
+    /** NFC kart URL slug — yalnızca /at_xxx rotalarında dolu */
     resolvedUniqueId: string | null;
+    /** profiles.id — nfc_sessions.profile_id veya astrotag_nfc_profile çerezi */
+    resolvedProfileId: string | null;
     isStorageCheckRequired: boolean;
     storageVerified: boolean;
     isProtectedPath: boolean;
@@ -104,6 +107,8 @@ function buildGateDiagnostics(
     : null;
   const pendingNfc = request.cookies.get(PENDING_NFC_COOKIE)?.value?.trim() ?? "";
   const sessionId = request.cookies.get(NFC_SESSION_COOKIE)?.value?.trim() ?? "";
+  const profileCookieId =
+    request.cookies.get(NFC_PROFILE_COOKIE)?.value?.trim() ?? "";
 
   return {
     pathname,
@@ -117,6 +122,7 @@ function buildGateDiagnostics(
       shouldRedirectUnknownBreakdown: shouldRedirectBreakdown,
       isNfcCardRoutePath: nfcCardRoute,
       resolvedUniqueId,
+      resolvedProfileId: profileCookieId || null,
       isStorageCheckRequired: isStorageCheckRequired(pathname),
       storageVerified:
         request.cookies.get(STORAGE_VERIFIED_COOKIE)?.value === "1",
@@ -393,12 +399,12 @@ async function validateSessionRecord(
   supabase: SupabaseClient,
   sessionId: string
 ): Promise<
-  | { ok: true }
+  | { ok: true; profileId: string | null; nfcId: string }
   | { ok: false; reason: "session_expired" | "session_missing" }
 > {
   const { data, error } = await supabase
     .from("nfc_sessions")
-    .select("id, nfc_id, expires_at")
+    .select("id, profile_id, nfc_id, expires_at")
     .eq("id", sessionId)
     .maybeSingle();
 
@@ -419,7 +425,11 @@ async function validateSessionRecord(
     return { ok: false, reason: "session_expired" };
   }
 
-  return { ok: true };
+  return {
+    ok: true,
+    profileId: data.profile_id?.trim() ?? null,
+    nfcId: data.nfc_id,
+  };
 }
 
 /**
@@ -570,6 +580,16 @@ export async function runSecurityGate(
 
     const sessionCheck = await validateSessionRecord(supabase, sessionId);
 
+    if (sessionCheck.ok && sessionCheck.profileId) {
+      diagnostics.checks.resolvedProfileId = sessionCheck.profileId;
+      console.log("[runSecurityGate] nfc_sessions.profile_id çözüldü", {
+        sessionId,
+        profileId: sessionCheck.profileId,
+        nfcId: sessionCheck.nfcId,
+        pathname,
+      });
+    }
+
     if (!sessionCheck.ok) {
       const redirectTo =
         sessionCheck.reason === "session_missing"
@@ -601,7 +621,9 @@ export async function runSecurityGate(
     }
 
     const profileId =
-      request.cookies.get(NFC_PROFILE_COOKIE)?.value?.trim() ?? "";
+      (sessionCheck.ok ? sessionCheck.profileId?.trim() : null) ||
+      request.cookies.get(NFC_PROFILE_COOKIE)?.value?.trim() ||
+      "";
 
     if (profileId) {
       const profileComplete = await isProfileComplete(supabase, profileId);

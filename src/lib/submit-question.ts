@@ -2,8 +2,11 @@
 
 import { redirect } from "next/navigation";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
-import { getNfcSessionProfileId } from "@/lib/nfc/session.server";
 import { PROFILE_SETUP_PATH } from "@/lib/nfc/constants";
+import {
+  assertProfileIdExists,
+  resolveProfileIdFromNfcSession,
+} from "@/lib/nfc/resolve-profile-id.server";
 import type { HoraryQuestion, HoraryQuestionInsert } from "@/types/database";
 import { SupabaseActionError, redirectToLogin } from "@/lib/supabase-action-error";
 import { consumeStarPointsForQuestion } from "@/lib/supabase-actions";
@@ -21,32 +24,27 @@ function mapSupabaseError(
 }
 
 export async function resolveProfileUserId(): Promise<string> {
-  const candidateId = await getNfcSessionProfileId();
+  const resolved = await resolveProfileIdFromNfcSession();
 
-  if (!candidateId?.trim()) {
+  console.log("[resolveProfileUserId] oturum çözümlemesi", {
+    found: Boolean(resolved),
+    source: resolved?.source ?? null,
+    sessionId: resolved?.sessionId ?? null,
+    profileId: resolved?.profileId ?? null,
+  });
+
+  if (!resolved?.profileId?.trim()) {
     redirectToLogin();
     throw new SupabaseActionError("Oturum doğrulanamadı. Lütfen tekrar giriş yapın.");
   }
 
-  const supabase = createSupabaseServiceClient();
-  const { data: profile, error: profileError } = await supabase
-    .from(PROFILE_TABLE)
-    .select("id")
-    .eq("id", candidateId)
-    .maybeSingle();
-
-  if (profileError) {
-    mapSupabaseError(profileError, "Profil doğrulanamadı.");
+  try {
+    return await assertProfileIdExists(resolved.profileId);
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Profil doğrulanamadı.";
+    throw new SupabaseActionError(message);
   }
-
-  const profileId = profile?.id?.trim();
-  if (!profileId) {
-    throw new SupabaseActionError(
-      "Profiliniz veritabanında bulunamadı. Soru göndermeden önce kayıt formunu tamamlayın."
-    );
-  }
-
-  return profileId;
 }
 
 async function ensureProfileComplete(userId: string): Promise<void> {
@@ -85,6 +83,8 @@ export async function submitHoraryQuestion(
     }
 
     const userId = await resolveProfileUserId();
+    console.log("Kayıt atılan User ID:", userId);
+
     await ensureProfileComplete(userId);
     await consumeStarPointsForQuestion();
     await logCosmicQuestion(userId, trimmed);
@@ -103,6 +103,12 @@ export async function submitHoraryQuestion(
       .single();
 
     if (error || !data) {
+      console.error("[submitHoraryQuestion] insert failed", {
+        userId,
+        code: error?.code ?? null,
+        message: error?.message ?? null,
+        hint: error?.hint ?? null,
+      });
       mapSupabaseError(error, "Soru kaydedilemedi.");
     }
 
