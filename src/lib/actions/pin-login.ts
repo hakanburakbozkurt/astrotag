@@ -39,10 +39,6 @@ export async function handlePinLogin(params: {
     const pinResult = await checkCardPin(uniqueId, pin_code);
 
     if (!pinResult.ok) {
-      console.log("[handlePinLogin] PIN doğrulama başarısız", {
-        uniqueId,
-        error: pinResult.error,
-      });
       return { ok: false, error: pinResult.error };
     }
 
@@ -54,11 +50,6 @@ export async function handlePinLogin(params: {
     });
 
     if (!cardAssert.ok) {
-      console.error("[handlePinLogin] Oturum açılmadı — nfc_user_data FK hedefi geçersiz", {
-        uniqueId,
-        pinResultNfcId: pinResult.nfcCardUuid,
-        error: cardAssert.error,
-      });
       return { ok: false, error: cardAssert.error };
     }
 
@@ -73,16 +64,7 @@ export async function handlePinLogin(params: {
       });
       await confirmStorageAccessAction();
       await clearPendingNfcCardCookie();
-    } catch (sessionError) {
-      console.error("[handlePinLogin] nfc_sessions oluşturulamadı", {
-        uniqueId,
-        nfcCardUuid,
-        profileId: pinResult.profileId,
-        error:
-          sessionError instanceof Error
-            ? sessionError.message
-            : String(sessionError),
-      });
+    } catch {
       return { ok: false, error: INVALID_NFC_CARD_MESSAGE };
     }
 
@@ -96,29 +78,10 @@ export async function handlePinLogin(params: {
       session?.nfcId === nfcCardUuid &&
       session?.profileId === pinResult.profileId;
 
-    console.log("[handlePinLogin] PIN doğru — oturum + profil kapısı", {
-      uniqueId,
-      nfcCardUuid,
-      profileId: pinResult.profileId,
-      redirectTo,
-      sessionPresent: Boolean(session),
-      sessionNfcId: session?.nfcId ?? null,
-      sessionProfileId: session?.profileId ?? null,
-      sessionMatchesCard,
-    });
-
     if (
       redirectTo === DASHBOARD_PATH &&
       (!session || !sessionMatchesCard)
     ) {
-      console.warn(
-        "[handlePinLogin] Dashboard yasak — oturum eksik veya kart eşleşmiyor",
-        {
-          redirectTo,
-          sessionPresent: Boolean(session),
-          sessionMatchesCard,
-        }
-      );
       return { ok: true, redirectTo: PROFILE_SETUP_PATH };
     }
 

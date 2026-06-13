@@ -115,6 +115,7 @@ export async function handleProxyRequest(
       );
       const clearSession =
         gate.reason === "session_expired" ||
+        gate.reason === "session_idle_expired" ||
         gate.reason === "unauthorized_route" ||
         (gate.reason === "session_missing" && !pairingRedirect && !authFormRedirect);
 

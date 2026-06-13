@@ -8,12 +8,14 @@ import type { NfcCardAuthLookupResult } from "@/lib/nfc/session.server";
 type CardVerificationEntryProps = {
   uniqueId: string;
   cardLookup: NfcCardAuthLookupResult | "fetch_error";
+  idleExpired?: boolean;
 };
 
 /** Kart varlığı / aktiflik kontrolü — uyarılar bu katmanda gösterilir. */
 export default function CardVerificationEntry({
   uniqueId,
   cardLookup,
+  idleExpired = false,
 }: CardVerificationEntryProps) {
   if (cardLookup === "fetch_error") {
     return (
@@ -68,11 +70,15 @@ export default function CardVerificationEntry({
   return (
     <AuthMobileShell
       title="Şifreni Gir"
-      subtitle="Devam etmek için PIN kodunuzu girin."
+      subtitle={
+        idleExpired
+          ? "20 dakika hareketsiz kaldınız. Devam etmek için PIN kodunuzu girin."
+          : "Devam etmek için PIN kodunuzu girin."
+      }
     >
-      <div className="relative z-10 rounded-[28px] border border-white/10 bg-[#0f172a]/90 p-6 backdrop-blur-xl sm:p-8 pointer-events-auto">
+      <section className="auth-glass-card w-full p-6 sm:p-8">
         <CardVerificationForm uniqueId={uniqueId} />
-      </div>
+      </section>
     </AuthMobileShell>
   );
 }

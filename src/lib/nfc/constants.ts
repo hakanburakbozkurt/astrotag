@@ -14,6 +14,12 @@ export const NFC_PAIRING_QUERY = "pair";
 /** Oturum çerezi + DB kaydı süresi (gün) — çerez silinene kadar oturum sürer */
 export const NFC_SESSION_TTL_DAYS = 365;
 
+/** Hareketsizlikte oturum düşürme süresi (dakika) */
+export const NFC_IDLE_TIMEOUT_MINUTES = 20;
+
+/** PIN giriş ekranı — idle timeout sonrası yönlendirme */
+export const NFC_LOGIN_PATH = "/nfc-login";
+
 /** @deprecated NFC_SESSION_TTL_DAYS kullan */
 export const NFC_SESSION_TTL_MINUTES = NFC_SESSION_TTL_DAYS * 24 * 60;
 
@@ -51,6 +57,7 @@ export const PUBLIC_PATHS = new Set([
   AUTH_CALLBACK_PATH,
   AUTH_SIGNUP_PATH,
   AUTH_LOGIN_PATH,
+  NFC_LOGIN_PATH,
   "/manifest.json",
   "/sw.js",
 ]);

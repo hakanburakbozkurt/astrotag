@@ -10,6 +10,7 @@ import {
   CARD_ENTRY_PREFIX,
   DASHBOARD_PATH,
   HOME_PATH,
+  NFC_LOGIN_PATH,
   NFC_PROFILE_COOKIE,
   NFC_SESSION_COOKIE,
   PENDING_NFC_COOKIE,
@@ -26,6 +27,14 @@ import {
   isProfileComplete,
 } from "@/lib/nfc/profile-readiness.server";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
+import {
+  invalidateNfcSessionById,
+  isNfcSessionExpired,
+  isNfcSessionIdle,
+  resolveIdleLogoutRedirect,
+  touchNfcSessionActivity,
+} from "@/lib/nfc/nfc-session-activity.server";
+import { trySmartNfcSessionEntry } from "@/lib/nfc/smart-session.server";
 import {
   getCookiePresence,
   logNfcError,
@@ -140,12 +149,7 @@ function logGateEntry(
   request: NextRequest,
   supabase: SupabaseClient | null
 ): GateDiagnostics {
-  const diagnostics = buildGateDiagnostics(request, supabase);
-
-  logNfcEvent("info", GATE_LOG, "runSecurityGate giriş", diagnostics);
-  console.log("[runSecurityGate] giriş:", JSON.stringify(diagnostics, null, 2));
-
-  return diagnostics;
+  return buildGateDiagnostics(request, supabase);
 }
 
 function logGateDeny(
@@ -179,6 +183,8 @@ export type SecurityDenyReason =
   | "private_mode"
   | "session_missing"
   | "session_expired"
+  | "session_idle_expired"
+  | "smart_session_resume"
   | "invalid_card_route"
   | "unauthorized_route"
   | "profile_incomplete"
@@ -355,6 +361,10 @@ function isProfileSetupExemptPath(pathname: string): boolean {
     return true;
   }
 
+  if (pathname === NFC_LOGIN_PATH || pathname.startsWith(`${NFC_LOGIN_PATH}/`)) {
+    return true;
+  }
+
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api/debug-log") ||
@@ -395,16 +405,29 @@ function sessionMissingRedirect(request: NextRequest): string {
   return HOME_PATH;
 }
 
+function resolveCardSlugFromPath(pathname: string): string | null {
+  if (isNfcCardRoutePath(pathname)) {
+    const slug = resolveUniqueIdFromCardRoute(pathname);
+    return slug ? normalizeNfcUniqueId(slug) : null;
+  }
+
+  return extractRootUniqueId(pathname);
+}
+
 async function validateSessionRecord(
   supabase: SupabaseClient,
   sessionId: string
 ): Promise<
   | { ok: true; profileId: string | null; nfcId: string }
-  | { ok: false; reason: "session_expired" | "session_missing" }
+  | {
+      ok: false;
+      reason: "session_expired" | "session_missing" | "session_idle_expired";
+      redirectTo?: string;
+    }
 > {
   const { data, error } = await supabase
     .from("nfc_sessions")
-    .select("id, profile_id, nfc_id, expires_at")
+    .select("id, profile_id, nfc_id, expires_at, last_active_at")
     .eq("id", sessionId)
     .maybeSingle();
 
@@ -421,8 +444,16 @@ async function validateSessionRecord(
     return { ok: false, reason: "session_missing" };
   }
 
-  if (new Date(data.expires_at).getTime() <= Date.now()) {
-    return { ok: false, reason: "session_expired" };
+  if (isNfcSessionExpired(data.expires_at)) {
+    await invalidateNfcSessionById(supabase, sessionId);
+    const redirectTo = await resolveIdleLogoutRedirect(supabase, data.nfc_id);
+    return { ok: false, reason: "session_expired", redirectTo };
+  }
+
+  if (isNfcSessionIdle(data.last_active_at)) {
+    const redirectTo = await resolveIdleLogoutRedirect(supabase, data.nfc_id);
+    await invalidateNfcSessionById(supabase, sessionId);
+    return { ok: false, reason: "session_idle_expired", redirectTo };
   }
 
   return {
@@ -442,20 +473,26 @@ export async function runSecurityGate(
   const { pathname } = request.nextUrl;
   const sessionId =
     request.cookies.get(NFC_SESSION_COOKIE)?.value?.trim() ?? "";
-  const hasSessionId = Boolean(sessionId);
-
-  console.log(
-    "--- [SECURITY GATE DEBUG] Path:",
-    pathname,
-    "HasSession:",
-    hasSessionId
-  );
 
   if (isNfcCardRouteBypass(pathname)) {
-    console.log(
-      "[runSecurityGate] NFC kart rotası bypass — session/redirect yok",
-      { pathname, hasSessionId }
-    );
+    const cardSlug = resolveCardSlugFromPath(pathname);
+
+    if (sessionId && supabase && cardSlug) {
+      const resumeTo = await trySmartNfcSessionEntry(
+        supabase,
+        cardSlug,
+        sessionId
+      );
+
+      if (resumeTo) {
+        return {
+          allowed: false,
+          reason: "smart_session_resume",
+          redirectTo: resumeTo,
+        };
+      }
+    }
+
     return { allowed: true };
   }
 
@@ -582,19 +619,16 @@ export async function runSecurityGate(
 
     if (sessionCheck.ok && sessionCheck.profileId) {
       diagnostics.checks.resolvedProfileId = sessionCheck.profileId;
-      console.log("[runSecurityGate] nfc_sessions.profile_id çözüldü", {
-        sessionId,
-        profileId: sessionCheck.profileId,
-        nfcId: sessionCheck.nfcId,
-        pathname,
-      });
     }
 
     if (!sessionCheck.ok) {
       const redirectTo =
-        sessionCheck.reason === "session_missing"
-          ? sessionMissingRedirect(request)
-          : HOME_PATH;
+        sessionCheck.reason === "session_idle_expired" ||
+        sessionCheck.reason === "session_expired"
+          ? sessionCheck.redirectTo ?? NFC_LOGIN_PATH
+          : sessionCheck.reason === "session_missing"
+            ? sessionMissingRedirect(request)
+            : NFC_LOGIN_PATH;
       const deny = {
         allowed: false as const,
         reason: sessionCheck.reason,
@@ -614,6 +648,8 @@ export async function runSecurityGate(
       );
       return deny;
     }
+
+    await touchNfcSessionActivity(supabase, sessionId);
 
     /** Oturum doğrulandı — kayıt sayfasında profil durumundan bağımsız kal */
     if (pathname === REGISTRATION_COMPLETE_PATH) {
@@ -711,7 +747,6 @@ export async function runSecurityGate(
       requestHeaders: sanitizeRequestHeaders(request.headers),
       supabaseClient: Boolean(supabase),
     });
-    console.error("[runSecurityGate] beklenmeyen hata:", error, diagnostics);
     throw error;
   }
 }

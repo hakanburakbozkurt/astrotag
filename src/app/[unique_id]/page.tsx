@@ -1,7 +1,11 @@
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { revalidateTag } from "next/cache";
 import CardVerificationEntry from "@/components/nfc/CardVerificationEntry";
 import { logNfcEvent } from "@/lib/nfc/error-logger";
+import { NFC_SESSION_COOKIE } from "@/lib/nfc/constants";
 import { ensureNfcCardForProfile } from "@/lib/nfc/nfc-provision.server";
+import { trySmartNfcSessionEntry } from "@/lib/nfc/smart-session.server";
 import { getNfcCardForAuthEntry } from "@/lib/nfc/session.server";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 import { createServiceRoleClient } from "@/lib/supabase/service";
@@ -14,6 +18,21 @@ type PageProps = {
 export default async function RootCardEntryPage({ params }: PageProps) {
   const { unique_id: rawId } = await params;
   const uniqueId = normalizeNfcUniqueId(rawId);
+
+  const cookieStore = await cookies();
+  const sessionId = cookieStore.get(NFC_SESSION_COOKIE)?.value?.trim() ?? "";
+
+  if (sessionId) {
+    const adminForSession = createServiceRoleClient();
+    const resumeTo = await trySmartNfcSessionEntry(
+      adminForSession,
+      uniqueId,
+      sessionId
+    );
+    if (resumeTo) {
+      redirect(resumeTo);
+    }
+  }
 
   try {
     const admin = createServiceRoleClient();

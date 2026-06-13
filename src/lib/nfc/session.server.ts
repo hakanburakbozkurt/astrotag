@@ -42,6 +42,7 @@ type NfcSessionInsertPayload = {
   profile_id: string;
   nfc_id: string;
   expires_at: string;
+  last_active_at: string;
 };
 
 function isUuid(value: string): boolean {
@@ -259,11 +260,13 @@ export async function createEphemeralNfcSession(params: {
   const profileId = params.profileId?.trim() ?? "";
   const nfcId = params.nfcId?.trim() ?? "";
   const expiresAt = sessionExpiresAt();
+  const nowIso = new Date().toISOString();
 
   const payload: NfcSessionInsertPayload = {
     profile_id: profileId,
     nfc_id: nfcId,
     expires_at: expiresAt.toISOString(),
+    last_active_at: nowIso,
   };
 
   const validationIssues = validateNfcSessionInsertPayload(payload);
