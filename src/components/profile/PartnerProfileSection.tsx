@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import FormToast from "@/components/ui/FormToast";
 import {
   emptyPartnerForm,
   hasPartnerFormData,
@@ -16,8 +17,11 @@ import {
 import { SupabaseActionError } from "@/lib/supabase-action-error";
 import { useUserProfile } from "@/lib/auth";
 
+const labelClass =
+  "text-[10px] uppercase tracking-[0.2em] text-white/60";
+
 const fieldClass =
-  "mt-2 h-12 w-full min-w-0 max-w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-amber-400/30 [color-scheme:dark]";
+  "box-border block h-12 w-full min-w-0 max-w-none appearance-none rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-amber-400/30 [color-scheme:dark]";
 
 export default function PartnerProfileSection() {
   const { userData, refreshProfile } = useUserProfile();
@@ -26,6 +30,7 @@ export default function PartnerProfileSection() {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   const loadPartnerProfile = useCallback(async () => {
     setIsFetching(true);
@@ -60,6 +65,7 @@ export default function PartnerProfileSection() {
   ) => {
     setForm((current) => ({ ...current, [key]: value }));
     setMessage(null);
+    setToast(null);
   };
 
   const handleSubmit = async (event: FormEvent) => {
@@ -69,6 +75,7 @@ export default function PartnerProfileSection() {
     setIsSaving(true);
     setError(null);
     setMessage(null);
+    setToast(null);
 
     try {
       const updated = await updatePartnerProfile(partnerFormToInput(form));
@@ -76,11 +83,13 @@ export default function PartnerProfileSection() {
       await refreshProfile();
       setMessage("Partner bilgileri kaydedildi.");
     } catch (err) {
-      setError(
+      const errorMessage =
         err instanceof SupabaseActionError
           ? err.message
-          : "Partner bilgileri kaydedilemedi."
-      );
+          : "Partner bilgileri kaydedilemedi.";
+
+      setToast(errorMessage);
+      setError(errorMessage);
     } finally {
       setIsSaving(false);
     }
@@ -105,17 +114,21 @@ export default function PartnerProfileSection() {
           : "Partner ekleyerek uyumluluk analizini başlatın."}
       </p>
 
+      {toast ? (
+        <div className="mt-4">
+          <FormToast message={toast} onDismiss={() => setToast(null)} />
+        </div>
+      ) : null}
+
       {isFetching ? (
         <p className="mt-6 text-sm text-white/45">Partner bilgileri yükleniyor...</p>
       ) : (
         <form
           onSubmit={(event) => void handleSubmit(event)}
-          className="mt-6 flex w-full min-w-0 flex-col gap-5"
+          className="mt-6 grid w-full min-w-0 grid-cols-1 gap-4 sm:gap-5"
         >
-          <label className="block w-full min-w-0">
-            <span className="text-[10px] uppercase tracking-[0.2em] text-white/60">
-              Partner Adı
-            </span>
+          <label className="grid w-full min-w-0 grid-cols-1 gap-2">
+            <span className={labelClass}>Partner Adı</span>
             <input
               name="partnerName"
               value={form.partnerName}
@@ -126,42 +139,38 @@ export default function PartnerProfileSection() {
             />
           </label>
 
-          <label className="block w-full min-w-0">
-            <span className="text-[10px] uppercase tracking-[0.2em] text-white/60">
-              Doğum Tarihi
-            </span>
-            <input
-              name="partnerBirthDate"
-              type="date"
-              value={form.partnerBirthDate}
-              onChange={(event) =>
-                updateField("partnerBirthDate", event.target.value)
-              }
-              required
-              className={fieldClass}
-            />
-          </label>
+          <div className="grid w-full min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-4">
+            <label className="grid w-full min-w-0 grid-cols-1 gap-2">
+              <span className={labelClass}>Doğum Tarihi</span>
+              <input
+                name="partnerBirthDate"
+                type="date"
+                value={form.partnerBirthDate}
+                onChange={(event) =>
+                  updateField("partnerBirthDate", event.target.value)
+                }
+                required
+                className={fieldClass}
+              />
+            </label>
 
-          <label className="block w-full min-w-0">
-            <span className="text-[10px] uppercase tracking-[0.2em] text-white/60">
-              Doğum Saati
-            </span>
-            <input
-              name="partnerBirthTime"
-              type="time"
-              value={form.partnerBirthTime}
-              onChange={(event) =>
-                updateField("partnerBirthTime", event.target.value)
-              }
-              required
-              className={fieldClass}
-            />
-          </label>
+            <label className="grid w-full min-w-0 grid-cols-1 gap-2">
+              <span className={labelClass}>Doğum Saati</span>
+              <input
+                name="partnerBirthTime"
+                type="time"
+                value={form.partnerBirthTime}
+                onChange={(event) =>
+                  updateField("partnerBirthTime", event.target.value)
+                }
+                required
+                className={fieldClass}
+              />
+            </label>
+          </div>
 
-          <label className="block w-full min-w-0">
-            <span className="text-[10px] uppercase tracking-[0.2em] text-white/60">
-              Doğum Yeri
-            </span>
+          <label className="grid w-full min-w-0 grid-cols-1 gap-2">
+            <span className={labelClass}>Doğum Yeri</span>
             <input
               name="partnerBirthPlace"
               value={form.partnerBirthPlace}
@@ -169,18 +178,25 @@ export default function PartnerProfileSection() {
                 updateField("partnerBirthPlace", event.target.value)
               }
               required
-              placeholder="Şehir, Ülke"
+              placeholder="Örn: Ankara veya Kadıköy"
               className={fieldClass}
             />
+            <span className="text-[11px] text-white/35">
+              Yalnızca şehir veya ilçe yazmanız yeterli.
+            </span>
           </label>
 
-          {error ? <p className="text-sm text-red-300/80">{error}</p> : null}
-          {message ? <p className="text-sm text-amber-200/80">{message}</p> : null}
+          {error && !toast ? (
+            <p className="text-sm text-red-300/80">{error}</p>
+          ) : null}
+          {message ? (
+            <p className="text-sm text-amber-200/80">{message}</p>
+          ) : null}
 
           <button
             type="submit"
             disabled={isSaving}
-            className="w-full rounded-xl border border-amber-400/30 bg-amber-400/10 py-3 text-sm font-medium text-amber-100 disabled:opacity-60"
+            className="min-h-12 w-full rounded-xl border border-amber-400/30 bg-amber-400/10 py-3 text-sm font-medium text-amber-100 disabled:opacity-60"
           >
             {isSaving ? "Kaydediliyor..." : "Partner Bilgilerini Kaydet"}
           </button>

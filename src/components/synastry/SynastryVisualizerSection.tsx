@@ -3,12 +3,11 @@
 import { useEffect, useState } from "react";
 import { fetchSynastryScore } from "@/lib/ai/synastry-client";
 import type { SynastryScoreResponse } from "@/lib/ai/synastry";
-import {
-  SynastryCalculation,
-  type SynastryCalculationResult,
-} from "@/lib/synastry/synastry-calculation";
+import { SynastryCalculation } from "@/lib/synastry/synastry-calculation";
+import type { SynastryCalculationResult } from "@/lib/synastry/synastry-calculation";
 import type { UserData } from "@/types/user";
 import SynastryShareButton from "@/components/compatibility/SynastryShareButton";
+import FormToast from "@/components/ui/FormToast";
 import { SectionSkeleton } from "@/components/navigation/TabPageSkeleton";
 import SynastryVisualizer from "./SynastryVisualizer";
 
@@ -49,7 +48,7 @@ export default function SynastryVisualizerSection({
     null
   );
   const [score, setScore] = useState<SynastryScoreResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -57,42 +56,49 @@ export default function SynastryVisualizerSection({
 
     void (async () => {
       setIsLoading(true);
-      setError(null);
+      setToast(null);
 
       try {
         const cachedScore = readCachedScore(dateKey);
-        const [calculation, scoreResult] = await Promise.all([
-          SynastryCalculation(userData),
-          cachedScore
-            ? Promise.resolve(cachedScore)
-            : fetchSynastryScore(userData).catch(() => null),
-        ]);
+        const calculation = await SynastryCalculation(userData);
 
         if (cancelled) {
           return;
         }
 
-        if (!calculation) {
-          setError("Synastry hesaplanamadı.");
+        if (!calculation.ok) {
           setSynastryData(null);
+          setToast(calculation.message);
+          setIsLoading(false);
           return;
         }
 
-        setSynastryData(calculation);
+        setSynastryData(calculation.data);
+
+        if (cachedScore) {
+          setScore(cachedScore);
+          setIsLoading(false);
+          return;
+        }
+
+        const scoreResult = await fetchSynastryScore(userData).catch(() => null);
+        if (cancelled) {
+          return;
+        }
 
         if (scoreResult) {
           setScore(scoreResult);
-          if (!cachedScore) {
-            writeCachedScore(scoreResult);
-          }
+          writeCachedScore(scoreResult);
         }
       } catch (err) {
         if (cancelled) {
           return;
         }
 
-        setError(
-          err instanceof Error ? err.message : "Synastry görselleştirmesi yüklenemedi."
+        setToast(
+          err instanceof Error
+            ? err.message
+            : "Synastry görselleştirmesi yüklenemedi."
         );
       } finally {
         if (!cancelled) {
@@ -110,12 +116,16 @@ export default function SynastryVisualizerSection({
     return <SectionSkeleton title="Synastry Visualizer" />;
   }
 
-  if (error || !synastryData) {
+  if (toast || !synastryData) {
     return (
-      <section className="rounded-[28px] border border-white/10 bg-[#0f172a]/80 p-5 text-center backdrop-blur-2xl sm:p-6">
-        <p className="text-sm text-red-300/80">
-          {error ?? "Synastry görselleştirmesi oluşturulamadı."}
-        </p>
+      <section className="space-y-4 rounded-[28px] border border-white/10 bg-[#0f172a]/80 p-5 backdrop-blur-2xl sm:p-6">
+        {toast ? (
+          <FormToast message={toast} onDismiss={() => setToast(null)} />
+        ) : (
+          <p className="text-center text-sm text-white/55">
+            Synastry görselleştirmesi oluşturulamadı.
+          </p>
+        )}
       </section>
     );
   }

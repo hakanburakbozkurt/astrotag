@@ -4,6 +4,7 @@ import {
   SYNASTRY_ERROR_MESSAGE,
 } from "@/lib/ai/synastry";
 import { buildCosmicAnalysisContext } from "@/lib/astrology/cosmic-context";
+import { GeocodeValidationError } from "@/lib/astrology/geocode";
 import { logSynastryToArchive } from "@/lib/cosmic-journal/log-reading";
 import { withNfcApiRoute } from "@/lib/nfc/with-nfc-api-route";
 import type { UserData } from "@/types/user";
@@ -24,7 +25,16 @@ export const POST = withNfcApiRoute(
       return NextResponse.json({ error: SYNASTRY_ERROR_MESSAGE }, { status: 400 });
     }
 
-    const context = await buildCosmicAnalysisContext(userData);
+    let context;
+    try {
+      context = await buildCosmicAnalysisContext(userData);
+    } catch (error) {
+      if (error instanceof GeocodeValidationError) {
+        return NextResponse.json({ error: error.message }, { status: 422 });
+      }
+      throw error;
+    }
+
     const result = await requestSynastryAnalysis(question, userData, context);
 
     await logSynastryToArchive({

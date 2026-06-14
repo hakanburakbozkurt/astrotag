@@ -1,4 +1,5 @@
 import type { AspectType, PlanetId } from "@/lib/astrology/types";
+import { GeocodeValidationError } from "@/lib/astrology/geocode";
 import { calculateCrossAspects } from "@/lib/astrology/aspects";
 import { calculateNatalChart } from "@/lib/astrology/planet-positions";
 import { hasPartnerData, type UserData } from "@/types/user";
@@ -89,26 +90,41 @@ function buildInsightLines(aspectLines: SynastryAspectLine[]): string[] {
   });
 }
 
+export type SynastryCalculationOutcome =
+  | { ok: true; data: SynastryCalculationResult }
+  | { ok: false; message: string };
+
 /** Kullanıcı + partner natal haritalarından synastry cross-aspect verisini üretir. */
 export async function SynastryCalculation(
   userData: UserData
-): Promise<SynastryCalculationResult | null> {
+): Promise<SynastryCalculationOutcome> {
   if (!hasPartnerData(userData)) {
-    return null;
+    return { ok: false, message: "Partner bilgileri eksik." };
   }
 
-  const [userChart, partnerChart] = await Promise.all([
-    calculateNatalChart({
-      birthDate: userData.birthDate,
-      birthTime: userData.birthTime,
-      birthPlace: userData.birthPlace,
-    }),
-    calculateNatalChart({
-      birthDate: userData.partnerBirthDate!,
-      birthTime: userData.partnerBirthTime!,
-      birthPlace: userData.partnerBirthPlace!,
-    }),
-  ]);
+  let userChart;
+  let partnerChart;
+
+  try {
+    [userChart, partnerChart] = await Promise.all([
+      calculateNatalChart({
+        birthDate: userData.birthDate,
+        birthTime: userData.birthTime,
+        birthPlace: userData.birthPlace,
+      }),
+      calculateNatalChart({
+        birthDate: userData.partnerBirthDate!,
+        birthTime: userData.partnerBirthTime!,
+        birthPlace: userData.partnerBirthPlace!,
+      }),
+    ]);
+  } catch (error) {
+    if (error instanceof GeocodeValidationError) {
+      return { ok: false, message: error.message };
+    }
+
+    throw error;
+  }
 
   const userBodies = userChart.planets.map((planet) => ({
     id: planet.id,
@@ -161,23 +177,26 @@ export async function SynastryCalculation(
   }
 
   return {
-    aspectLines,
-    userPlanets: userChart.planets.map((planet) => ({
-      id: planet.id,
-      name: planet.name,
-      symbol: planet.symbol,
-      longitude: planet.longitude,
-    })),
-    partnerPlanets: partnerChart.planets.map((planet) => ({
-      id: planet.id,
-      name: planet.name,
-      symbol: planet.symbol,
-      longitude: planet.longitude,
-    })),
-    userAscendant: userChart.ascendant.longitude,
-    partnerAscendant: partnerChart.ascendant.longitude,
-    userName: userData.name,
-    partnerName: userData.partnerName!.trim(),
-    insightLines: buildInsightLines(aspectLines),
+    ok: true,
+    data: {
+      aspectLines,
+      userPlanets: userChart.planets.map((planet) => ({
+        id: planet.id,
+        name: planet.name,
+        symbol: planet.symbol,
+        longitude: planet.longitude,
+      })),
+      partnerPlanets: partnerChart.planets.map((planet) => ({
+        id: planet.id,
+        name: planet.name,
+        symbol: planet.symbol,
+        longitude: planet.longitude,
+      })),
+      userAscendant: userChart.ascendant.longitude,
+      partnerAscendant: partnerChart.ascendant.longitude,
+      userName: userData.name,
+      partnerName: userData.partnerName!.trim(),
+      insightLines: buildInsightLines(aspectLines),
+    },
   };
 }

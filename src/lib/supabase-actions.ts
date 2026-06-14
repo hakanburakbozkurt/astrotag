@@ -18,6 +18,7 @@ import type {
 } from "@/types/database";
 import type { PartnerProfileInput, UserData } from "@/types/user";
 import type { CosmicAnalysisContext } from "@/lib/astrology/cosmic-context";
+import { resolveBirthPlaceSafe } from "@/lib/astrology/geocode";
 import {
   normalizeDateForInput,
   normalizeTimeForInput,
@@ -655,6 +656,12 @@ export async function updatePartnerProfile(
   try {
     const userId = await requireAuthUserId();
     const supabase = getServiceClient();
+    const birthPlace = input.partnerBirthPlace.trim();
+
+    const geocode = await resolveBirthPlaceSafe(birthPlace);
+    if (!geocode.ok) {
+      throw new SupabaseActionError(geocode.message);
+    }
 
     const { error } = await supabase
       .from(PROFILE_TABLE)
@@ -662,7 +669,7 @@ export async function updatePartnerProfile(
         partner_name: input.partnerName.trim(),
         partner_birth_date: input.partnerBirthDate,
         partner_birth_time: input.partnerBirthTime,
-        partner_birth_place: input.partnerBirthPlace.trim(),
+        partner_birth_place: birthPlace,
         relationship_status: "İlişkisi Var",
       })
       .eq("id", userId);

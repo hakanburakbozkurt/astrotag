@@ -1,13 +1,33 @@
 import type { BirthCoordinates } from "./types";
 
-const GEOCODE_ERROR_MESSAGE =
-  "Konum doğrulanamadı: Lütfen bilgileri kontrol edin.";
+export const GEOCODE_USER_HINT =
+  "Lütfen doğum yerini sadece Şehir veya İlçe olarak belirtin";
+
+const GEOCODE_ERROR_MESSAGE = GEOCODE_USER_HINT;
 
 export class GeocodeValidationError extends Error {
   constructor(message: string = GEOCODE_ERROR_MESSAGE) {
     super(message);
     this.name = "GeocodeValidationError";
   }
+}
+
+export type GeocodeResolveResult =
+  | { ok: true; coordinates: BirthCoordinates }
+  | { ok: false; message: string };
+
+/** "Ankara, Yenimahalle" → "Ankara" — il/şehir parçasını döndürür */
+export function sanitizeBirthPlace(birthPlace: string): string {
+  const parts = birthPlace
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (parts.length === 0) {
+    return birthPlace.trim();
+  }
+
+  return parts[0];
 }
 
 type GeocodeHit = {
@@ -53,7 +73,7 @@ function matchesDistrict(hit: GeocodeHit, district: string): boolean {
 
 function toBirthCoordinates(hit: GeocodeHit): BirthCoordinates {
   if (!hit.timezone?.trim()) {
-    throw new GeocodeValidationError();
+    throw new GeocodeValidationError(GEOCODE_USER_HINT);
   }
 
   const displayName = hit.country
@@ -202,31 +222,36 @@ async function fetchGeocodeResults(
   url.searchParams.set("language", "tr");
   url.searchParams.set("format", "json");
 
-  const response = await fetch(url.toString());
+  try {
+    const response = await fetch(url.toString());
 
-  if (!response.ok) {
-    throw new GeocodeValidationError();
+    if (!response.ok) {
+      return [];
+    }
+
+    const data = (await response.json()) as {
+      results?: Array<{
+        latitude: number;
+        longitude: number;
+        timezone: string;
+        name: string;
+        admin1?: string;
+        country?: string;
+      }>;
+    };
+
+    return (data.results ?? []).map((hit) => ({
+      latitude: hit.latitude,
+      longitude: hit.longitude,
+      timezone: hit.timezone,
+      name: hit.name,
+      admin1: hit.admin1,
+      country: hit.country,
+    }));
+  } catch (error) {
+    console.warn("[geocode] API isteği başarısız", { query, error });
+    return [];
   }
-
-  const data = (await response.json()) as {
-    results?: Array<{
-      latitude: number;
-      longitude: number;
-      timezone: string;
-      name: string;
-      admin1?: string;
-      country?: string;
-    }>;
-  };
-
-  return (data.results ?? []).map((hit) => ({
-    latitude: hit.latitude,
-    longitude: hit.longitude,
-    timezone: hit.timezone,
-    name: hit.name,
-    admin1: hit.admin1,
-    country: hit.country,
-  }));
 }
 
 function buildGeocodeQueries(birthCity: string, birthDistrict: string): string[] {
@@ -244,38 +269,86 @@ function buildGeocodeQueries(birthCity: string, birthDistrict: string): string[]
   return [...new Set(queries.map((query) => query.trim()).filter(Boolean))];
 }
 
+async function resolveBirthPlaceCandidates(
+  birthCity: string,
+  birthDistrict: string,
+  originalQuery: string
+): Promise<BirthCoordinates | null> {
+  const queries = buildGeocodeQueries(birthCity, birthDistrict);
+  const searchQueries = queries.includes(originalQuery)
+    ? queries
+    : [...queries, originalQuery];
+
+  let allHits: GeocodeHit[] = [];
+
+  for (const candidate of searchQueries) {
+    const hits = await fetchGeocodeResults(candidate);
+    allHits = mergeGeocodeHits(allHits, hits);
+
+    const match = pickBestMatch(hits, birthCity, birthDistrict);
+    if (match) {
+      return toBirthCoordinates(match);
+    }
+  }
+
+  const fallback = pickNearestFallback(allHits, birthCity, birthDistrict);
+  if (fallback) {
+    logGeocodeFallback(originalQuery, birthCity, birthDistrict, fallback);
+    return toBirthCoordinates(fallback);
+  }
+
+  return null;
+}
+
+export async function resolveBirthPlaceSafe(
+  birthPlace: string
+): Promise<GeocodeResolveResult> {
+  try {
+    const coordinates = await resolveBirthPlace(birthPlace);
+    return { ok: true, coordinates };
+  } catch (error) {
+    const message =
+      error instanceof GeocodeValidationError ? error.message : GEOCODE_USER_HINT;
+
+    console.warn("[geocode] soft-fail", {
+      birthPlace,
+      message,
+    });
+
+    return { ok: false, message };
+  }
+}
+
 export async function resolveBirthPlace(
   birthPlace: string
 ): Promise<BirthCoordinates> {
   const query = birthPlace.trim();
   if (!query) {
-    throw new GeocodeValidationError();
+    throw new GeocodeValidationError(GEOCODE_USER_HINT);
   }
 
   const { birthCity, birthDistrict } = parseBirthPlace(query);
-  const queries = buildGeocodeQueries(birthCity, birthDistrict);
-  const searchQueries = queries.includes(query) ? queries : [...queries, query];
 
   try {
-    let allHits: GeocodeHit[] = [];
+    const direct = await resolveBirthPlaceCandidates(birthCity, birthDistrict, query);
+    if (direct) {
+      return direct;
+    }
 
-    for (const candidate of searchQueries) {
-      const hits = await fetchGeocodeResults(candidate);
-      allHits = mergeGeocodeHits(allHits, hits);
+    if (birthDistrict) {
+      const cityOnly = sanitizeBirthPlace(query);
+      const sanitized = await resolveBirthPlaceCandidates(cityOnly, "", cityOnly);
 
-      const match = pickBestMatch(hits, birthCity, birthDistrict);
-      if (match) {
-        return toBirthCoordinates(match);
+      if (sanitized) {
+        console.warn("[geocode] adres sadeleştirildi — yalnızca şehir kullanıldı", {
+          original: query,
+          cityOnly,
+        });
+        return sanitized;
       }
     }
 
-    const fallback = pickNearestFallback(allHits, birthCity, birthDistrict);
-    if (fallback) {
-      logGeocodeFallback(query, birthCity, birthDistrict, fallback);
-      return toBirthCoordinates(fallback);
-    }
-
-    throw new GeocodeValidationError();
+    throw new GeocodeValidationError(GEOCODE_USER_HINT);
   } catch (error) {
     if (error instanceof GeocodeValidationError) {
       throw error;
@@ -285,6 +358,6 @@ export async function resolveBirthPlace(
       birthPlace: query,
       error,
     });
-    throw new GeocodeValidationError();
+    throw new GeocodeValidationError(GEOCODE_USER_HINT);
   }
 }
