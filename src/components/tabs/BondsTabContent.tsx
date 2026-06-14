@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
@@ -8,10 +8,7 @@ import { Suspense } from "react";
 import TabPageScaffold from "@/components/navigation/TabPageScaffold";
 import { SectionSkeleton } from "@/components/navigation/TabPageSkeleton";
 import { useAuth, useUserProfile } from "@/lib/auth";
-import {
-  fetchSynastryAnalysis,
-  fetchSynastryScore,
-} from "@/lib/ai/synastry-client";
+import { fetchSynastryAnalysis } from "@/lib/ai/synastry-client";
 import {
   getDailyCompatibilityDateKey,
   getDailyCompatibilityQuestions,
@@ -25,6 +22,11 @@ import { SupabaseActionError } from "@/lib/supabase-action-error";
 const PartnerProfileSection = dynamic(
   () => import("@/components/profile/PartnerProfileSection"),
   { loading: () => <SectionSkeleton title="Partner Profili" /> }
+);
+
+const SynastryVisualizerSection = dynamic(
+  () => import("@/components/synastry/SynastryVisualizerSection"),
+  { loading: () => <SectionSkeleton title="Synastry Visualizer" /> }
 );
 
 const SCORE_CACHE_PREFIX = "compatibility_score_";
@@ -60,21 +62,9 @@ function readCachedScore(dateKey: string): SynastryScoreResponse | null {
   }
 }
 
-function writeCachedScore(score: SynastryScoreResponse): void {
-  if (typeof window === "undefined") return;
-  sessionStorage.setItem(
-    `${SCORE_CACHE_PREFIX}${score.date}`,
-    JSON.stringify(score)
-  );
-}
-
 export default function BondsTabContent() {
   const { userId } = useAuth();
   const { userData, error: profileError } = useUserProfile();
-
-  const [score, setScore] = useState<SynastryScoreResponse | null>(null);
-  const [isScoreLoading, setIsScoreLoading] = useState(false);
-  const [scoreError, setScoreError] = useState<string | null>(null);
 
   const [selectedQuestion, setSelectedQuestion] = useState("");
   const [customQuestion, setCustomQuestion] = useState("");
@@ -90,43 +80,7 @@ export default function BondsTabContent() {
     () => getDailyCompatibilityQuestions(new Date(), userId ?? "guest"),
     [userId]
   );
-
-  const loadDailyScore = useCallback(async () => {
-    if (!userData || !hasPartner) {
-      setIsScoreLoading(false);
-      setScore(null);
-      return;
-    }
-
-    setIsScoreLoading(true);
-    setScoreError(null);
-
-    const cached = readCachedScore(dateKey);
-    if (cached) {
-      setScore(cached);
-      setIsScoreLoading(false);
-      return;
-    }
-
-    try {
-      const result = await fetchSynastryScore(userData);
-      setScore(result);
-      writeCachedScore(result);
-    } catch (err) {
-      setScore(null);
-      setScoreError(
-        err instanceof Error ? err.message : "Günlük uyum skoru alınamadı."
-      );
-    } finally {
-      setIsScoreLoading(false);
-    }
-  }, [dateKey, hasPartner, userData]);
-
-  useEffect(() => {
-    if (hasPartner && userData) {
-      void loadDailyScore();
-    }
-  }, [hasPartner, userData, loadDailyScore]);
+  const cachedScore = readCachedScore(dateKey);
 
   const runAnalysis = async (question: string) => {
     const trimmed = question.trim();
@@ -140,7 +94,7 @@ export default function BondsTabContent() {
     try {
       await consumeStarPoints();
       const result = await fetchSynastryAnalysis(trimmed, userData, {
-        compatibilityScore: score?.score,
+        compatibilityScore: cachedScore?.score,
         partnerName: partner?.partnerName,
       });
       setAnalysis(result.analysis);
@@ -205,51 +159,13 @@ export default function BondsTabContent() {
         </section>
       ) : (
         <>
-          <section className="rounded-[28px] border border-white/10 bg-[#0f172a]/80 p-5 backdrop-blur-2xl sm:p-6">
-            <p className="text-[10px] uppercase tracking-[0.25em] text-amber-400/70">
-              Günün Uyum Skoru
-            </p>
-
-            {isScoreLoading ? (
-              <AnalysisSpinner label="Günlük uyum skoru hesaplanıyor..." />
-            ) : score ? (
-              <div className="mt-4 flex flex-col items-center text-center">
-                <div className="flex h-28 w-28 items-center justify-center rounded-full border border-amber-400/30 bg-amber-400/10">
-                  <span className="text-4xl font-bold text-amber-100">
-                    {score.score}
-                  </span>
-                </div>
-                <p className="mt-4 text-sm leading-relaxed text-white/75">
-                  {score.summary}
-                </p>
-                <p className="mt-2 text-[10px] uppercase tracking-[0.2em] text-white/35">
-                  {score.date}
-                </p>
-                <SynastryShareButton
-                  data={{
-                    userName: userData.name,
-                    partnerName: partner?.partnerName ?? "Partner",
-                    score: score.score,
-                    summary: score.summary,
-                    date: score.date,
-                  }}
-                />
-              </div>
-            ) : (
-              <div className="mt-4 space-y-3 text-center">
-                <p className="text-sm text-red-300/80">
-                  {scoreError ?? "Skor üretilemedi."}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => void loadDailyScore()}
-                  className="min-h-11 rounded-xl border border-amber-400/30 px-4 py-2 text-sm text-amber-100"
-                >
-                  Tekrar Dene
-                </button>
-              </div>
-            )}
-          </section>
+          <Suspense fallback={<SectionSkeleton title="Synastry Visualizer" />}>
+            <SynastryVisualizerSection
+              userData={userData}
+              partnerName={partner?.partnerName ?? "Partner"}
+              dateKey={dateKey}
+            />
+          </Suspense>
 
           <section className="rounded-[28px] border border-white/10 bg-[#0f172a]/80 p-5 backdrop-blur-2xl sm:p-6">
             <p className="text-[10px] uppercase tracking-[0.25em] text-amber-400/70">
@@ -317,14 +233,14 @@ export default function BondsTabContent() {
                   <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-white/80">
                     {analysis}
                   </p>
-                  {score ? (
+                  {cachedScore ? (
                     <SynastryShareButton
                       data={{
                         userName: userData.name,
                         partnerName: partner?.partnerName ?? "Partner",
-                        score: score.score,
-                        summary: score.summary,
-                        date: score.date,
+                        score: cachedScore.score,
+                        summary: cachedScore.summary,
+                        date: cachedScore.date,
                         question: selectedQuestion,
                         analysisExcerpt: analysis.slice(0, 220),
                       }}
