@@ -17,12 +17,16 @@ export function calculateAscendant(
   const latRad = (latitude * Math.PI) / 180;
   const lstRad = (lstDeg * Math.PI) / 180;
 
-  const y = -Math.cos(lstRad);
-  const x =
-    Math.sin(lstRad) * Math.cos(obliquity) +
-    Math.tan(latRad) * Math.sin(obliquity);
-
-  let ascLon = (Math.atan2(y, x) * 180) / Math.PI;
+  let ascLon =
+    (Math.atan2(
+      Math.cos(lstRad),
+      -(
+        Math.sin(lstRad) * Math.cos(obliquity) +
+        Math.tan(latRad) * Math.sin(obliquity)
+      )
+    ) *
+      180) /
+    Math.PI;
   ascLon = normalizeLongitude(ascLon);
 
   return {
