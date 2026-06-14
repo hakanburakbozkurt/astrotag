@@ -172,6 +172,11 @@ export default function NatalChart({ userData }: NatalChartProps) {
                     {planetA?.name} — {planetB?.name}:{" "}
                     <span className="text-white/75">{aspect.typeLabel}</span>{" "}
                     <span className="text-white/35">(orb {aspect.orb}°)</span>
+                    {aspect.orb > 5 ? (
+                      <span className="ml-1.5 rounded bg-white/8 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-white/40">
+                        zayıf etki
+                      </span>
+                    ) : null}
                   </li>
                 );
               })}

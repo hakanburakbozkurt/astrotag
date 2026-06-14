@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
+import DashboardTabShell from "@/components/navigation/DashboardTabShell";
 import {
   HOME_PATH,
   PROFILE_SETUP_PATH,
@@ -36,5 +37,5 @@ export default async function DashboardLayout({
     redirect(PROFILE_SETUP_PATH);
   }
 
-  return children;
+  return <DashboardTabShell>{children}</DashboardTabShell>;
 }

@@ -23,7 +23,7 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
     subtitle: "Horary Astrology",
     description: "Sorunuzun sorulduğu ana göre kozmik yanıt alın.",
     icon: "sky",
-    href: "/dashboard/horary",
+    href: "/dashboard/oracle/horary",
   },
   {
     id: "ai-tarot",

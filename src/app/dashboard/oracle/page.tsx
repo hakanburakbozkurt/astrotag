@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
-import CosmicDashboard from "@/components/dashboard/CosmicDashboard";
+import OracleHub from "@/components/navigation/OracleHub";
 import { clientRedirect } from "@/lib/auth/client-redirect.client";
 import { useRequireAuth, useUserProfile } from "@/lib/auth";
 import { PROFILE_SETUP_PATH } from "@/lib/nfc/constants";
 
-export default function DashboardPage() {
+export default function OracleTabPage() {
   useRequireAuth();
   const { userData, profileStatus, isLoading, error } = useUserProfile();
 
@@ -24,37 +24,26 @@ export default function DashboardPage() {
   if (isLoading) {
     return (
       <div className="relative flex flex-1 items-center justify-center px-4 py-16">
-        <p className="text-sm text-white/45">Kozmik bağlantı kuruluyor...</p>
+        <p className="text-sm text-white/45">Oracle merkezi yükleniyor...</p>
       </div>
     );
   }
 
-  if (profileStatus === "error") {
+  if (profileStatus === "error" || !userData) {
     return (
       <div className="relative mx-auto flex max-w-md flex-1 flex-col items-center justify-center px-4 py-16 text-center">
-        <p className="text-[10px] uppercase tracking-[0.25em] text-red-300/70">
-          Profil Hatası
-        </p>
-        <p className="mt-3 text-sm text-white/60">
-          {error ?? "Profil bilgileri yüklenemedi."}
+        <p className="text-sm text-white/60">
+          {error ?? "Profil bilgileri bulunamadı."}
         </p>
         <Link
-          href={PROFILE_SETUP_PATH}
-          className="mt-6 rounded-xl border border-amber-400/30 px-5 py-2.5 text-sm text-amber-100"
+          href="/dashboard"
+          className="mt-6 text-xs uppercase tracking-[0.25em] text-amber-400/70"
         >
-          Profili Tamamla
+          Dashboard
         </Link>
       </div>
     );
   }
 
-  if (profileStatus === "empty" || !userData) {
-    return (
-      <div className="relative flex flex-1 items-center justify-center px-4 py-16">
-        <p className="text-sm text-white/45">Kayıt sayfasına yönlendiriliyorsunuz...</p>
-      </div>
-    );
-  }
-
-  return <CosmicDashboard user={userData} />;
+  return <OracleHub user={userData} />;
 }

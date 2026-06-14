@@ -79,13 +79,13 @@ export default function RelationshipCard({ user }: RelationshipCardProps) {
 
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:shrink-0">
             <Link
-              href="/dashboard/compatibility"
+              href="/dashboard/bonds"
               className={`${tapButtonClass} w-full text-center`}
             >
               Uyumluluk
             </Link>
             <Link
-              href="/dashboard/settings"
+              href="/dashboard/profile"
               className={`${tapButtonClass} w-full border-white/15 bg-white/[0.03] text-center text-white/75`}
             >
               Düzenle
@@ -98,7 +98,7 @@ export default function RelationshipCard({ user }: RelationshipCardProps) {
             Partnerini Ekle ve Uyumluluk Analizine Başla
           </p>
           <Link
-            href="/dashboard/settings"
+            href="/dashboard/profile"
             className={`${tapButtonClass} w-full text-center`}
           >
             Partner Ekle

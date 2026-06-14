@@ -1,104 +1,28 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSafeRouter } from "@/lib/auth/safe-router-nav.client";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import type { UserData } from "@/types/user";
-import ModuleCard from "./ModuleCard";
 import RelationshipCard from "./RelationshipCard";
 import SessionCounter from "./SessionCounter";
 import ReferralPanel from "./ReferralPanel";
 import CosmicJournal from "./CosmicJournal";
 import DashboardHeader from "./DashboardHeader";
-import AITarotPanel from "./AITarotPanel";
-import NatalChartPanel from "../natal-chart/NatalChartPanel";
-import { DASHBOARD_MODULES, type DashboardModule, type ModuleId } from "./modules/config";
 
 interface CosmicDashboardProps {
   user: UserData;
-  openModuleId?: ModuleId | null;
 }
 
-function ModulePlaceholder({
-  module,
-  onClose,
-}: {
-  module: DashboardModule;
-  onClose: () => void;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        onClick={(e) => e.stopPropagation()}
-        className="max-w-md rounded-[28px] border border-white/10 bg-[#0f172a]/80 p-8 text-center backdrop-blur-2xl"
-      >
-        <p className="text-[10px] uppercase tracking-[0.3em] text-amber-400/70">
-          {module.subtitle}
-        </p>
-        <h2 className="mt-2 text-2xl font-bold text-white">{module.title}</h2>
-        <p className="mt-4 text-sm text-white/45">
-          Bu modül yakında aktif olacak. Doğum verileriniz analiz için hazır.
-        </p>
-        <button
-          type="button"
-          onClick={onClose}
-          className="mt-6 rounded-xl border border-amber-400/25 px-6 py-2.5 text-sm text-amber-200/90 hover:bg-amber-400/10"
-        >
-          Dashboard&apos;a Dön
-        </button>
-      </motion.div>
-    </motion.div>
-  );
-}
-
-export default function CosmicDashboard({ user, openModuleId }: CosmicDashboardProps) {
-  const { safePush, isRouterReady } = useSafeRouter();
+export default function CosmicDashboard({ user }: CosmicDashboardProps) {
   const [isMounted, setIsMounted] = useState(false);
-  const [isNavigating, setIsNavigating] = useState(false);
-  const [activeModule, setActiveModule] = useState<DashboardModule | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  useEffect(() => {
-    if (!isMounted || !openModuleId) {
-      return;
-    }
-
-    const module = DASHBOARD_MODULES.find((item) => item.id === openModuleId);
-
-    if (module) {
-      setActiveModule(module);
-    }
-  }, [isMounted, openModuleId]);
-
-  const handleModuleSelect = (module: DashboardModule) => {
-    if (module.href) {
-      if (!isRouterReady || isNavigating) {
-        return;
-      }
-
-      setIsNavigating(true);
-      void safePush(module.href).finally(() => setIsNavigating(false));
-      return;
-    }
-
-    setActiveModule(module);
-  };
-
   if (!isMounted) {
     return (
-      <div className="relative min-h-dvh overflow-y-auto px-4 py-10 sm:px-6 sm:py-14">
+      <div className="relative px-4 py-10 sm:px-6 sm:py-14">
         <div className="relative mx-auto max-w-2xl">
           <p className="text-center text-sm text-white/45">Dashboard yükleniyor...</p>
         </div>
@@ -107,7 +31,7 @@ export default function CosmicDashboard({ user, openModuleId }: CosmicDashboardP
   }
 
   return (
-    <div className="relative min-h-dvh overflow-y-auto px-4 py-10 sm:px-6 sm:py-14">
+    <div className="relative px-4 py-8 sm:px-6 sm:py-12">
       <div
         className="pointer-events-none absolute inset-0"
         aria-hidden="true"
@@ -124,17 +48,6 @@ export default function CosmicDashboard({ user, openModuleId }: CosmicDashboardP
 
         <RelationshipCard user={user} />
 
-        <div className="grid grid-cols-1 gap-4 sm:gap-5">
-          {DASHBOARD_MODULES.map((module, index) => (
-            <ModuleCard
-              key={module.id}
-              module={module}
-              index={index}
-              onSelect={handleModuleSelect}
-            />
-          ))}
-        </div>
-
         <ReferralPanel />
 
         <CosmicJournal />
@@ -148,24 +61,6 @@ export default function CosmicDashboard({ user, openModuleId }: CosmicDashboardP
           Evrenin sırları bir dokunuş uzağınızda
         </motion.footer>
       </div>
-
-      <AnimatePresence>
-        {activeModule?.id === "ai-tarot" && (
-          <AITarotPanel user={user} onClose={() => setActiveModule(null)} />
-        )}
-        {activeModule?.id === "natal-chart" && (
-          <NatalChartPanel user={user} onClose={() => setActiveModule(null)} />
-        )}
-        {activeModule &&
-          activeModule.id !== "ai-tarot" &&
-          activeModule.id !== "natal-chart" &&
-          activeModule.id !== "horary" && (
-          <ModulePlaceholder
-            module={activeModule}
-            onClose={() => setActiveModule(null)}
-          />
-        )}
-      </AnimatePresence>
     </div>
   );
 }
