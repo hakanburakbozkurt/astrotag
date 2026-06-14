@@ -1,0 +1,106 @@
+"use client";
+
+import Link from "next/link";
+import dynamic from "next/dynamic";
+import { Suspense } from "react";
+import { motion } from "framer-motion";
+import TabPageScaffold from "@/components/navigation/TabPageScaffold";
+import TabPageSkeleton, { SectionSkeleton } from "@/components/navigation/TabPageSkeleton";
+import { useUserProfile } from "@/lib/auth";
+import type { UserData } from "@/types/user";
+
+const SessionCounter = dynamic(
+  () => import("@/components/dashboard/SessionCounter"),
+  { loading: () => <SectionSkeleton title="Yıldız Puanı" /> }
+);
+
+const CosmicJournal = dynamic(
+  () => import("@/components/dashboard/CosmicJournal"),
+  { loading: () => <SectionSkeleton title="Kozmik Günlüğüm" /> }
+);
+
+function UserInfoSection({ user }: { user: UserData }) {
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="rounded-[28px] border border-white/10 bg-[#0f172a]/80 p-5 backdrop-blur-2xl sm:p-6"
+    >
+      <p className="text-[10px] uppercase tracking-[0.3em] text-amber-400/70">
+        Kullanıcı Bilgileri
+      </p>
+
+      <dl className="mt-4 space-y-3 text-sm">
+        <div>
+          <dt className="text-[10px] uppercase tracking-[0.2em] text-white/40">
+            Ad Soyad
+          </dt>
+          <dd className="mt-1 font-medium text-white/90">{user.name}</dd>
+        </div>
+        <div>
+          <dt className="text-[10px] uppercase tracking-[0.2em] text-white/40">
+            Doğum Tarihi
+          </dt>
+          <dd className="mt-1 text-white/75">{user.birthDate}</dd>
+        </div>
+        <div>
+          <dt className="text-[10px] uppercase tracking-[0.2em] text-white/40">
+            Doğum Saati
+          </dt>
+          <dd className="mt-1 text-white/75">{user.birthTime}</dd>
+        </div>
+        <div>
+          <dt className="text-[10px] uppercase tracking-[0.2em] text-white/40">
+            Doğum Yeri
+          </dt>
+          <dd className="mt-1 text-white/75">{user.birthPlace}</dd>
+        </div>
+      </dl>
+
+      <Link
+        href="/profile-setup"
+        className="mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-4 text-xs uppercase tracking-[0.18em] text-amber-300/85 transition hover:border-amber-400/25 hover:bg-white/[0.06]"
+      >
+        Profili Düzenle · PIN Yönetimi
+      </Link>
+    </motion.section>
+  );
+}
+
+export default function ProfileTabContent() {
+  const { userData, isLoading, error } = useUserProfile();
+
+  if (isLoading) {
+    return <TabPageSkeleton />;
+  }
+
+  if (!userData) {
+    return (
+      <div className="relative mx-auto flex max-w-md flex-1 flex-col items-center justify-center px-4 py-16 text-center">
+        <p className="text-sm text-white/60">
+          {error ?? "Profil bilgileri bulunamadı."}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <TabPageScaffold
+      eyebrow="Profile"
+      title={userData.name}
+      description="Kişisel bilgileriniz, yıldız puanınız ve kozmik günlüğünüz."
+    >
+      <UserInfoSection user={userData} />
+
+      <Suspense fallback={<SectionSkeleton title="Yıldız Puanı" />}>
+        <SessionCounter />
+      </Suspense>
+
+      <Suspense fallback={<SectionSkeleton title="Kozmik Günlüğüm" />}>
+        <div className="[&_section]:mt-0">
+          <CosmicJournal />
+        </div>
+      </Suspense>
+    </TabPageScaffold>
+  );
+}

@@ -1,11 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
-import OracleHub from "@/components/navigation/OracleHub";
+import { Suspense, useEffect } from "react";
+import dynamic from "next/dynamic";
+import TabPageSkeleton from "@/components/navigation/TabPageSkeleton";
 import { clientRedirect } from "@/lib/auth/client-redirect.client";
 import { useRequireAuth, useUserProfile } from "@/lib/auth";
 import { PROFILE_SETUP_PATH } from "@/lib/nfc/constants";
+
+const OracleHub = dynamic(
+  () => import("@/components/navigation/OracleHub"),
+  { loading: () => <TabPageSkeleton /> }
+);
 
 export default function OracleTabPage() {
   useRequireAuth();
@@ -21,12 +27,8 @@ export default function OracleTabPage() {
     }
   }, [isLoading, profileStatus, userData]);
 
-  if (isLoading) {
-    return (
-      <div className="relative flex flex-1 items-center justify-center px-4 py-16">
-        <p className="text-sm text-white/45">Oracle merkezi yükleniyor...</p>
-      </div>
-    );
+  if (isLoading || profileStatus === "loading") {
+    return <TabPageSkeleton />;
   }
 
   if (profileStatus === "error" || !userData) {
@@ -45,5 +47,9 @@ export default function OracleTabPage() {
     );
   }
 
-  return <OracleHub user={userData} />;
+  return (
+    <Suspense fallback={<TabPageSkeleton />}>
+      <OracleHub user={userData} />
+    </Suspense>
+  );
 }

@@ -6,7 +6,6 @@ import type { UserData } from "@/types/user";
 import RelationshipCard from "./RelationshipCard";
 import SessionCounter from "./SessionCounter";
 import ReferralPanel from "./ReferralPanel";
-import CosmicJournal from "./CosmicJournal";
 import DashboardHeader from "./DashboardHeader";
 
 interface CosmicDashboardProps {
@@ -49,8 +48,6 @@ export default function CosmicDashboard({ user }: CosmicDashboardProps) {
         <RelationshipCard user={user} />
 
         <ReferralPanel />
-
-        <CosmicJournal />
 
         <motion.footer
           initial={{ opacity: 0 }}

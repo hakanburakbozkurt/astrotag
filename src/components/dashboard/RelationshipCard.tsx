@@ -85,7 +85,7 @@ export default function RelationshipCard({ user }: RelationshipCardProps) {
               Uyumluluk
             </Link>
             <Link
-              href="/dashboard/profile"
+              href="/dashboard/bonds#partner-profile"
               className={`${tapButtonClass} w-full border-white/15 bg-white/[0.03] text-center text-white/75`}
             >
               Düzenle
@@ -98,7 +98,7 @@ export default function RelationshipCard({ user }: RelationshipCardProps) {
             Partnerini Ekle ve Uyumluluk Analizine Başla
           </p>
           <Link
-            href="/dashboard/profile"
+            href="/dashboard/bonds#partner-profile"
             className={`${tapButtonClass} w-full text-center`}
           >
             Partner Ekle

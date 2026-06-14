@@ -1,11 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
-import CosmicDashboard from "@/components/dashboard/CosmicDashboard";
+import { Suspense, useEffect } from "react";
+import dynamic from "next/dynamic";
+import TabPageSkeleton from "@/components/navigation/TabPageSkeleton";
 import { clientRedirect } from "@/lib/auth/client-redirect.client";
 import { useRequireAuth, useUserProfile } from "@/lib/auth";
 import { PROFILE_SETUP_PATH } from "@/lib/nfc/constants";
+
+const CosmicDashboard = dynamic(
+  () => import("@/components/dashboard/CosmicDashboard"),
+  { loading: () => <TabPageSkeleton /> }
+);
 
 export default function DashboardPage() {
   useRequireAuth();
@@ -21,12 +27,8 @@ export default function DashboardPage() {
     }
   }, [isLoading, profileStatus, userData]);
 
-  if (isLoading) {
-    return (
-      <div className="relative flex flex-1 items-center justify-center px-4 py-16">
-        <p className="text-sm text-white/45">Kozmik bağlantı kuruluyor...</p>
-      </div>
-    );
+  if (isLoading || profileStatus === "loading") {
+    return <TabPageSkeleton />;
   }
 
   if (profileStatus === "error") {
@@ -56,5 +58,9 @@ export default function DashboardPage() {
     );
   }
 
-  return <CosmicDashboard user={userData} />;
+  return (
+    <Suspense fallback={<TabPageSkeleton />}>
+      <CosmicDashboard user={userData} />
+    </Suspense>
+  );
 }

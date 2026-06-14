@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import Starfield from "@/components/Starfield";
 import BottomTabBar from "./BottomTabBar";
-import TabKeepAliveOutlet from "./TabKeepAliveOutlet";
+import ActiveTabOutlet from "./ActiveTabOutlet";
 
 interface DashboardTabShellProps {
   children: ReactNode;
@@ -20,7 +20,7 @@ export default function DashboardTabShell({ children }: DashboardTabShellProps) 
           paddingBottom: "calc(4.75rem + env(safe-area-inset-bottom, 0px))",
         }}
       >
-        <TabKeepAliveOutlet>{children}</TabKeepAliveOutlet>
+        <ActiveTabOutlet>{children}</ActiveTabOutlet>
       </div>
 
       <BottomTabBar />
