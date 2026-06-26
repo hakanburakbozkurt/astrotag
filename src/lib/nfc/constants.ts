@@ -1,0 +1,103 @@
+export const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://astrotag.app";
+
+export const HOME_PATH = "/";
+
+export const NFC_SESSION_COOKIE = "astrotag_nfc_session";
+export const NFC_FINGERPRINT_COOKIE = "astrotag_fingerprint";
+/** nfc_sessions.profile_id ile aynı — oturum çerezi yanında hızlı doğrulama */
+export const NFC_PROFILE_COOKIE = "astrotag_nfc_profile";
+/** nfc_sessions.nfc_id — middleware / okuma yollarında DB sorgusu olmadan kart bağlamı */
+export const NFC_CARD_COOKIE = "astrotag_nfc_card";
+/** nfc_sessions.expires_at — oturum süresi doğrulaması (ISO 8601) */
+export const NFC_SESSION_EXPIRES_COOKIE = "astrotag_session_expires";
+/** profiles.is_profile_complete === true — "1" */
+export const NFC_PROFILE_READY_COOKIE = "astrotag_profile_ready";
+/** Manuel profil düzenleme akışı — PIN sonrası dashboard'a zorla dönme */
+export const PROFILE_EDIT_MODE_COOKIE = "astrotag_profile_edit_mode";
+/** PIN öncesi kaydedilen iç rota — giriş sonrası hedef */
+export const POST_AUTH_RETURN_TO_COOKIE = "astrotag_post_auth_return";
+export const STORAGE_VERIFIED_COOKIE = "astrotag_storage_ok";
+/** E-posta doğrulama / eşleştirme sırasında kartı hatırla (middleware yönlendirmesi) */
+export const PENDING_NFC_COOKIE = "astrotag_pending_nfc";
+export const NFC_PAIRING_QUERY = "pair";
+/** Son başarılı NFC giriş zamanı (ISO) — 24 saat PIN bypass */
+export const NFC_LAST_LOGIN_AT_COOKIE = "astrotag_last_login_at";
+/** Oturum çerezi + DB kaydı süresi (saniye) — 24 saat */
+export const NFC_SESSION_TTL_SECONDS = 86400;
+export const NFC_SESSION_TTL_MS = NFC_SESSION_TTL_SECONDS * 1000;
+/** Auth persistence penceresi — 24 saat */
+export const NFC_AUTH_PERSISTENCE_MS = NFC_SESSION_TTL_MS;
+/** @deprecated NFC_SESSION_TTL_SECONDS kullan */
+export const NFC_SESSION_TTL_DAYS = 1;
+
+/** Hareketsizlikte oturum düşürme süresi (dakika) */
+export const NFC_IDLE_TIMEOUT_MINUTES = 20;
+
+/** PIN giriş ekranı — idle timeout sonrası yönlendirme */
+export const NFC_LOGIN_PATH = "/nfc-login";
+
+/** @deprecated NFC_SESSION_TTL_SECONDS kullan */
+export const NFC_SESSION_TTL_MINUTES = Math.floor(NFC_SESSION_TTL_SECONDS / 60);
+
+export const SESSION_EXPIRED_PATH = "/session-expired";
+export const PRIVATE_MODE_PATH = "/private-mode-warning";
+/** @deprecated */
+export const LOGIN_PATH = HOME_PATH;
+export const DASHBOARD_PATH = "/dashboard";
+export const PROFILE_COMPLETE_PATH = "/profile/complete";
+export const PROFILE_SETUP_PATH = "/profile-setup";
+/** PIN sonrası eksik profil — nfc_user_data full_name / birth_date */
+export const REGISTRATION_COMPLETE_PATH = "/kayit-tamamla";
+export const CARD_ENTRY_PREFIX = "/c";
+/** NFC ile açılan herkese açık profil */
+export const PUBLIC_PROFILE_PREFIX = "/p";
+
+export const WELCOME_IMAGE_PATH = "/image_485027.png";
+
+export const NFC_SHOP_URL =
+  process.env.NEXT_PUBLIC_NFC_SHOP_URL ?? "https://astrotag.app";
+
+export const SITE_HOST = "astrotag.app";
+
+export const VERIFY_OTP_PATH = "/verify-otp";
+export const AUTH_CALLBACK_PATH = "/auth/callback";
+export const AUTH_SIGNUP_PATH = "/auth/signup";
+export const AUTH_LOGIN_PATH = "/auth/login";
+/** auth/signup|login ?msg= — pasif kart acil giriş */
+export const AUTH_MSG_CARD_NOT_ACTIVE = "card_not_active";
+
+export const PUBLIC_PATHS = new Set([
+  HOME_PATH,
+  PRIVATE_MODE_PATH,
+  VERIFY_OTP_PATH,
+  AUTH_CALLBACK_PATH,
+  AUTH_SIGNUP_PATH,
+  AUTH_LOGIN_PATH,
+  NFC_LOGIN_PATH,
+  "/manifest.json",
+  "/sw.js",
+]);
+
+export const PROTECTED_PATH_PREFIXES = [
+  "/dashboard",
+  "/profile",
+  "/api/ai",
+] as const;
+
+export const NFC_CARD_INACTIVE_MESSAGE = "Bu NFC kartı aktif değil.";
+export const NFC_FINGERPRINT_MISMATCH_MESSAGE =
+  "Oturum Sona Erdi veya Geçersiz Erişim";
+
+export const NFC_CARD_OWNED_BY_OTHER_MESSAGE = "Bu kart başkasına ait.";
+
+export const CARD_VERIFY_FAILURE_MESSAGE = "Hatalı Bilgi";
+
+/** nfc_user_data'da kart kaydı yok veya oturum FK hedefi geçersiz */
+export const INVALID_NFC_CARD_MESSAGE = "Geçersiz Kart";
+
+/** pin_code eşleşmedi */
+export const INVALID_PIN_MESSAGE = "Hatalı şifre";
+
+/** @deprecated use NFC_FINGERPRINT_COOKIE */
+export const NFC_DEVICE_COOKIE = NFC_FINGERPRINT_COOKIE;

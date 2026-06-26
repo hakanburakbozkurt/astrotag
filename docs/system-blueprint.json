@@ -1,0 +1,383 @@
+{
+  "$schema": "AstroTag System Blueprint — teknik referans (kullanıcı kılavuzu hazırlığı)",
+  "meta": {
+    "product": "AstroTag",
+    "tagline": "NFC anahtarlık ile kozmik danışmanlık",
+    "siteUrl": "https://astrotag.app",
+    "version": "1.0.0",
+    "lastUpdated": "2026-06-08",
+    "stack": {
+      "frontend": "Next.js 16 App Router, React, Tailwind CSS",
+      "backend": "Supabase (PostgreSQL), Server Actions, Route Handlers",
+      "ai": "KIE.ai chat completions (gpt-5-2 varsayılan)",
+      "authModel": "NFC PIN + ephemeral nfc_sessions (Supabase Auth değil, kart tabanlı oturum)"
+    }
+  },
+  "physicalDigitalBridge": {
+    "title": "Fiziksel-Dijital Köprü",
+    "summary": "AstroTag NFC anahtarlığı, kullanıcının dijital profiline bağlı bir Hardware Token (donanım anahtarı) olarak çalışır. Fiziksel dokunuş → URL açılışı → PIN veya akıllı oturum → dashboard.",
+    "hardwareToken": {
+      "role": "Hardware Token",
+      "description": "Her anahtarlık benzersiz bir kart kimliği (slug, örn. at_xxxxx) taşır. Bu kimlik nfc_user_data / profiles tablolarına bağlanır ve oturum açma yetkisini fiziksel cihaza bağlar.",
+      "identifierFormat": "at_* slug — astrotag.app/{unique_id} rotasına yönlendirir",
+      "legacyFormats": ["/c/{unique_id}", "nfc_uid profiles alanı"]
+    },
+    "dataModel": {
+      "tables": {
+        "nfc_user_data": "Kart kaydı — slug, pin_hash, is_active, profile_id FK",
+        "nfc_sessions": "Ephemeral oturum — profile_id, nfc_id, expires_at, last_active_at",
+        "profiles": "Kullanıcı profili — doğum verisi, partner, yıldız puanı, nfc_uid"
+      },
+      "cardToProfileLink": "ensureNfcCardForProfile — NFC okuma sırasında kartı profile bağlar (provision)"
+    },
+    "entryRoutes": {
+      "primary": "/{unique_id}",
+      "legacyCardPrefix": "/c/{unique_id}",
+      "pinRecovery": "/nfc-login?uid={unique_id}",
+      "publicProfile": "/p/{unique_id}"
+    },
+    "userExperienceMetaphor": "Anahtarlık = fiziksel anahtar; PIN = ikinci faktör; 24 saat persistence = anahtarlığı cebinde taşıdığın süre boyunca tekrar PIN sormama"
+  },
+  "nfcAuthSmartEntry": {
+    "title": "NFC-Auth (Smart Entry)",
+    "summary": "24 saat içinde daha önce giriş yapmış kullanıcı, NFC okuttuğunda PIN ekranını atlayarak doğrudan /dashboard (Home sekmesi) rotasına yönlendirilir.",
+    "persistenceWindow": {
+      "durationSeconds": 86400,
+      "durationHours": 24,
+      "durationMs": 86400000,
+      "constants": {
+        "NFC_SESSION_TTL_SECONDS": 86400,
+        "NFC_AUTH_PERSISTENCE_MS": 86400000
+      }
+    },
+    "persistenceAnchors": {
+      "localStorage": {
+        "key": "astrotag_last_login_at",
+        "type": "Unix timestamp (ms)",
+        "setOn": "Başarılı PIN girişi sonrası (recordClientLastLogin)",
+        "readOn": "RootCardEntryPage istemci gate (NfcSmartEntryGate)"
+      },
+      "httpOnlyCookie": {
+        "key": "astrotag_last_login_at",
+        "type": "ISO 8601 datetime",
+        "setOn": "setNfcSession — başarılı oturum oluşturma",
+        "readOn": "trySmartNfcSessionEntry sunucu doğrulaması"
+      }
+    },
+    "sessionStorage": {
+      "table": "nfc_sessions",
+      "expiresAtRule": "now() + 24 hours (uygulama katmanı)",
+      "lastActiveAtRule": "Her smart entry ve aktivite dokunuşunda güncellenir; 24 saatten eskiyse oturum geçersiz",
+      "cookies": [
+        "astrotag_nfc_session",
+        "astrotag_nfc_profile",
+        "astrotag_nfc_card",
+        "astrotag_session_expires"
+      ]
+    },
+    "smartEntryFlow": {
+      "description": "NFC okuma → önce oturum kontrolü, provision ikinci planda, PIN en son",
+      "steps": [
+        {
+          "order": 1,
+          "layer": "server",
+          "action": "resolveSmartNfcEntryRedirect(uniqueId)",
+          "file": "src/lib/nfc/nfc-smart-entry.server.ts",
+          "successRedirect": "/dashboard",
+          "validates": [
+            "NFC session cookie mevcut",
+            "Cookie veya client last_login 24 saat içinde",
+            "nfc_sessions.expires_at geçerli",
+            "nfc_sessions.last_active_at 24 saat kuralına uygun",
+            "Okunan kart slug'ı oturumdaki kart ile eşleşiyor"
+          ]
+        },
+        {
+          "order": 2,
+          "layer": "server",
+          "action": "ensureNfcCardForProfile (provision)",
+          "file": "src/app/[unique_id]/page.tsx",
+          "note": "Smart redirect başarısızsa çalışır; kullanıcıyı bekletmez"
+        },
+        {
+          "order": 3,
+          "layer": "client",
+          "action": "NfcSmartEntryGate → confirmSmartNfcEntryAction",
+          "file": "src/components/nfc/NfcSmartEntryGate.tsx",
+          "condition": "localStorage.astrotag_last_login_at 24 saat içinde",
+          "successRedirect": "/dashboard",
+          "failure": "CardVerificationEntry — PIN ekranı"
+        },
+        {
+          "order": 4,
+          "layer": "client",
+          "action": "handlePinLogin → setNfcSession → nfcAuthSuccessAction",
+          "file": "src/lib/actions/pin-login.ts",
+          "successRedirect": "/dashboard (veya kayıtlı post-auth hedefi)"
+        }
+      ],
+      "entryPage": {
+        "route": "/[unique_id]",
+        "component": "RootCardEntryPage",
+        "file": "src/app/[unique_id]/page.tsx"
+      },
+      "alwaysRedirectTarget": "/dashboard",
+      "pinBypassCondition": "24 saat persistence + geçerli nfc_sessions + aynı kart"
+    },
+    "cacheInvalidation": {
+      "action": "nfcAuthSuccessAction",
+      "file": "src/lib/actions/nfc-auth-success.ts",
+      "trigger": "PIN doğrulandıktan sonra (render dışında)",
+      "tag": "nfc-card-auth:{uniqueId}"
+    }
+  },
+  "synastryEngine": {
+    "title": "Synastry Motoru",
+    "summary": "Kullanıcı ve partner natal haritalarını mutlak ekliptik derece üzerinden karşılaştırır; cross-aspect tespiti, orb sınıflandırması ve Synastry-Focus görselleştirme sunar.",
+    "visualMode": {
+      "name": "Synastry-Focus",
+      "ascendantNormalization": 0,
+      "description": "Her iki tekerlek (User & Partner) aynı koordinat sistemini kullanır — radix ASC dönüşümü yok. Böylece aspect çizgileri hesaplama motoru ile görsel olarak uyumlu kalır.",
+      "file": "src/lib/synastry/synastry-chart-geometry.ts",
+      "wheelLayout": {
+        "leftWheel": { "centerX": 92, "centerY": 118, "radius": 72, "ascendant": 0 },
+        "rightWheel": { "centerX": 268, "centerY": 118, "radius": 72, "ascendant": 0 },
+        "svgTransform": "translate(cx cy) — normalize edilmiş matris"
+      }
+    },
+    "calculationPipeline": {
+      "entry": "SynastryCalculation(userData)",
+      "file": "src/lib/synastry/synastry-calculation.ts",
+      "inputs": {
+        "user": ["birthDate", "birthTime", "birthPlace"],
+        "partner": ["partnerBirthDate", "partnerBirthTime", "partnerBirthPlace"]
+      },
+      "chartSource": "calculateNatalChart — Swiss Ephemeris / geocode",
+      "aspectEngine": {
+        "file": "src/lib/synastry/synastry-aspect-engine.ts",
+        "function": "detectSynastryCrossAspect",
+        "aspects": [
+          { "type": "conjunction", "angle": 0, "label": "Kavuşum" },
+          { "type": "opposition", "angle": 180, "label": "Karşıt" },
+          { "type": "square", "angle": 90, "label": "Kare" },
+          { "type": "trine", "angle": 120, "label": "Üçgen" }
+        ],
+        "maxOrbDefault": 8,
+        "samePlanetPairMaxOrb": 6,
+        "trineValidation": "separation >= 55° + |separation - 120| <= orb + mod120 kontrolü (kavuşum karışması önlenir)"
+      }
+    },
+    "orbClassification": {
+      "file": "src/lib/synastry/synastry-aspect-engine.ts",
+      "function": "classifyOrbStrength",
+      "tiers": [
+        { "range": "0° – 2°", "tier": "strong", "label": "Güçlü Uyum" },
+        { "range": "2° – 4°", "tier": "supportive", "label": "Destekleyici Etki" },
+        { "range": "> 4°", "tier": "weak", "label": "Zayıf/Düşük Etki" }
+      ],
+      "astroNotes": "Her aspect + tier için kısa günlük hayat etiketi (örn. İletişim akıcı, Gerilim belirgin)"
+    },
+    "ui": {
+      "tab": "Bonds (/dashboard/bonds)",
+      "visualizer": "SynastryVisualizer",
+      "file": "src/components/synastry/SynastryVisualizer.tsx",
+      "aspectLineColors": {
+        "square": "Koyu kırmızı (#991b1b) — Gerilim",
+        "trine": "Altın-yeşil (#ca8a04 → #84cc16) — Üçgen Uyumu"
+      },
+      "aiScoreEndpoint": "/api/ai/compatibility/score",
+      "aiAnalyzeEndpoint": "/api/ai/compatibility/analyze"
+    }
+  },
+  "nexusAndAi": {
+    "title": "Nexus & Oracle",
+    "summary": "Emph motorundan gelen gerçek zamanlı transit facts (transitStress, transitsToNatal, cosmicTensions) üzerinden günlük kehanet üreten Oracle narration modülü. Güneş burcu yalnızca profil bağlamıdır.",
+    "tab": {
+      "name": "Nexus",
+      "route": "/dashboard/nexus",
+      "shortLabel": "Nexus"
+    },
+    "dataInputs": {
+      "emphPackage": {
+        "builder": "buildNexusEmphPackage",
+        "file": "src/lib/nexus/nexus-emph.server.ts",
+        "sources": [
+          "buildCosmicAnalysisContext — natal + transit aspects",
+          "computeNexusTransitStress — gökyüzü stres/uyum haritası",
+          "detectCosmicTensions — Emph gerilim tespiti"
+        ]
+      },
+      "userSunSign": {
+        "source": "profiles.birth_date",
+        "role": "Profil etiketi (narration bağlamı)",
+        "engine": "sunSignFromBirthDate (tropical)",
+        "file": "src/lib/astrology/sun-sign.ts"
+      },
+      "partnerSunSign": {
+        "source": "profiles.partner_birth_date",
+        "optional": true,
+        "fallbackUi": "Bonds sekmesinden partner doğum tarihi istenir"
+      }
+    },
+    "ui": {
+      "cards": [
+        { "title": "Senin Günün", "component": "NexusDayCard" },
+        { "title": "Partnerinin Günün", "component": "NexusDayCard", "requiresPartnerSign": true }
+      ],
+      "file": "src/components/tabs/NexusTabContent.tsx",
+      "cache": "sessionStorage — nexus_daily_{dateKey}"
+    },
+    "oraclePipeline": {
+      "endpoint": "/api/ai/nexus/daily",
+      "file": "src/lib/ai/nexus.ts",
+      "model": "KIE.ai (KIE_TAROT_MODEL, varsayılan gpt-5-2)",
+      "guardrail": "src/lib/ai/oracle-guardrails.ts — ORACLE_JSON_GUARDRAIL",
+      "systemPromptIntent": "Emph transit paketini hikayeleştir; transitStress + transitsToNatal + cosmicTensions ana odak",
+      "responseFormat": {
+        "userDay": "string — zorunlu",
+        "partnerDay": "string | null — partner burcu varsa"
+      },
+      "dailyKey": "YYYY-MM-DD (getDailyCompatibilityDateKey)"
+    }
+  },
+  "securityLayer": {
+    "title": "Güvenlik Katmanı",
+    "summary": "Idle Lock (20 dk hareketsizlik), gizli tarama modu koruması ve middleware tabanlı oturum kapısı.",
+    "idleLock": {
+      "name": "Idle Lock (Otomatik Uyku)",
+      "durationMinutes": 20,
+      "durationMs": 1200000,
+      "constant": "NFC_IDLE_TIMEOUT_MINUTES",
+      "field": "nfc_sessions.last_active_at",
+      "behavior": "last_active_at 20 dakikadan eskiyse smart entry başarısız; kullanıcı PIN ekranına yönlendirilir",
+      "recoveryRoute": "/nfc-login?uid={unique_id}&idle=1",
+      "file": "src/lib/nfc/nfc-session-activity.server.ts"
+    },
+    "sessionExpiry": {
+      "durationHours": 24,
+      "tableField": "nfc_sessions.expires_at",
+      "cookieField": "astrotag_session_expires",
+      "expiredRoute": "/session-expired"
+    },
+    "privacyMechanism": {
+      "name": "Uygulama İçi Gizlilik (Storage Gate)",
+      "description": "Korunan rotalara erişim için tarayıcının kalıcı depolama erişimi doğrulanır. Gizli/Private mod tespit edilirse kullanıcı uyarı sayfasına yönlendirilir.",
+      "storageCookie": "astrotag_storage_ok",
+      "privateModePath": "/private-mode-warning",
+      "bootstrap": "SecurityBootstrap — isPrivateBrowsingMode + confirmStorageAccessAction",
+      "middlewareGate": "runSecurityGate — storageVerified=false → /private-mode-warning",
+      "files": [
+        "src/components/SecurityBootstrap.tsx",
+        "src/lib/nfc/middleware-security.ts",
+        "src/lib/nfc/private-mode.ts"
+      ]
+    },
+    "middleware": {
+      "file": "src/lib/nfc/middleware-security.ts",
+      "protectedPrefixes": ["/dashboard", "/profile", "/api/ai"],
+      "sessionValidation": "Cookie snapshot — astrotag_nfc_session + expires",
+      "nfcCardRoutesBypass": "Kart giriş rotaları middleware oturum kontrolünden muaf (PIN akışı)"
+    },
+    "pinSecurity": {
+      "storage": "pin_hash (bcrypt) — nfc_user_data",
+      "maxAttempts": 5,
+      "lockoutMinutes": 15,
+      "file": "src/lib/nfc/nfc-auth-core.ts"
+    }
+  },
+  "dashboardShell": {
+    "title": "Uygulama Kabuğu (Referans)",
+    "tabs": [
+      { "id": "dashboard", "label": "Home", "route": "/dashboard" },
+      { "id": "oracle", "label": "Oracle", "route": "/dashboard/oracle" },
+      { "id": "bonds", "label": "Bonds", "route": "/dashboard/bonds" },
+      { "id": "nexus", "label": "Nexus", "route": "/dashboard/nexus" },
+      { "id": "profile", "label": "Profile", "route": "/dashboard/profile" }
+    ],
+    "scrollArchitecture": {
+      "container": "dashboard-container — height: 100dvh, overflow: hidden",
+      "scrollSurface": "dashboard-main — overflow-y: auto, touch-action: pan-y, -webkit-overflow-scrolling: touch",
+      "tabBar": "dashboard-tab-bar — sticky üst navigasyon",
+      "tabSwitchScrollReset": "main.scrollTop = 0 on pathname change",
+      "file": "src/components/navigation/DashboardTabShell.tsx"
+    }
+  },
+  "userGuideHooks": {
+    "title": "Kullanıcı Kılavuzu İçin Önerilen Bölüm Başlıkları",
+    "sections": [
+      {
+        "chapter": "Anahtarlığını Tanı",
+        "mapsTo": "physicalDigitalBridge",
+        "keyMessages": [
+          "Her AstroTag benzersiz bir dijital kimliğe sahiptir",
+          "Anahtarlık = donanım token; telefonunuzdaki profilin fiziksel anahtarı"
+        ]
+      },
+      {
+        "chapter": "İlk Giriş ve PIN",
+        "mapsTo": "nfcAuthSmartEntry.steps[3]",
+        "keyMessages": [
+          "İlk okutmada 4–8 haneli PIN gerekir",
+          "PIN kartınıza özeldir ve bcrypt ile korunur"
+        ]
+      },
+      {
+        "chapter": "24 Saat Akıllı Giriş",
+        "mapsTo": "nfcAuthSmartEntry",
+        "keyMessages": [
+          "24 saat içinde tekrar okutursanız PIN sormadan dashboard açılır",
+          "Süre dolunca veya 20 dk hareketsizlikte tekrar PIN gerekir"
+        ]
+      },
+      {
+        "chapter": "Bonds ve Synastry",
+        "mapsTo": "synastryEngine",
+        "keyMessages": [
+          "Partner doğum bilgisi zorunlu (tarih + saat + yer)",
+          "Güçlü Uyum / Destekleyici / Zayıf orb etiketleri ilişki dinamiklerini özetler"
+        ]
+      },
+      {
+        "chapter": "Nexus Günlük Kehanet",
+        "mapsTo": "nexusAndAi",
+        "keyMessages": [
+          "Güneş burcunuza göre günlük AI yorumu",
+          "Eğlenceli, iddialı ton — astrolojik eğlence amaçlı"
+        ]
+      },
+      {
+        "chapter": "Gizlilik ve Güvenlik",
+        "mapsTo": "securityLayer",
+        "keyMessages": [
+          "Gizli modda uygulama tam çalışmayabilir",
+          "20 dakika hareketsizlik sonrası otomatik kilit"
+        ]
+      }
+    ]
+  },
+  "sourceFilesIndex": {
+    "nfc": [
+      "src/app/[unique_id]/page.tsx",
+      "src/lib/nfc/smart-session.server.ts",
+      "src/lib/nfc/nfc-session-persistence.server.ts",
+      "src/lib/nfc/session.server.ts",
+      "src/lib/nfc/constants.ts",
+      "src/components/nfc/NfcSmartEntryGate.tsx"
+    ],
+    "synastry": [
+      "src/lib/synastry/synastry-calculation.ts",
+      "src/lib/synastry/synastry-aspect-engine.ts",
+      "src/lib/synastry/synastry-chart-geometry.ts",
+      "src/components/synastry/SynastryVisualizer.tsx"
+    ],
+    "nexus": [
+      "src/lib/ai/nexus.ts",
+      "src/app/api/ai/nexus/daily/route.ts",
+      "src/components/tabs/NexusTabContent.tsx"
+    ],
+    "security": [
+      "src/lib/nfc/middleware-security.ts",
+      "src/components/SecurityBootstrap.tsx"
+    ]
+  }
+}
