@@ -10,7 +10,10 @@ import {
   saveCosmicProfileToJournal,
   submitCosmicProfileFeedback,
 } from "@/lib/actions/cosmic-profile";
-import { type CosmicProfileTierId } from "@/lib/cosmic-profile/types";
+import {
+  COSMIC_PROFILE_TIERS,
+  type CosmicProfileTierId,
+} from "@/lib/cosmic-profile/types";
 import { STAR_PACKAGES_PATH } from "@/lib/constants/cosmic";
 import { STAR_POINTS_UPDATED_EVENT } from "@/lib/energy-events";
 import { getStarPoints } from "@/lib/supabase-actions";
@@ -22,16 +25,6 @@ const PRIVACY_NOTICE =
 const FIELD_LABEL_CLASS = "block text-[10px] uppercase tracking-[0.2em] text-white/40";
 const FIELD_INPUT_CLASS =
   "w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-white outline-none focus:border-amber-400/30";
-
-const DERINLIK_SECENEKLERI: {
-  id: CosmicProfileTierId;
-  stars: number;
-  label: string;
-}[] = [
-  { id: "entry", stars: 5, label: "5 Yıldız - Hızlı Analiz" },
-  { id: "depth", stars: 8, label: "8 Yıldız - Derin Analiz" },
-  { id: "master", stars: 12, label: "12 Yıldız - Detaylı & Detaylı Astro-Analiz" },
-];
 
 interface CosmicProfilePanelProps {
   user: UserData;
@@ -178,7 +171,7 @@ export default function CosmicProfilePanel({ user, onClose }: CosmicProfilePanel
     setSavedToJournal(true);
   }
 
-  const selectedDepth = DERINLIK_SECENEKLERI.find((item) => item.id === derinlikSeviyesi);
+  const selectedDepth = COSMIC_PROFILE_TIERS.find((item) => item.id === derinlikSeviyesi);
 
   return (
     <motion.div
@@ -307,23 +300,39 @@ export default function CosmicProfilePanel({ user, onClose }: CosmicProfilePanel
 
             <div className="flex w-full flex-col gap-2">
               <span className={FIELD_LABEL_CLASS}>Analiz Derinliği</span>
-              <div className="flex w-full flex-col gap-2" role="radiogroup" aria-label="Analiz derinliği">
-                {DERINLIK_SECENEKLERI.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    role="radio"
-                    aria-checked={derinlikSeviyesi === item.id}
-                    onClick={() => setDerinlikSeviyesi(item.id)}
-                    className={`w-full rounded-xl border px-4 py-3 text-left transition ${
-                      derinlikSeviyesi === item.id
-                        ? "border-amber-400/40 bg-amber-400/10"
-                        : "border-white/10 bg-white/[0.03] hover:border-white/20"
-                    }`}
-                  >
-                    <span className="text-sm font-medium text-white">{item.label}</span>
-                  </button>
-                ))}
+              <div
+                className="flex w-full flex-col gap-2"
+                role="radiogroup"
+                aria-label="Analiz derinliği"
+              >
+                {COSMIC_PROFILE_TIERS.map((item) => {
+                  const isSelected = derinlikSeviyesi === item.id;
+
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={isSelected}
+                      onClick={() => setDerinlikSeviyesi(item.id)}
+                      className={`w-full rounded-xl border px-4 py-3 text-left transition ${
+                        isSelected
+                          ? "border-amber-500 bg-amber-400/10 shadow-[0_0_0_1px_rgba(245,158,11,0.15)]"
+                          : "border-white/10 bg-white/[0.03] hover:border-white/20"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-sm font-semibold text-white">{item.label}</span>
+                        <span className="shrink-0 text-xs font-medium text-amber-200/80">
+                          {item.stars} Yıldız
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs leading-relaxed text-white/45">
+                        {item.description}
+                      </p>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -348,7 +357,7 @@ export default function CosmicProfilePanel({ user, onClose }: CosmicProfilePanel
                 !derinlikSeviyesi ||
                 (selectedDepth !== undefined && starPoints < selectedDepth.stars)
               }
-              className="w-full rounded-xl bg-amber-400/90 px-4 py-3 text-sm font-semibold text-[#0f172a] transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full rounded-xl bg-amber-500/95 px-4 py-3.5 text-sm font-semibold text-[#0f172a] transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSubmitting
                 ? "Kozmik imza hesaplanıyor…"
