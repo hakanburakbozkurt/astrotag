@@ -42,6 +42,7 @@ export default function CosmicProfilePanel({ user, onClose }: CosmicProfilePanel
   const [birthTime, setBirthTime] = useState(user.birthTime ?? "12:00");
   const [birthCity, setBirthCity] = useState("");
   const [birthDistrict, setBirthDistrict] = useState("");
+  const [relationshipType, setRelationshipType] = useState("");
   const [tier, setTier] = useState<CosmicProfileTierId>("entry");
   const [starPoints, setStarPoints] = useState(user.starPoints + user.starPointsBonus);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -223,30 +224,51 @@ export default function CosmicProfilePanel({ user, onClose }: CosmicProfilePanel
               />
             </label>
 
-            <div className="grid grid-cols-2 gap-2 sm:gap-3">
-              <label className="block min-w-0">
+            <div className="w-full max-w-md space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <label className="block min-w-0">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-white/40">
+                    Doğum Tarihi
+                  </span>
+                  <input
+                    type="date"
+                    value={birthDate}
+                    onChange={(event) => setBirthDate(event.target.value)}
+                    className="mt-1.5 box-border w-full min-w-0 max-w-full rounded-lg border border-white/10 bg-white/[0.04] px-2 py-2 text-xs text-white outline-none focus:border-amber-400/30 sm:rounded-xl sm:px-2.5 sm:py-2.5 sm:text-sm"
+                    required
+                  />
+                </label>
+                <label className="block min-w-0">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-white/40">
+                    Doğum Saati
+                  </span>
+                  <input
+                    type="time"
+                    value={birthTime}
+                    onChange={(event) => setBirthTime(event.target.value)}
+                    className="mt-1.5 box-border w-full min-w-0 max-w-full rounded-lg border border-white/10 bg-white/[0.04] px-2 py-2 text-xs text-white outline-none focus:border-amber-400/30 sm:rounded-xl sm:px-2.5 sm:py-2.5 sm:text-sm"
+                    required
+                  />
+                </label>
+              </div>
+
+              <label className="block w-full">
                 <span className="text-[10px] uppercase tracking-[0.2em] text-white/40">
-                  Doğum Tarihi
+                  İlişki Türü
                 </span>
-                <input
-                  type="date"
-                  value={birthDate}
-                  onChange={(event) => setBirthDate(event.target.value)}
-                  className="mt-1.5 box-border w-full min-w-0 max-w-full rounded-lg border border-white/10 bg-white/[0.04] px-2 py-2 text-xs text-white outline-none focus:border-amber-400/30 sm:rounded-xl sm:px-2.5 sm:py-2.5 sm:text-sm"
+                <select
+                  value={relationshipType}
+                  onChange={(event) => setRelationshipType(event.target.value)}
+                  className="mt-1.5 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-white outline-none focus:border-amber-400/30"
                   required
-                />
-              </label>
-              <label className="block min-w-0">
-                <span className="text-[10px] uppercase tracking-[0.2em] text-white/40">
-                  Doğum Saati
-                </span>
-                <input
-                  type="time"
-                  value={birthTime}
-                  onChange={(event) => setBirthTime(event.target.value)}
-                  className="mt-1.5 box-border w-full min-w-0 max-w-full rounded-lg border border-white/10 bg-white/[0.04] px-2 py-2 text-xs text-white outline-none focus:border-amber-400/30 sm:rounded-xl sm:px-2.5 sm:py-2.5 sm:text-sm"
-                  required
-                />
+                >
+                  <option value="">Seçin</option>
+                  <option value="Flört">Flört</option>
+                  <option value="Arkadaş">Arkadaş</option>
+                  <option value="Sevgili">Sevgili</option>
+                  <option value="İş Arkadaşı">İş Arkadaşı</option>
+                  <option value="Aile">Aile</option>
+                </select>
               </label>
             </div>
 
