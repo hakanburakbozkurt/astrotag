@@ -7,7 +7,8 @@ import { REFERRAL_STAR_POINTS_BONUS } from "@/lib/constants/cosmic";
 
 export const STAR_POINTS_RULES = [
   "Yeni kayıt: 20 başlangıç yıldızı.",
-  "Yıldız Doldur: 6 saatte bir +2 (maks. 100).",
+  "Yıldız Topla: 6 saatte bir +2 (maks. 100).",
+  "Harcanan yıldızlar önce bonus bakiyeden, sonra ana bakiyeden düşülür.",
   "Tarot açılımı: −3 yıldız. Diğer analizler: −1.",
   `Referans bonusu: +${REFERRAL_STAR_POINTS_BONUS} (100 limitinin üzerine).`,
   "Aynı 3 tarot kartı 24 saat içinde önbellekten gelir (yıldız harcanmaz).",

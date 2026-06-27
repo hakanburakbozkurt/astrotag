@@ -19,13 +19,13 @@ export const COSMIC_PROFILE_TIERS: CosmicProfileTier[] = [
   {
     id: "depth",
     label: "Derinlik",
-    stars: 15,
+    stars: 8,
     description: "Transitler, evler ve genişletilmiş gerilim haritası",
   },
   {
     id: "master",
     label: "Detaylı",
-    stars: 30,
+    stars: 12,
     description: "Tam Emph paketi, synastry ve derin hikâye tohumları",
   },
 ];

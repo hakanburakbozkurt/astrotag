@@ -31,12 +31,12 @@ export function deductStarPointsBalance(
   starPointsBonus: number,
   amount: number
 ): { starPoints: number; starPointsBonus: number } {
-  const fromStarPoints = Math.min(starPoints, amount);
-  const remaining = amount - fromStarPoints;
+  const fromBonus = Math.min(starPointsBonus, amount);
+  const remaining = amount - fromBonus;
 
   return {
-    starPoints: starPoints - fromStarPoints,
-    starPointsBonus: starPointsBonus - remaining,
+    starPoints: starPoints - remaining,
+    starPointsBonus: starPointsBonus - fromBonus,
   };
 }
 

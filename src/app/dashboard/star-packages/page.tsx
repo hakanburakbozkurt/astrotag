@@ -37,7 +37,7 @@ export default function StarPackagesPage() {
             Her {SESSION_DURATION_HOURS} saatte bir otomatik +{STAR_POINTS_PER_CHARGE} yıldız
             (maks. {MAX_STAR_POINTS}).
           </li>
-          <li>Profil sekmesindeki &quot;Yıldız Doldur&quot; ile anlık yenileme.</li>
+          <li>Profil sekmesindeki &quot;Yıldız Topla&quot; ile anlık yenileme.</li>
         </ul>
       </section>
 
@@ -60,8 +60,8 @@ export default function StarPackagesPage() {
         <h2 className="text-sm font-semibold text-white">Kozmik Profil Maliyetleri</h2>
         <ul className="mt-3 space-y-2 text-sm text-white/55">
           <li>Giriş — 5 Yıldız</li>
-          <li>Derinlik — 15 Yıldız</li>
-          <li>Detaylı — 30 Yıldız</li>
+          <li>Derinlik — 8 Yıldız</li>
+          <li>Detaylı — 12 Yıldız</li>
         </ul>
         <p className="mt-3 text-xs text-white/40">
           Isabetli bulmadığınız analizler için 20 yıldız iade uygulanır.

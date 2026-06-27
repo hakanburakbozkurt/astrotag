@@ -1,22 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { EnergyRulesPopup } from "@/components/dashboard/EnergyRulesPopup";
-import {
-  MAX_STAR_POINTS,
-  STAR_POINTS_PER_CHARGE,
-} from "@/lib/constants/cosmic";
-import {
-  buildStarPointsChargeState,
-  type StarPointsChargeState,
-} from "@/lib/energy-charge";
-import {
-  chargeStarPoints,
-  getStarPointsChargeState,
-} from "@/lib/supabase-actions";
-import { formatCountdown, SupabaseActionError } from "@/lib/supabase-action-error";
-import { STAR_POINTS_UPDATED_EVENT } from "@/lib/energy-events";
+import { MAX_STAR_POINTS } from "@/lib/constants/cosmic";
+import { useStarEconomy } from "@/hooks/useStarEconomy";
 
 function EnergyInfoButton() {
   const [open, setOpen] = useState(false);
@@ -44,143 +32,19 @@ function EnergyInfoButton() {
   );
 }
 
-function applyOptimisticCharge(state: StarPointsChargeState): StarPointsChargeState {
-  const nowIso = new Date().toISOString();
-  const nextStarPoints = Math.min(
-    state.starPoints + STAR_POINTS_PER_CHARGE,
-    MAX_STAR_POINTS
-  );
-
-  return buildStarPointsChargeState(
-    nextStarPoints,
-    state.starPointsBonus,
-    nowIso
-  );
-}
-
 export default function SessionCounter() {
-  const [chargeState, setChargeState] = useState<StarPointsChargeState>({
-    starPoints: 0,
-    starPointsBonus: 0,
-    totalStarPoints: 0,
-    lastStarPointsCharge: null,
-    canCharge: true,
-    isFull: false,
-    nextChargeAt: null,
-  });
-  const [cooldown, setCooldown] = useState("00:00:00");
-  const [isLoading, setIsLoading] = useState(true);
-  const [isCharging, setIsCharging] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const isChargingRef = useRef(false);
-
-  const refreshState = useCallback(async () => {
-    try {
-      setError(null);
-      const starPointsState = await getStarPointsChargeState();
-      setChargeState(starPointsState);
-    } catch (err) {
-      const message =
-        err instanceof SupabaseActionError
-          ? err.message
-          : "Yıldız puanı bilgisi alınamadı.";
-      setError(message);
-      setChargeState({
-        starPoints: 0,
-        starPointsBonus: 0,
-        totalStarPoints: 0,
-        lastStarPointsCharge: null,
-        canCharge: false,
-        isFull: false,
-        nextChargeAt: null,
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void refreshState();
-  }, [refreshState]);
-
-  useEffect(() => {
-    const handleStarPointsUpdated = () => {
-      if (isChargingRef.current) {
-        return;
-      }
-      void refreshState();
-    };
-
-    window.addEventListener(STAR_POINTS_UPDATED_EVENT, handleStarPointsUpdated);
-    return () => {
-      window.removeEventListener(STAR_POINTS_UPDATED_EVENT, handleStarPointsUpdated);
-    };
-  }, [refreshState]);
-
-  useEffect(() => {
-    if (!chargeState.nextChargeAt) {
-      setCooldown("00:00:00");
-      return;
-    }
-
-    const updateCooldown = () => {
-      const remaining = formatCountdown(chargeState.nextChargeAt);
-      setCooldown(remaining);
-
-      if (remaining === "00:00:00") {
-        void refreshState();
-      }
-    };
-
-    updateCooldown();
-    const interval = setInterval(updateCooldown, 1000);
-    return () => clearInterval(interval);
-  }, [chargeState.nextChargeAt, refreshState]);
-
-  const handleChargeStarPoints = async () => {
-    if (isCharging || !chargeState.canCharge) return;
-
-    const previousState = chargeState;
-    const optimisticState = applyOptimisticCharge(chargeState);
-
-    setIsCharging(true);
-    isChargingRef.current = true;
-    setError(null);
-    setChargeState(optimisticState);
-
-    try {
-      const result = await chargeStarPoints();
-      setChargeState(result.chargeState);
-      window.dispatchEvent(new CustomEvent(STAR_POINTS_UPDATED_EVENT));
-    } catch (err) {
-      setChargeState(previousState);
-
-      if (
-        err instanceof SupabaseActionError &&
-        (err.message.includes("beklemelisiniz") || err.message.includes("dolu"))
-      ) {
-        setError(err.message);
-      }
-    } finally {
-      isChargingRef.current = false;
-      setIsCharging(false);
-    }
-  };
-
-  const { starPoints, starPointsBonus, totalStarPoints } = chargeState;
-  const fillPercent = Math.min(
-    100,
-    Math.round((starPoints / MAX_STAR_POINTS) * 100)
-  );
-  const isOnCooldown = Boolean(chargeState.nextChargeAt);
-
-  const buttonLabel = isCharging
-    ? "Yükleniyor..."
-    : chargeState.isFull
-      ? "Yıldızlar Dolu (100/100)"
-      : isOnCooldown
-        ? `Sonraki: ${cooldown}`
-        : `Yıldız Doldur (+${STAR_POINTS_PER_CHARGE})`;
+  const {
+    starPoints,
+    starPointsBonus,
+    totalStarPoints,
+    canCharge,
+    fillPercent,
+    isLoading,
+    isClaiming,
+    error,
+    claimStars,
+    buttonLabel,
+  } = useStarEconomy();
 
   return (
     <motion.section
@@ -232,8 +96,8 @@ export default function SessionCounter() {
 
           <button
             type="button"
-            onClick={() => void handleChargeStarPoints()}
-            disabled={isCharging || !chargeState.canCharge}
+            onClick={() => void claimStars()}
+            disabled={isClaiming || !canCharge}
             className="min-h-11 w-full rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm font-medium text-amber-100 transition hover:bg-amber-400/20 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {buttonLabel}
@@ -241,9 +105,7 @@ export default function SessionCounter() {
         </div>
       )}
 
-      {error ? (
-        <p className="mt-3 text-xs text-red-300/80">{error}</p>
-      ) : null}
+      {error ? <p className="mt-3 text-xs text-red-300/80">{error}</p> : null}
     </motion.section>
   );
 }

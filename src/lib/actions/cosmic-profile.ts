@@ -49,7 +49,9 @@ export type RunCosmicProfileResult =
     };
 
 function buildBirthPlace(city: string, district: string): string {
-  return `${city.trim()}, ${district.trim()}`;
+  const cityTrim = city.trim();
+  const districtTrim = district.trim();
+  return districtTrim ? `${cityTrim}, ${districtTrim}` : cityTrim;
 }
 
 function formToUserData(input: CosmicProfileFormInput): UserData {
@@ -102,8 +104,8 @@ export async function runCosmicProfileAnalysis(
   const name = input.name?.trim();
   const tier = getCosmicProfileTier(input.tier);
 
-  if (!name || !input.birthDate || !input.birthTime || !input.birthCity || !input.birthDistrict) {
-    return { success: false, error: "Lütfen tüm alanları doldurun." };
+  if (!name || !input.birthDate || !input.birthTime || !input.birthCity) {
+    return { success: false, error: "Lütfen zorunlu alanları doldurun." };
   }
 
   try {

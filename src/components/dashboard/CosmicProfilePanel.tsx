@@ -16,7 +16,7 @@ import {
 } from "@/lib/cosmic-profile/types";
 import { STAR_PACKAGES_PATH } from "@/lib/constants/cosmic";
 import { STAR_POINTS_UPDATED_EVENT } from "@/lib/energy-events";
-import { getStarPoints } from "@/lib/supabase-actions";
+import { useStarEconomy } from "@/hooks/useStarEconomy";
 import type { UserData } from "@/types/user";
 
 const PRIVACY_NOTICE =
@@ -48,7 +48,7 @@ export default function CosmicProfilePanel({ user, onClose }: CosmicProfilePanel
   const [birthDistrict, setBirthDistrict] = useState("");
   const [relationshipType, setRelationshipType] = useState("");
   const [derinlikSeviyesi, setDerinlikSeviyesi] = useState<CosmicProfileTierId | "">("");
-  const [starPoints, setStarPoints] = useState(user.starPoints + user.starPointsBonus);
+  const { totalStarPoints, refresh: refreshStarEconomy } = useStarEconomy();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<AnalysisState | null>(null);
@@ -63,10 +63,6 @@ export default function CosmicProfilePanel({ user, onClose }: CosmicProfilePanel
   }, [birthCity]);
 
   useEffect(() => {
-    void getStarPoints().then(setStarPoints).catch(() => undefined);
-  }, []);
-
-  useEffect(() => {
     if (!birthDistrict) return;
     if (!districtOptions.includes(birthDistrict)) {
       setBirthDistrict("");
@@ -74,10 +70,10 @@ export default function CosmicProfilePanel({ user, onClose }: CosmicProfilePanel
   }, [birthCity, birthDistrict, districtOptions]);
 
   function notifyStarPointsUpdated(next: number) {
-    setStarPoints(next);
     window.dispatchEvent(
       new CustomEvent(STAR_POINTS_UPDATED_EVENT, { detail: { starPoints: next } })
     );
+    void refreshStarEconomy();
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -206,7 +202,7 @@ export default function CosmicProfilePanel({ user, onClose }: CosmicProfilePanel
 
         <p className="mt-3 text-xs leading-relaxed text-white/45">
           Kullanılabilir Yıldız:{" "}
-          <span className="text-amber-200/90">{starPoints}</span>
+          <span className="text-amber-200/90">{totalStarPoints}</span>
         </p>
 
         {!analysis ? (
@@ -223,23 +219,23 @@ export default function CosmicProfilePanel({ user, onClose }: CosmicProfilePanel
             </label>
 
             <div className="grid w-full grid-cols-2 gap-4">
-              <label className="flex min-w-0 w-full flex-col gap-1">
+              <label className="flex min-w-0 flex-col gap-1">
                 <span className={FIELD_LABEL_CLASS}>Doğum Tarihi</span>
                 <input
                   type="date"
                   value={birthDate}
                   onChange={(event) => setBirthDate(event.target.value)}
-                  className={`${FIELD_INPUT_CLASS} min-w-0`}
+                  className={`${FIELD_INPUT_CLASS} min-w-0 flex-1`}
                   required
                 />
               </label>
-              <label className="flex min-w-0 w-full flex-col gap-1">
+              <label className="flex min-w-0 flex-col gap-1">
                 <span className={FIELD_LABEL_CLASS}>Doğum Saati</span>
                 <input
                   type="time"
                   value={birthTime}
                   onChange={(event) => setBirthTime(event.target.value)}
-                  className={`${FIELD_INPUT_CLASS} min-w-0`}
+                  className={`${FIELD_INPUT_CLASS} min-w-0 flex-1`}
                   required
                 />
               </label>
@@ -279,13 +275,12 @@ export default function CosmicProfilePanel({ user, onClose }: CosmicProfilePanel
                   ))}
                 </select>
               </label>
-              <label className="flex w-full flex-col gap-1">
-                <span className={FIELD_LABEL_CLASS}>İlçe</span>
+              <label className="flex min-w-0 flex-1 flex-col gap-1">
+                <span className={FIELD_LABEL_CLASS}>İlçe (opsiyonel)</span>
                 <select
                   value={birthDistrict}
                   onChange={(event) => setBirthDistrict(event.target.value)}
-                  className={FIELD_INPUT_CLASS}
-                  required
+                  className={`${FIELD_INPUT_CLASS} min-w-0 flex-1`}
                   disabled={!birthCity}
                 >
                   <option value="">Seçin</option>
@@ -355,7 +350,7 @@ export default function CosmicProfilePanel({ user, onClose }: CosmicProfilePanel
               disabled={
                 isSubmitting ||
                 !derinlikSeviyesi ||
-                (selectedDepth !== undefined && starPoints < selectedDepth.stars)
+                (selectedDepth !== undefined && totalStarPoints < selectedDepth.stars)
               }
               className="w-full rounded-xl bg-amber-500/95 px-4 py-3.5 text-sm font-semibold text-[#0f172a] transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50"
             >
@@ -366,7 +361,7 @@ export default function CosmicProfilePanel({ user, onClose }: CosmicProfilePanel
                   : "Analizi Başlat"}
             </button>
 
-            {selectedDepth && starPoints < selectedDepth.stars ? (
+            {selectedDepth && totalStarPoints < selectedDepth.stars ? (
               <p className="text-center text-xs text-amber-200/70">
                 Yetersiz yıldız.{" "}
                 <Link href={STAR_PACKAGES_PATH} className="underline">
