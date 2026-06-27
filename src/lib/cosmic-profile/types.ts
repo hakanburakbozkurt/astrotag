@@ -12,20 +12,20 @@ export interface CosmicProfileTier {
 export const COSMIC_PROFILE_TIERS: CosmicProfileTier[] = [
   {
     id: "entry",
-    label: "Giriş",
+    label: "Hızlı Analiz",
     stars: 5,
     description: "Temel natal özet ve ana gerilim eksenleri",
   },
   {
     id: "depth",
-    label: "Derinlik",
-    stars: 15,
+    label: "Derin Analiz",
+    stars: 8,
     description: "Transitler, evler ve genişletilmiş gerilim haritası",
   },
   {
     id: "master",
-    label: "Detaylı",
-    stars: 30,
+    label: "Detaylı Astro-Analiz",
+    stars: 12,
     description: "Tam Emph paketi, synastry ve derin hikâye tohumları",
   },
 ];

@@ -4,6 +4,7 @@ import { RouterReadyProvider } from "@/lib/auth/router-ready-context.client";
 import AppProviders from "@/components/providers/AppProviders";
 import PwaRegister from "@/components/PwaRegister";
 import SecurityBootstrap from "@/components/SecurityBootstrap";
+import ToastBootstrap from "@/components/ToastBootstrap";
 import NfcAuthPersistenceBootstrap from "@/components/nfc/NfcAuthPersistenceBootstrap";
 import { SITE_URL, WELCOME_IMAGE_PATH } from "@/lib/nfc/constants";
 import "./globals.css";
@@ -74,6 +75,7 @@ export default function RootLayout({
           <AppProviders>
             <PwaRegister />
             <SecurityBootstrap />
+            <ToastBootstrap />
             <NfcAuthPersistenceBootstrap />
             {children}
           </AppProviders>

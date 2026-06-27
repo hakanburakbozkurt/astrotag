@@ -10,10 +10,7 @@ import {
   saveCosmicProfileToJournal,
   submitCosmicProfileFeedback,
 } from "@/lib/actions/cosmic-profile";
-import {
-  COSMIC_PROFILE_TIERS,
-  type CosmicProfileTierId,
-} from "@/lib/cosmic-profile/types";
+import { type CosmicProfileTierId } from "@/lib/cosmic-profile/types";
 import { STAR_PACKAGES_PATH } from "@/lib/constants/cosmic";
 import { STAR_POINTS_UPDATED_EVENT } from "@/lib/energy-events";
 import { getStarPoints } from "@/lib/supabase-actions";
@@ -21,6 +18,20 @@ import type { UserData } from "@/types/user";
 
 const PRIVACY_NOTICE =
   "Bu veriler analiz için geçicidir ve kaydedilmemiştir. Kozmik Günlüğünüze yalnızca siz onay verdiğinizde şifreli olarak kaydedilir.";
+
+const FIELD_LABEL_CLASS = "block text-[10px] uppercase tracking-[0.2em] text-white/40";
+const FIELD_INPUT_CLASS =
+  "w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-white outline-none focus:border-amber-400/30";
+
+const DERINLIK_SECENEKLERI: {
+  id: CosmicProfileTierId;
+  stars: number;
+  label: string;
+}[] = [
+  { id: "entry", stars: 5, label: "5 Yıldız - Hızlı Analiz" },
+  { id: "depth", stars: 8, label: "8 Yıldız - Derin Analiz" },
+  { id: "master", stars: 12, label: "12 Yıldız - Detaylı & Detaylı Astro-Analiz" },
+];
 
 interface CosmicProfilePanelProps {
   user: UserData;
@@ -37,13 +48,13 @@ type AnalysisState = {
 
 export default function CosmicProfilePanel({ user, onClose }: CosmicProfilePanelProps) {
   const router = useRouter();
-  const [name, setName] = useState(user.name ?? "");
-  const [birthDate, setBirthDate] = useState(user.birthDate ?? "");
-  const [birthTime, setBirthTime] = useState(user.birthTime ?? "12:00");
+  const [name, setName] = useState("");
+  const [birthDate, setBirthDate] = useState("");
+  const [birthTime, setBirthTime] = useState("");
   const [birthCity, setBirthCity] = useState("");
   const [birthDistrict, setBirthDistrict] = useState("");
   const [relationshipType, setRelationshipType] = useState("");
-  const [tier, setTier] = useState<CosmicProfileTierId>("entry");
+  const [derinlikSeviyesi, setDerinlikSeviyesi] = useState<CosmicProfileTierId | "">("");
   const [starPoints, setStarPoints] = useState(user.starPoints + user.starPointsBonus);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,13 +68,6 @@ export default function CosmicProfilePanel({ user, onClose }: CosmicProfilePanel
     if (!birthCity) return [];
     return citiesData.find((city) => city.name === birthCity)?.districts ?? [];
   }, [birthCity]);
-
-  useEffect(() => {
-    if (!user.birthPlace) return;
-    const parts = user.birthPlace.split(",").map((part) => part.trim());
-    if (parts[0]) setBirthCity(parts[0]);
-    if (parts[1]) setBirthDistrict(parts[1]);
-  }, [user.birthPlace]);
 
   useEffect(() => {
     void getStarPoints().then(setStarPoints).catch(() => undefined);
@@ -85,7 +89,7 @@ export default function CosmicProfilePanel({ user, onClose }: CosmicProfilePanel
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (isSubmitting) return;
+    if (isSubmitting || !derinlikSeviyesi) return;
 
     setIsSubmitting(true);
     setError(null);
@@ -101,7 +105,7 @@ export default function CosmicProfilePanel({ user, onClose }: CosmicProfilePanel
       birthTime,
       birthCity,
       birthDistrict,
-      tier,
+      tier: derinlikSeviyesi,
     });
 
     setIsSubmitting(false);
@@ -174,7 +178,7 @@ export default function CosmicProfilePanel({ user, onClose }: CosmicProfilePanel
     setSavedToJournal(true);
   }
 
-  const selectedTier = COSMIC_PROFILE_TIERS.find((item) => item.id === tier)!;
+  const selectedDepth = DERINLIK_SECENEKLERI.find((item) => item.id === derinlikSeviyesi);
 
   return (
     <motion.div
@@ -213,72 +217,65 @@ export default function CosmicProfilePanel({ user, onClose }: CosmicProfilePanel
         </p>
 
         {!analysis ? (
-          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-            <label className="block">
-              <span className="text-[10px] uppercase tracking-[0.2em] text-white/40">İsim</span>
+          <form onSubmit={handleSubmit} className="mt-6 flex w-full flex-col gap-3">
+            <label className="flex w-full flex-col gap-1">
+              <span className={FIELD_LABEL_CLASS}>İsim</span>
               <input
                 value={name}
                 onChange={(event) => setName(event.target.value)}
-                className="mt-1.5 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-white outline-none focus:border-amber-400/30"
+                placeholder="Adınızı girin"
+                className={FIELD_INPUT_CLASS}
                 required
               />
             </label>
 
-            <div className="w-full max-w-md space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <label className="block min-w-0">
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-white/40">
-                    Doğum Tarihi
-                  </span>
-                  <input
-                    type="date"
-                    value={birthDate}
-                    onChange={(event) => setBirthDate(event.target.value)}
-                    className="mt-1.5 box-border w-full min-w-0 max-w-full rounded-lg border border-white/10 bg-white/[0.04] px-2 py-2 text-xs text-white outline-none focus:border-amber-400/30 sm:rounded-xl sm:px-2.5 sm:py-2.5 sm:text-sm"
-                    required
-                  />
-                </label>
-                <label className="block min-w-0">
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-white/40">
-                    Doğum Saati
-                  </span>
-                  <input
-                    type="time"
-                    value={birthTime}
-                    onChange={(event) => setBirthTime(event.target.value)}
-                    className="mt-1.5 box-border w-full min-w-0 max-w-full rounded-lg border border-white/10 bg-white/[0.04] px-2 py-2 text-xs text-white outline-none focus:border-amber-400/30 sm:rounded-xl sm:px-2.5 sm:py-2.5 sm:text-sm"
-                    required
-                  />
-                </label>
-              </div>
-
-              <label className="block w-full">
-                <span className="text-[10px] uppercase tracking-[0.2em] text-white/40">
-                  İlişki Türü
-                </span>
-                <select
-                  value={relationshipType}
-                  onChange={(event) => setRelationshipType(event.target.value)}
-                  className="mt-1.5 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-white outline-none focus:border-amber-400/30"
+            <div className="grid w-full grid-cols-2 gap-4">
+              <label className="flex min-w-0 w-full flex-col gap-1">
+                <span className={FIELD_LABEL_CLASS}>Doğum Tarihi</span>
+                <input
+                  type="date"
+                  value={birthDate}
+                  onChange={(event) => setBirthDate(event.target.value)}
+                  className={`${FIELD_INPUT_CLASS} min-w-0`}
                   required
-                >
-                  <option value="">Seçin</option>
-                  <option value="Flört">Flört</option>
-                  <option value="Arkadaş">Arkadaş</option>
-                  <option value="Sevgili">Sevgili</option>
-                  <option value="İş Arkadaşı">İş Arkadaşı</option>
-                  <option value="Aile">Aile</option>
-                </select>
+                />
+              </label>
+              <label className="flex min-w-0 w-full flex-col gap-1">
+                <span className={FIELD_LABEL_CLASS}>Doğum Saati</span>
+                <input
+                  type="time"
+                  value={birthTime}
+                  onChange={(event) => setBirthTime(event.target.value)}
+                  className={`${FIELD_INPUT_CLASS} min-w-0`}
+                  required
+                />
               </label>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <label className="block">
-                <span className="text-[10px] uppercase tracking-[0.2em] text-white/40">İl</span>
+            <label className="flex w-full flex-col gap-1">
+              <span className={FIELD_LABEL_CLASS}>İlişki Türü</span>
+              <select
+                value={relationshipType}
+                onChange={(event) => setRelationshipType(event.target.value)}
+                className={FIELD_INPUT_CLASS}
+                required
+              >
+                <option value="">Seçin</option>
+                <option value="Flört">Flört</option>
+                <option value="Arkadaş">Arkadaş</option>
+                <option value="Sevgili">Sevgili</option>
+                <option value="İş Arkadaşı">İş Arkadaşı</option>
+                <option value="Aile">Aile</option>
+              </select>
+            </label>
+
+            <div className="grid w-full grid-cols-2 gap-4">
+              <label className="flex w-full flex-col gap-1">
+                <span className={FIELD_LABEL_CLASS}>İl</span>
                 <select
                   value={birthCity}
                   onChange={(event) => setBirthCity(event.target.value)}
-                  className="mt-1.5 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-white outline-none focus:border-amber-400/30"
+                  className={FIELD_INPUT_CLASS}
                   required
                 >
                   <option value="">Seçin</option>
@@ -289,12 +286,12 @@ export default function CosmicProfilePanel({ user, onClose }: CosmicProfilePanel
                   ))}
                 </select>
               </label>
-              <label className="block">
-                <span className="text-[10px] uppercase tracking-[0.2em] text-white/40">İlçe</span>
+              <label className="flex w-full flex-col gap-1">
+                <span className={FIELD_LABEL_CLASS}>İlçe</span>
                 <select
                   value={birthDistrict}
                   onChange={(event) => setBirthDistrict(event.target.value)}
-                  className="mt-1.5 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-white outline-none focus:border-amber-400/30"
+                  className={FIELD_INPUT_CLASS}
                   required
                   disabled={!birthCity}
                 >
@@ -308,27 +305,23 @@ export default function CosmicProfilePanel({ user, onClose }: CosmicProfilePanel
               </label>
             </div>
 
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.2em] text-white/40">
-                Analiz Seviyesi
-              </p>
-              <div className="mt-2 grid gap-2">
-                {COSMIC_PROFILE_TIERS.map((item) => (
+            <div className="flex w-full flex-col gap-2">
+              <span className={FIELD_LABEL_CLASS}>Analiz Derinliği</span>
+              <div className="flex w-full flex-col gap-2" role="radiogroup" aria-label="Analiz derinliği">
+                {DERINLIK_SECENEKLERI.map((item) => (
                   <button
                     key={item.id}
                     type="button"
-                    onClick={() => setTier(item.id)}
-                    className={`rounded-xl border px-4 py-3 text-left transition ${
-                      tier === item.id
+                    role="radio"
+                    aria-checked={derinlikSeviyesi === item.id}
+                    onClick={() => setDerinlikSeviyesi(item.id)}
+                    className={`w-full rounded-xl border px-4 py-3 text-left transition ${
+                      derinlikSeviyesi === item.id
                         ? "border-amber-400/40 bg-amber-400/10"
                         : "border-white/10 bg-white/[0.03] hover:border-white/20"
                     }`}
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-medium text-white">{item.label}</span>
-                      <span className="text-xs text-amber-200/80">{item.stars} Yıldız</span>
-                    </div>
-                    <p className="mt-1 text-xs text-white/45">{item.description}</p>
+                    <span className="text-sm font-medium text-white">{item.label}</span>
                   </button>
                 ))}
               </div>
@@ -350,15 +343,21 @@ export default function CosmicProfilePanel({ user, onClose }: CosmicProfilePanel
 
             <button
               type="submit"
-              disabled={isSubmitting || starPoints < selectedTier.stars}
+              disabled={
+                isSubmitting ||
+                !derinlikSeviyesi ||
+                (selectedDepth !== undefined && starPoints < selectedDepth.stars)
+              }
               className="w-full rounded-xl bg-amber-400/90 px-4 py-3 text-sm font-semibold text-[#0f172a] transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSubmitting
                 ? "Kozmik imza hesaplanıyor…"
-                : `Analizi Başlat (−${selectedTier.stars} Yıldız)`}
+                : selectedDepth
+                  ? `Analizi Başlat (−${selectedDepth.stars} Yıldız)`
+                  : "Analizi Başlat"}
             </button>
 
-            {starPoints < selectedTier.stars ? (
+            {selectedDepth && starPoints < selectedDepth.stars ? (
               <p className="text-center text-xs text-amber-200/70">
                 Yetersiz yıldız.{" "}
                 <Link href={STAR_PACKAGES_PATH} className="underline">
