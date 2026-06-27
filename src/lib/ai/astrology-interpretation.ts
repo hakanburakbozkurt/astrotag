@@ -1,13 +1,15 @@
 import type { UserData } from "@/types/user";
 import type { NatalChartSummary } from "@/lib/astrology/types";
-import { withOracleGuardrail } from "@/lib/ai/oracle-guardrails";
+import { buildOracleSystemPrompt } from "@/lib/ai/medium-persona";
 import { ORACLE_COSMIC_DATA_ERROR } from "@/lib/oracle/oracle-errors";
 import { TarotReadingError } from "@/lib/ai/tarot";
 
-const ASTROLOGY_SYSTEM_PROMPT = withOracleGuardrail(`Sen AstroTag Oracle natal yorumcususun.
+const ASTROLOGY_SYSTEM_PROMPT = buildOracleSystemPrompt(`Sen AstroTag Oracle natal yorumcususun.
 Kullanıcıya verilen doğum haritası JSON özetini hikayeleştir.
 Yalnızca JSON'daki gezegen yerleşimleri, evler ve aspect listesini kullan.
-Mistik, rehberlik edici ama kısa (maksimum 4-5 kısa paragraf) Türkçe yorum yaz.`);
+Teknik terimleri günlük hayat diline çevir.
+Yapı: Gökyüzü Görünümü → Gerçekçi Yorum (fırsat veya strateji) → Kozmik Tavsiye.
+Maksimum 4-5 kısa paragraf, Türkçe, markdown yok.`);
 
 const KIE_TAROT_MODEL = process.env.KIE_TAROT_MODEL ?? "gpt-5-2";
 const KIE_CHAT_COMPLETIONS_URL = `https://api.kie.ai/${KIE_TAROT_MODEL}/v1/chat/completions`;

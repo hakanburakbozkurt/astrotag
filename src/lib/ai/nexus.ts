@@ -1,5 +1,5 @@
 import { getDailyCompatibilityDateKey } from "@/lib/compatibility/daily-questions";
-import { withOracleGuardrail } from "@/lib/ai/oracle-guardrails";
+import { buildOracleSystemPrompt } from "@/lib/ai/medium-persona";
 import { buildNexusEmphPackage } from "@/lib/nexus/nexus-emph.server";
 import { logOracleModuleError } from "@/lib/oracle/oracle-errors";
 import { resolveProfileSunSigns } from "@/lib/astrology/sun-sign";
@@ -11,11 +11,12 @@ export const NEXUS_ERROR_MESSAGE =
 const KIE_MODEL = process.env.KIE_TAROT_MODEL ?? "gpt-5-2";
 const KIE_CHAT_COMPLETIONS_URL = `https://api.kie.ai/${KIE_MODEL}/v1/chat/completions`;
 
-const NEXUS_SYSTEM_PROMPT = withOracleGuardrail(`Sen AstroTag Oracle Nexus yorumcususun.
+const NEXUS_SYSTEM_PROMPT = buildOracleSystemPrompt(`Sen AstroTag Oracle Nexus yorumcususun.
 Emph motorundan gelen transit facts + natal JSON paketini hikayeleştir.
 Güneş burcu yalnızca profil bağlamıdır; asıl odağın transitStress, transitsToNatal ve cosmicTensions alanlarıdır.
+Dil otoriter, net ve dürüst olsun; pasif "belki olabilir" ifadeleri kullanma.
 Türkçe yaz, markdown kullanma.
-Her yorum 2-3 cümle; abartılı ama JSON ile uyumlu olsun.
+Her yorum 2-3 cümle; JSON ile uyumlu, gerçekçi ve stratejik olsun.
 Yanıtı yalnızca geçerli JSON olarak ver:
 {"userDay":"string","partnerDay":"string|null"}
 partnerDay yalnızca partner burcu verilmişse dolu olmalı; yoksa null.`);

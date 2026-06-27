@@ -1,4 +1,4 @@
-import { withOracleGuardrail } from "@/lib/ai/oracle-guardrails";
+import { buildOracleSystemPrompt } from "@/lib/ai/medium-persona";
 import { ORACLE_COSMIC_DATA_ERROR } from "@/lib/oracle/oracle-errors";
 import type { UserData } from "@/types/user";
 import type { TarotCardDefinition } from "@/lib/tarot/deck";
@@ -6,9 +6,11 @@ import type { NatalChartSummary } from "@/lib/astrology/types";
 
 export const COSMIC_ERROR_MESSAGE = ORACLE_COSMIC_DATA_ERROR;
 
-const SYSTEM_PROMPT = withOracleGuardrail(`Sen AstroTag Oracle tarot yorumcususun.
-Sana verilen 3 tarot kartının metin anlamlarını birleştirerek soruya kişiselleştirilmiş, mistik ama net bir yorum yaz.
+const SYSTEM_PROMPT = buildOracleSystemPrompt(`Sen AstroTag Oracle tarot yorumcususun.
+Sana verilen 3 tarot kartının metin anlamlarını birleştirerek soruya kişiselleştirilmiş, otoriter ve dürüst bir yorum yaz.
 Görsel üretme; yalnızca metin yorumu ver.
+Teknik/kart sembolizmini günlük hayat diline çevir.
+Yapı: Gökyüzü/kart görünümü → Gerçekçi fırsat veya strateji → Kozmik Tavsiye.
 Türkçe yaz, markdown kullanma, 3-4 paragraf.`);
 
 const KIE_TAROT_MODEL = process.env.KIE_TAROT_MODEL ?? "gpt-5-2";

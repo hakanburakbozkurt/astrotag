@@ -1,4 +1,4 @@
-import { withOracleGuardrail } from "@/lib/ai/oracle-guardrails";
+import { buildOracleSystemPrompt } from "@/lib/ai/medium-persona";
 import type { CosmicAnalysisContext } from "@/lib/astrology/cosmic-context";
 import { SynastryCalculation } from "@/lib/synastry/synastry-calculation";
 import {
@@ -14,22 +14,25 @@ export const SYNASTRY_ERROR_MESSAGE =
 const KIE_MODEL = process.env.KIE_TAROT_MODEL ?? "gpt-5-2";
 const KIE_CHAT_COMPLETIONS_URL = `https://api.kie.ai/${KIE_MODEL}/v1/chat/completions`;
 
-const SCORE_NARRATION_PROMPT = withOracleGuardrail(`Sen AstroTag Oracle ilişki metin yazarısın.
+const SCORE_NARRATION_PROMPT = buildOracleSystemPrompt(`Sen AstroTag Oracle ilişki metin yazarısın.
 GÖREV: Aşağıdaki ALGORİTMİK SYNastry SKORU ve ANALİZ JSON'unu kullanarak TEK CÜMLELİK Türkçe özet yaz.
 KURALLAR:
 - Skoru ASLA değiştirme veya yeniden hesaplama; score alanı kutsaldır.
 - JSON facts dışında yeni aspect, ev veya gezegen uydurma.
-- Teknik orb/açı detaylarını sadece verilen facts ile sınırla.
+- Teknik orb/açı detaylarını sadece verilen facts ile sınırla; günlük hayat diline çevir.
+- Otoriter, net, dürüst ton; pasif ifadeler yasak.
 - Markdown kullanma.
 - Yanıt yalnızca geçerli JSON: {"summary": "string"}`);
 
-const ANALYZE_SYSTEM_PROMPT = withOracleGuardrail(`Sen AstroTag Oracle synastry yorumcususun.
+const ANALYZE_SYSTEM_PROMPT = buildOracleSystemPrompt(`Sen AstroTag Oracle synastry yorumcususun.
 Görevin: ALGORİTMİK SKOR PAKETİ + natal/transit ephemeris verilerini kullanarak ilişki odaklı teknik synastry analizi yazmak.
 Skoru ve aspect facts listesini ASLA değiştirme; yalnızca yorumla.
 Mutlaka ephemeris motorundan gelen o anki gökyüzü konumlarını (transit gezegen dereceleri ve natal açıları) hesaba kat.
+Teknik terimleri günlük hayat diline çevir.
 Türkçe yaz, markdown kullanma, 3-4 paragraf.
 Venüs, Mars, Ay, Güneş ve Satürn-Uranüs eksenlerine teknik atıflar yap — yalnızca verilen JSON içindeki facts ile.
-Son paragrafta net, uygulanabilir ilişki rehberliği ver.`);
+Yapı: Gökyüzü Görünümü → Gerçekçi Yorum (fırsat veya strateji) → Kozmik Tavsiye.
+Son paragrafta net, uygulanabilir ilişki rehberliği ver; karar verme, rehberlik et.`);
 
 export interface SynastryScoreResponse {
   score: number;
