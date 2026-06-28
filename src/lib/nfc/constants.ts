@@ -75,6 +75,8 @@ export const PUBLIC_PATHS = new Set([
   AUTH_SIGNUP_PATH,
   AUTH_LOGIN_PATH,
   NFC_LOGIN_PATH,
+  "/kozmik-baslangic",
+  "/siparislerim",
   "/manifest.json",
   "/sw.js",
 ]);

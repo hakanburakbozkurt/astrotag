@@ -22,6 +22,10 @@ function shouldRunStorageCheck(pathname: string): boolean {
     return false;
   }
 
+  if (pathname === "/kozmik-baslangic" || pathname === "/siparislerim") {
+    return false;
+  }
+
   if (pathname.startsWith(PRIVATE_MODE_PATH)) {
     return false;
   }

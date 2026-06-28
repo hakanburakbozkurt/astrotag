@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { fetchNexusTransitStressAction } from "@/lib/actions/nexus-transit-stress";
 import { getUserProfile } from "@/lib/supabase-actions";
 import { showDynamicNotificationForStressLevel } from "@/lib/notifications/show-dynamic-pool-notification";
@@ -8,8 +9,16 @@ import { showDynamicNotificationForStressLevel } from "@/lib/notifications/show-
 const POOL_TOAST_SESSION_KEY = "astrotag:dynamic-pool-toast-session";
 const POOL_TOAST_DELAY_MS = 10_000;
 
+const SALES_ONLY_PATHS = new Set(["/", "/kozmik-baslangic", "/siparislerim"]);
+
 export default function ToastBootstrap() {
+  const pathname = usePathname();
+
   useEffect(() => {
+    if (SALES_ONLY_PATHS.has(pathname)) {
+      return;
+    }
+
     if (sessionStorage.getItem(POOL_TOAST_SESSION_KEY)) {
       return;
     }
@@ -54,7 +63,7 @@ export default function ToastBootstrap() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, []);
+  }, [pathname]);
 
   return null;
 }

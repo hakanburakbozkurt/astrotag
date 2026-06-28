@@ -21,9 +21,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AstroTag — NFC Kozmik Danışmanlık",
+  title: "AstroTag — Kozmik Satış Platformu",
   description:
-    "NFC anahtarlığınızla Zero-Click giriş. Tarot, horary ve uyumluluk analizi.",
+    "NFC anahtarlık ve yıldız paketleri. Fiziksel AstroTag ile kozmik erişiminizi başlatın.",
   metadataBase: new URL(SITE_URL),
   manifest: "/manifest.json",
   applicationName: "AstroTag",
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
     type: "website",
     url: SITE_URL,
     title: "AstroTag",
-    description: "NFC ile kozmik danışmanlık — Zero-Click giriş",
+    description: "NFC anahtarlık ve kozmik yıldız paketleri — astrotag.app",
     images: [{ url: WELCOME_IMAGE_PATH, width: 512, height: 512, alt: "AstroTag" }],
   },
   other: {
