@@ -22,30 +22,31 @@ export default function SynastryBondsDeepDive({
 
   return (
     <section className="mt-5 border-t border-white/10 pt-5" aria-label="Rezonans detayları">
-      <p className="text-[10px] uppercase tracking-[0.25em] text-amber-400/70">
-        Rezonans Detayları
-      </p>
-      <p className="mt-1 text-xs text-white/40">
-        Zihinsel, kimlik ve diğer rezonans katmanları
-      </p>
+      <CollapsiblePanel title="Rezonans Detaylarını İncele" defaultOpen={false}>
+        <ul className="space-y-3">
+          {aspects.map((aspect) => (
+            <li
+              key={aspect.id}
+              className="rounded-xl border border-white/8 bg-white/[0.02] px-4 py-4"
+            >
+              <h4 className="text-sm font-semibold leading-snug tracking-tight text-amber-50">
+                {aspect.aspectTitle}
+              </h4>
+              <p className="mt-2 text-sm leading-relaxed text-white/72">{aspect.planetEffect}</p>
+              <p className="mt-2.5 text-[11px] leading-relaxed text-white/50">
+                {aspect.aspectDetail}
+              </p>
+              <p className="mt-3 border-t border-white/[0.06] pt-3 font-mono text-[10px] leading-relaxed tracking-wide text-white/45">
+                {aspect.orbTechnical}
+              </p>
+            </li>
+          ))}
+        </ul>
 
-      <div className="mt-4 space-y-2">
-        {aspects.map((aspect) => (
-          <CollapsiblePanel key={aspect.id} title={aspect.aspectTitle} defaultOpen={false}>
-            <p className="text-sm leading-relaxed text-white/72">{aspect.planetEffect}</p>
-            <p className="mt-2.5 text-[11px] leading-relaxed text-white/50">
-              {aspect.aspectDetail}
-            </p>
-            <p className="mt-3 border-t border-white/[0.06] pt-3 font-mono text-[10px] leading-relaxed tracking-wide text-white/45">
-              {aspect.orbTechnical}
-            </p>
-          </CollapsiblePanel>
-        ))}
-      </div>
-
-      {date ? (
-        <p className="mt-4 text-[10px] uppercase tracking-[0.2em] text-white/30">{date}</p>
-      ) : null}
+        {date ? (
+          <p className="mt-4 text-[10px] uppercase tracking-[0.2em] text-white/30">{date}</p>
+        ) : null}
+      </CollapsiblePanel>
     </section>
   );
 }

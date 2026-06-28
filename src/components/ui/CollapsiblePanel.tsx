@@ -31,7 +31,7 @@ export default function CollapsiblePanel({
           {title}
         </span>
         <motion.span
-          animate={{ rotate: open ? 180 : 0 }}
+          animate={{ rotate: open ? 0 : 180 }}
           transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
           className="shrink-0 text-white/45"
           aria-hidden
