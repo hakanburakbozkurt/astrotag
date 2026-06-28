@@ -143,6 +143,52 @@ body::after {
   }
 }
 
+/* Kozmik satış sayfası — sistem temasından bağımsız koyu görünüm */
+.astrotag-sales {
+  color-scheme: dark;
+  background-color: #070b14;
+  color: #fff;
+}
+
+@media (prefers-color-scheme: light) {
+  .astrotag-sales {
+    background-color: #070b14;
+    color: #fff;
+  }
+
+  .astrotag-sales .sales-kicker {
+    color: rgba(251, 191, 36, 0.7);
+  }
+
+  .astrotag-sales .sales-title {
+    background-image: linear-gradient(
+      180deg,
+      #fff 0%,
+      #fef3c7 55%,
+      rgba(252, 211, 77, 0.9) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+
+  .astrotag-sales .sales-subtitle {
+    color: rgba(255, 255, 255, 0.55);
+  }
+
+  .astrotag-sales .sales-hero-frame {
+    background: linear-gradient(165deg, #0c1222 0%, #1e293b 100%);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .astrotag-sales .sales-hero-glow {
+    background-color: rgba(251, 191, 36, 0.1);
+  }
+
+  .astrotag-sales .sales-cta {
+    color: #fffbeb;
+  }
+}
+
 /* Karşılama: açık sistem temasında da görsel koyu çerçevede kalır */
 @media (prefers-color-scheme: light) {
   .astrotag-welcome {

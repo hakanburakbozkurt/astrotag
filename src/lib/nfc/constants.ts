@@ -1,3 +1,8 @@
+import {
+  KOZMIK_BASLANGIC_PATH,
+  SALES_ORDERS_PATH,
+} from "@/lib/sales/star-packages-catalog";
+
 export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://astrotag.app";
 
@@ -75,8 +80,8 @@ export const PUBLIC_PATHS = new Set([
   AUTH_SIGNUP_PATH,
   AUTH_LOGIN_PATH,
   NFC_LOGIN_PATH,
-  "/kozmik-baslangic",
-  "/siparislerim",
+  KOZMIK_BASLANGIC_PATH,
+  SALES_ORDERS_PATH,
   "/manifest.json",
   "/sw.js",
 ]);

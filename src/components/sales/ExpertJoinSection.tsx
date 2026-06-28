@@ -14,13 +14,13 @@ export default function ExpertJoinSection() {
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         className="mx-auto max-w-5xl rounded-[28px] border border-white/10 bg-[#0f172a]/80 p-6 backdrop-blur-2xl sm:p-8"
       >
-        <p className="text-[10px] uppercase tracking-[0.28em] text-amber-400/70">
+        <p className="sales-kicker text-[10px] uppercase tracking-[0.28em] text-amber-400/70">
           Uzman Ağı
         </p>
         <h2 className="mt-2 text-2xl font-bold text-white">Uzman Olarak Katıl</h2>
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/55">
-          Astroloji, tarot veya ilişki danışmanlığı veriyorsanız AstroTag uzman paneline
-          katılın. NFC anahtarlık sahiplerine özel profil ve yönlendirme altyapısı.
+          Astroloji veya danışmanlık veriyorsanız AstroTag uzman paneline katılın. NFC
+          anahtarlık sahiplerine özel profil ve yönlendirme altyapısı.
         </p>
 
         <ul className="mt-5 space-y-2 text-sm text-white/50">

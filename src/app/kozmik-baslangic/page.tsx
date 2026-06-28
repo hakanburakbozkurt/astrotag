@@ -103,7 +103,7 @@ function KozmikBaslangicContent() {
 
 export default function KozmikBaslangicPage() {
   return (
-    <main className="relative min-h-dvh bg-[#070b14]">
+    <main className="astrotag-sales relative min-h-dvh bg-[#070b14] text-white">
       <Starfield />
       <SalesNav />
       <Suspense

@@ -1,10 +1,14 @@
 import Link from "next/link";
 import Starfield from "@/components/Starfield";
 import SalesNav from "@/components/sales/SalesNav";
+import {
+  buildPurchaseSuccessUrl,
+  NFC_KEYCHAIN_PRODUCT,
+} from "@/lib/sales/star-packages-catalog";
 
 export default function SiparislerimPage() {
   return (
-    <main className="relative min-h-dvh bg-[#070b14]">
+    <main className="astrotag-sales relative min-h-dvh bg-[#070b14] text-white">
       <Starfield />
       <SalesNav />
 
@@ -16,7 +20,7 @@ export default function SiparislerimPage() {
         <p className="mt-4 text-sm leading-relaxed text-white/55">
           Sipariş onayı ve kargo bilgileri kayıtlı e-posta adresinize gönderilir. NFC
           anahtarlık tesliminden sonra{" "}
-          <Link href="/kozmik-baslangic?purchased=1&product=nfc-keychain" className="text-amber-200/85 underline">
+          <Link href={buildPurchaseSuccessUrl(NFC_KEYCHAIN_PRODUCT.id)} className="text-amber-200/85 underline">
             Kozmik Başlangıç
           </Link>{" "}
           sayfasından aktivasyonu başlatabilirsiniz.

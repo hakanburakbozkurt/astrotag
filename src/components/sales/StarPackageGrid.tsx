@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import {
   buildPurchaseSuccessUrl,
+  SALES_CTA_LABEL,
   STAR_PACKAGE_CATALOG,
   type StarPackageProduct,
 } from "@/lib/sales/star-packages-catalog";
@@ -32,7 +33,9 @@ function PackageCard({ product, index }: { product: StarPackageProduct; index: n
 
       <div className="flex items-baseline justify-between gap-3">
         <h3 className="text-lg font-semibold text-white">{product.title}</h3>
-        <p className="text-lg font-semibold text-amber-200/90">{product.priceLabel}</p>
+        <p className="text-lg font-semibold tabular-nums text-amber-200/90">
+          {product.priceLabel}
+        </p>
       </div>
 
       <p className="mt-2 flex-1 text-sm leading-relaxed text-white/50">{product.description}</p>
@@ -46,7 +49,7 @@ function PackageCard({ product, index }: { product: StarPackageProduct; index: n
             : "border border-amber-400/25 bg-amber-400/10 text-amber-100 hover:bg-amber-400/18"
         }`}
       >
-        Satın Al
+        {SALES_CTA_LABEL}
       </button>
     </motion.article>
   );
@@ -56,13 +59,13 @@ export default function StarPackageGrid() {
   return (
     <section id="yildiz-paketleri" className="px-4 py-12 sm:px-6 sm:py-16">
       <div className="mx-auto max-w-5xl">
-        <p className="text-[10px] uppercase tracking-[0.3em] text-amber-400/70">
+        <p className="sales-kicker text-[10px] uppercase tracking-[0.3em] text-amber-400/70">
           Yıldız Paketleri
         </p>
         <h2 className="mt-2 text-2xl font-bold text-white sm:text-3xl">7&apos;li Kozmik Stok</h2>
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/50">
-          Oracle modüllerinde kullanılacak yıldız bakiyenizi tek seferde yükleyin. Analiz
-          sayfalarına yönlendirme yok — önce satın al, sonra anahtarlığını aktive et.
+          Yıldız bakiyenizi tek seferde yükleyin. Satın alma sonrası Kozmik Başlangıç
+          sayfasından anahtarlığınızı aktive edin.
         </p>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

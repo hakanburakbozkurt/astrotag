@@ -8,6 +8,8 @@ export interface StarPackageProduct {
   badge?: string;
 }
 
+export const SALES_CTA_LABEL = "Sipariş Ver";
+
 export const NFC_KEYCHAIN_PRODUCT = {
   id: "nfc-keychain",
   title: "AstroTag NFC Anahtarlık",
@@ -24,21 +26,21 @@ export const STAR_PACKAGE_CATALOG: StarPackageProduct[] = [
     stars: 7,
     priceLabel: "₺49",
     title: "7 Yıldız",
-    description: "Kısa bir Kozmik Profil veya birkaç Oracle sorusu için ideal başlangıç.",
+    description: "İlk keşifler ve hızlı kozmik okumalar için giriş paketi.",
   },
   {
     id: "stars-15",
     stars: 15,
     priceLabel: "₺89",
     title: "15 Yıldız",
-    description: "Haftalık keşifler ve hafif analizler için dengeli paket.",
+    description: "Haftalık kullanım için dengeli ve ekonomik seçenek.",
   },
   {
     id: "stars-30",
     stars: 30,
     priceLabel: "₺159",
     title: "30 Yıldız",
-    description: "Derin analizler ve düzenli Oracle kullanımı için en popüler seçim.",
+    description: "Düzenli kullanıcılar için en popüler yıldız stoku.",
     featured: true,
     badge: "En Çok Tercih Edilen",
   },
@@ -47,7 +49,7 @@ export const STAR_PACKAGE_CATALOG: StarPackageProduct[] = [
     stars: 50,
     priceLabel: "₺249",
     title: "50 Yıldız",
-    description: "Bonds ve Kozmik Profil derinlik seviyeleri için geniş alan.",
+    description: "Derin analizler ve paylaşımlar için geniş kapasite.",
   },
   {
     id: "stars-75",
@@ -61,14 +63,14 @@ export const STAR_PACKAGE_CATALOG: StarPackageProduct[] = [
     stars: 100,
     priceLabel: "₺449",
     title: "100 Yıldız",
-    description: "Maksimum kapasiteye yakın — tüm modüllerde özgürlük.",
+    description: "Maksimum esneklik — tüm modüllerde özgür kullanım.",
   },
   {
     id: "stars-150",
     stars: 150,
     priceLabel: "₺649",
     title: "150 Yıldız",
-    description: "Premium stok — uzun dönem analiz ve paylaşım odaklı kullanım.",
+    description: "Premium stok — uzun dönem ve paylaşım odaklı kullanım.",
     badge: "Premium",
   },
 ];
@@ -76,6 +78,13 @@ export const STAR_PACKAGE_CATALOG: StarPackageProduct[] = [
 export const SALES_ORDERS_PATH = "/siparislerim";
 export const SALES_EXPERT_LOGIN_PATH = "/nfc-login";
 export const KOZMIK_BASLANGIC_PATH = "/kozmik-baslangic";
+
+/** Ana sayfa + satış sonrası rotalar — toast / güvenlik bootstrap atlanır */
+export const SALES_ONLY_PATHS = new Set<string>([
+  "/",
+  KOZMIK_BASLANGIC_PATH,
+  SALES_ORDERS_PATH,
+]);
 
 export function buildPurchaseSuccessUrl(productId: string): string {
   const params = new URLSearchParams({ product: productId, purchased: "1" });

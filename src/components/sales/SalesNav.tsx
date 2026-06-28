@@ -8,7 +8,7 @@ import {
 
 export default function SalesNav() {
   return (
-    <header className="fixed inset-x-0 top-0 z-40 border-b border-white/8 bg-[#070b14]/75 backdrop-blur-xl">
+    <header className="fixed inset-x-0 top-0 z-40 border-b border-white/8 bg-[#070b14]/80 backdrop-blur-xl">
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6">
         <Link
           href="/"
@@ -17,7 +17,7 @@ export default function SalesNav() {
           AstroTag
         </Link>
 
-        <nav className="flex items-center gap-2 sm:gap-3">
+        <nav className="flex items-center gap-2 sm:gap-3" aria-label="Satış menüsü">
           <Link
             href={SALES_ORDERS_PATH}
             className="rounded-lg px-3 py-2 text-xs font-medium text-white/60 transition hover:bg-white/[0.04] hover:text-white/85"

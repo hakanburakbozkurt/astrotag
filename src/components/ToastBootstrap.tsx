@@ -5,11 +5,10 @@ import { usePathname } from "next/navigation";
 import { fetchNexusTransitStressAction } from "@/lib/actions/nexus-transit-stress";
 import { getUserProfile } from "@/lib/supabase-actions";
 import { showDynamicNotificationForStressLevel } from "@/lib/notifications/show-dynamic-pool-notification";
+import { SALES_ONLY_PATHS } from "@/lib/sales/star-packages-catalog";
 
 const POOL_TOAST_SESSION_KEY = "astrotag:dynamic-pool-toast-session";
 const POOL_TOAST_DELAY_MS = 10_000;
-
-const SALES_ONLY_PATHS = new Set(["/", "/kozmik-baslangic", "/siparislerim"]);
 
 export default function ToastBootstrap() {
   const pathname = usePathname();

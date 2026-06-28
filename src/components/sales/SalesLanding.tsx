@@ -9,7 +9,7 @@ import { SITE_HOST } from "@/lib/nfc/constants";
 
 export default function SalesLanding() {
   return (
-    <main className="astrotag-welcome relative min-h-dvh overflow-x-hidden bg-[#070b14]">
+    <main className="astrotag-sales relative min-h-dvh overflow-x-hidden bg-[#070b14] text-white">
       <Starfield />
       <SalesNav />
 
@@ -19,6 +19,7 @@ export default function SalesLanding() {
           background:
             "radial-gradient(ellipse 80% 50% at 50% 20%, rgba(251,191,36,0.1) 0%, transparent 65%)",
         }}
+        aria-hidden
       />
 
       <div className="relative">

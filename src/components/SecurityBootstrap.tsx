@@ -13,16 +13,13 @@ import {
   PUBLIC_PROFILE_PREFIX,
   AUTH_CALLBACK_PATH,
 } from "@/lib/nfc/constants";
+import { SALES_ONLY_PATHS } from "@/lib/sales/star-packages-catalog";
 import { isAuthFormPath } from "@/lib/nfc/auth-paths";
 import { isRootCardEntryPath } from "@/lib/nfc/card-paths";
 import { isPrivateBrowsingMode } from "@/lib/nfc/private-mode";
 
 function shouldRunStorageCheck(pathname: string): boolean {
-  if (pathname === HOME_PATH) {
-    return false;
-  }
-
-  if (pathname === "/kozmik-baslangic" || pathname === "/siparislerim") {
+  if (SALES_ONLY_PATHS.has(pathname)) {
     return false;
   }
 
