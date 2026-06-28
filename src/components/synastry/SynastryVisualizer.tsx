@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, useEffect, useMemo, useState, type RefObject } from "react";
+import { forwardRef, useMemo, type RefObject } from "react";
 import { motion } from "framer-motion";
 import type { AspectType } from "@/lib/astrology/types";
 import type {
@@ -14,11 +14,12 @@ import {
   synastryPlanetPoint,
   synastryWheelGroupTransform,
 } from "@/lib/synastry/synastry-chart-geometry";
+import SynastryBondsDeepDive from "@/components/synastry/bonds/SynastryBondsDeepDive";
+import SynastryBondsSummary from "@/components/synastry/bonds/SynastryBondsSummary";
 
 const VIEW_WIDTH = 360;
 const VIEW_HEIGHT = 240;
 const ASPECT_DRAW_DELAY = 0.85;
-const INSIGHT_REVEAL_MS = 2500;
 
 const wheelSpring = {
   type: "spring" as const,
@@ -164,13 +165,6 @@ const SynastryVisualizer = forwardRef<HTMLDivElement, SynastryVisualizerProps>(
     },
     ref
   ) {
-  const [showInsights, setShowInsights] = useState(false);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setShowInsights(true), INSIGHT_REVEAL_MS);
-    return () => window.clearTimeout(timer);
-  }, []);
-
   const userPlanetMap = useMemo(
     () => new Map(userPlanets.map((planet) => [planet.id, planet])),
     [userPlanets]
@@ -210,7 +204,7 @@ const SynastryVisualizer = forwardRef<HTMLDivElement, SynastryVisualizerProps>(
     <section className="overflow-hidden rounded-[28px] border border-white/10 bg-[#0f172a]/80 p-4 backdrop-blur-2xl sm:p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
         <p className="text-[10px] uppercase tracking-[0.28em] text-amber-400/70">
-          Premium Synastry
+          Sinastri Haritası
         </p>
         {typeof score === "number" ? (
           <span className="rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 text-xs font-semibold text-amber-100 shadow-[0_0_16px_rgba(251,191,36,0.2)]">
@@ -329,49 +323,8 @@ const SynastryVisualizer = forwardRef<HTMLDivElement, SynastryVisualizerProps>(
         </div>
       </div>
 
-      {showInsights ? (
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-          className="mt-5 space-y-3 border-t border-white/10 pt-5"
-        >
-          {summary ? (
-            <p className="text-sm leading-relaxed text-white/75">{summary}</p>
-          ) : null}
-
-          <ul className="space-y-3">
-            {aspectLines.slice(0, 8).map((aspect) => (
-              <li
-                key={aspect.id}
-                className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-4"
-              >
-                <h4 className="text-base font-semibold leading-snug tracking-tight text-amber-50">
-                  {aspect.aspectTitle}
-                </h4>
-
-                <p className="mt-2 text-sm leading-relaxed text-white/72">
-                  {aspect.planetEffect}
-                </p>
-
-                <p className="mt-2.5 text-[11px] leading-relaxed text-white/50">
-                  {aspect.aspectDetail}
-                </p>
-
-                <p className="mt-3 border-t border-white/[0.06] pt-3 font-mono text-[10px] leading-relaxed tracking-wide text-white/45">
-                  {aspect.orbTechnical}
-                </p>
-              </li>
-            ))}
-          </ul>
-
-          {date ? (
-            <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">
-              {date}
-            </p>
-          ) : null}
-        </motion.div>
-      ) : null}
+      <SynastryBondsSummary summary={summary} />
+      <SynastryBondsDeepDive aspectLines={aspectLines} date={date} />
     </section>
   );
 });
