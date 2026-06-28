@@ -4,6 +4,10 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { fetchNexusTransitStressAction } from "@/lib/actions/nexus-transit-stress";
 import type { NexusTransitStress } from "@/lib/nexus/nexus-transit-stress.types";
+import {
+  getTransitStressBorderClass,
+  getTransitStressTextClass,
+} from "@/lib/nexus/transit-stress-tone";
 import type { UserData } from "@/types/user";
 
 interface NexusVisualizerProps {
@@ -53,9 +57,7 @@ export default function NexusVisualizer({ userData }: NexusVisualizerProps) {
     return null;
   }
 
-  const borderClass = stress.isStressed
-    ? "border-red-500/45 shadow-[0_0_20px_rgba(239,68,68,0.15)]"
-    : "border-white/10";
+  const borderClass = getTransitStressBorderClass(stress);
 
   return (
     <motion.section
@@ -67,11 +69,7 @@ export default function NexusVisualizer({ userData }: NexusVisualizerProps) {
         Gök Yüzü Baskısı
       </p>
       <p className="mt-2 text-sm font-medium text-white/85">{stress.skySummary}</p>
-      <p
-        className={`mt-3 text-sm leading-relaxed ${
-          stress.isStressed ? "text-red-200/90" : "text-emerald-200/80"
-        }`}
-      >
+      <p className={`mt-3 text-sm leading-relaxed ${getTransitStressTextClass(stress)}`}>
         {stress.tactic}
       </p>
       <p className="mt-3 font-mono text-[10px] tracking-wide text-white/35">

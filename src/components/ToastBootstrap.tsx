@@ -1,25 +1,60 @@
 "use client";
 
 import { useEffect } from "react";
-import { useCosmicToast } from "@/hooks/useCosmicToast";
+import { fetchNexusTransitStressAction } from "@/lib/actions/nexus-transit-stress";
+import { getUserProfile } from "@/lib/supabase-actions";
+import { showDynamicNotificationForStressLevel } from "@/lib/notifications/show-dynamic-pool-notification";
 
-const WELCOME_TOAST_KEY = "astrotag-welcome-toast";
+const POOL_TOAST_SESSION_KEY = "astrotag:dynamic-pool-toast-session";
+const POOL_TOAST_DELAY_MS = 10_000;
 
 export default function ToastBootstrap() {
-  const { ready, welcome } = useCosmicToast();
-
   useEffect(() => {
-    if (!ready || sessionStorage.getItem(WELCOME_TOAST_KEY)) {
+    if (sessionStorage.getItem(POOL_TOAST_SESSION_KEY)) {
       return;
     }
 
-    const timer = window.setTimeout(() => {
-      welcome();
-      sessionStorage.setItem(WELCOME_TOAST_KEY, "1");
-    }, 10_000);
+    let cancelled = false;
 
-    return () => window.clearTimeout(timer);
-  }, [ready, welcome]);
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const profile = await getUserProfile();
+
+          if (cancelled || !profile) {
+            return;
+          }
+
+          let stressLevel: "calm" | "moderate" | "high" = "calm";
+
+          try {
+            const stress = await fetchNexusTransitStressAction(profile);
+            stressLevel = stress.stressLevel;
+          } catch {
+            stressLevel = "calm";
+          }
+
+          if (cancelled) {
+            return;
+          }
+
+          showDynamicNotificationForStressLevel(stressLevel, {
+            userName: profile.name,
+            partnerName: profile.partnerName,
+          });
+
+          sessionStorage.setItem(POOL_TOAST_SESSION_KEY, "1");
+        } catch {
+          // Sessizce atla — bildirim opsiyonel
+        }
+      })();
+    }, POOL_TOAST_DELAY_MS);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, []);
 
   return null;
 }

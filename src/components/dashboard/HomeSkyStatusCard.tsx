@@ -5,6 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { fetchNexusTransitStressAction } from "@/lib/actions/nexus-transit-stress";
 import type { NexusTransitStress } from "@/lib/nexus/nexus-transit-stress.types";
+import { getTransitStressTextClass } from "@/lib/nexus/transit-stress-tone";
 import type { UserData } from "@/types/user";
 
 interface HomeSkyStatusCardProps {
@@ -49,11 +50,7 @@ export default function HomeSkyStatusCard({ user }: HomeSkyStatusCardProps) {
         {stress?.skySummary ?? "Transit verisi yükleniyor..."}
       </p>
       {stress ? (
-        <p
-          className={`mt-2 text-sm ${
-            stress.isStressed ? "text-red-200/85" : "text-emerald-200/75"
-          }`}
-        >
+        <p className={`mt-2 text-sm ${getTransitStressTextClass(stress)}`}>
           {stress.tactic}
         </p>
       ) : null}

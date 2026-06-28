@@ -1,6 +1,5 @@
 import "server-only";
 
-import type { AspectType } from "@/lib/astrology/types";
 import type { UserData } from "@/types/user";
 import type { NexusTransitStress } from "@/lib/nexus/nexus-transit-stress.types";
 import { longitudeToSign } from "@/lib/astrology/zodiac";
@@ -9,8 +8,11 @@ import type { PlanetId } from "@/lib/astrology/types";
 import { normalizeLongitude } from "@/lib/astrology/zodiac";
 import { calculateCrossAspects } from "@/lib/astrology/aspects";
 import { calculateNatalChart } from "@/lib/astrology/planet-positions";
-
-const HARSH_TYPES: AspectType[] = ["square", "opposition"];
+import {
+  analyzeHarshCrossAspects,
+  buildTransitStressCopy,
+  resolveStressLevel,
+} from "@/lib/nexus/nexus-transit-stress.logic";
 
 const PLANET_IDS: PlanetId[] = [
   "sun",
@@ -54,15 +56,6 @@ function snapshotTransitPlanets(date: Date) {
   }));
 }
 
-function countHarshTransits(
-  aspects: Array<{ type: AspectType; orb: number }>
-): number {
-  return aspects.filter(
-    (aspect) =>
-      HARSH_TYPES.includes(aspect.type) && aspect.orb <= 4
-  ).length;
-}
-
 function formatTimeTr(date: Date): string {
   return date.toLocaleTimeString("tr-TR", {
     hour: "2-digit",
@@ -90,49 +83,39 @@ export async function computeNexusTransitStress(
 
   const currentTransits = snapshotTransitPlanets(now);
   const currentAspects = calculateCrossAspects(currentTransits, natalBodies);
-  const harshNow = countHarshTransits(currentAspects);
+  const nowAnalysis = analyzeHarshCrossAspects(currentAspects);
 
   let peakDate = new Date(now.getTime() + 60 * 60 * 1000);
-  let peakHarsh = harshNow;
+  let peakAnalysis = nowAnalysis;
 
   for (let step = 1; step <= 12; step += 1) {
     const probe = new Date(now.getTime() + step * 30 * 60 * 1000);
     const aspects = calculateCrossAspects(snapshotTransitPlanets(probe), natalBodies);
-    const harsh = countHarshTransits(aspects);
+    const probeAnalysis = analyzeHarshCrossAspects(aspects);
 
-    if (harsh > peakHarsh) {
-      peakHarsh = harsh;
+    if (probeAnalysis.count > peakAnalysis.count) {
+      peakAnalysis = probeAnalysis;
       peakDate = probe;
     }
   }
 
   const moonLongitude = currentTransits.find((planet) => planet.id === "moon")?.longitude ?? 0;
   const moonSign = longitudeToSign(moonLongitude).signName;
-
-  let stressLevel: NexusTransitStress["stressLevel"] = "calm";
-  if (harshNow >= 3 || peakHarsh >= 4) {
-    stressLevel = "high";
-  } else if (harshNow >= 1 || peakHarsh >= 2) {
-    stressLevel = "moderate";
-  }
-
-  const isStressed = stressLevel !== "calm";
+  const stressLevel = resolveStressLevel(nowAnalysis, peakAnalysis);
   const peakTimeLabel = formatTimeTr(peakDate);
-
-  const tactic = isStressed
-    ? `Stres Uyarısı: ${peakTimeLabel}'da gökyüzü baskısı artıyor, sakin kal.`
-    : "Gökyüzü bugün nispeten yumuşak — odaklan ve akışa güven.";
-
-  const skySummary = isStressed
-    ? `${harshNow} sert transit açısı aktif · zirve ${peakTimeLabel}`
-    : `Transit baskısı düşük · Ay hattı ${moonSign}`;
+  const copy = buildTransitStressCopy({
+    stressLevel,
+    harshNow: nowAnalysis.count,
+    peakTimeLabel,
+    moonSign,
+  });
 
   return {
     stressLevel,
-    isStressed,
-    harshAspectCount: harshNow,
+    isStressed: copy.isStressed,
+    harshAspectCount: nowAnalysis.count,
     peakTimeLabel,
-    tactic,
-    skySummary,
+    tactic: copy.tactic,
+    skySummary: copy.skySummary,
   };
 }
