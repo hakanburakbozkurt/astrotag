@@ -21,11 +21,13 @@ export const SALES_IN_VIEW_INITIAL = { opacity: 0, y: 50 } as const;
 
 export const SALES_IN_VIEW_VISIBLE = { opacity: 1, y: 0 } as const;
 
-export const SALES_IN_VIEW_VIEWPORT = { once: true, amount: 0.2 } as const;
+export const SALES_IN_VIEW_VIEWPORT = { once: true, amount: 0.1 } as const;
+
+export const SALES_MOTION_EASE = [0.16, 1, 0.3, 1] as const;
 
 export const SALES_IN_VIEW_TRANSITION: Transition = {
-  duration: 0.5,
-  ease: "easeOut",
+  duration: 0.8,
+  ease: SALES_MOTION_EASE,
 };
 
 export const SALES_FADE_UP: Variants = {
@@ -39,11 +41,11 @@ export const SALES_FADE_IN: Variants = {
 };
 
 export const SALES_MOTION_TRANSITION: Transition = {
-  duration: 0.45,
-  ease: [0.22, 1, 0.36, 1],
+  duration: 0.8,
+  ease: SALES_MOTION_EASE,
 };
 
 export const SALES_MOTION_TRANSITION_FAST: Transition = {
-  duration: 0.28,
-  ease: [0.22, 1, 0.36, 1],
+  duration: 0.8,
+  ease: SALES_MOTION_EASE,
 };

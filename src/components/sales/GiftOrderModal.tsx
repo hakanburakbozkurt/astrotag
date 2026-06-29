@@ -4,6 +4,11 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Gift, X } from "lucide-react";
 import type { GiftOrderDetails } from "@/lib/sales/star-packages-catalog";
+import { SALES_IN_VIEW_TRANSITION } from "@/lib/sales/sales-motion";
+
+const logAnimation = () => {
+  console.log("Animasyon tetiklendi");
+};
 
 interface GiftOrderModalProps {
   open: boolean;
@@ -50,7 +55,8 @@ export default function GiftOrderModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
+          transition={SALES_IN_VIEW_TRANSITION}
+          onAnimationStart={logAnimation}
           style={{ willChange: "transform" }}
           className="fixed inset-0 z-50 flex items-end justify-center bg-[#070b14]/80 p-4 backdrop-blur-sm sm:items-center"
           onClick={onClose}
@@ -59,7 +65,8 @@ export default function GiftOrderModal({
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
+            transition={SALES_IN_VIEW_TRANSITION}
+            onAnimationStart={logAnimation}
             style={{ willChange: "transform" }}
             role="dialog"
             aria-modal="true"

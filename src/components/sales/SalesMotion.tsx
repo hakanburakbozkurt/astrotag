@@ -24,6 +24,8 @@ export default function SalesMotion({
   transition,
   viewport,
   style,
+  onViewportEnter,
+  onAnimationStart,
   ...rest
 }: SalesMotionProps) {
   const reducedMotion = usePrefersReducedMotion();
@@ -34,8 +36,12 @@ export default function SalesMotion({
   const resolvedWhileInView = useScrollReveal
     ? (whileInView ?? SALES_IN_VIEW_VISIBLE)
     : whileInView;
-  const resolvedTransition = transition ?? SALES_IN_VIEW_TRANSITION;
-  const resolvedViewport = viewport ?? (useScrollReveal ? SALES_IN_VIEW_VIEWPORT : undefined);
+  const resolvedTransition = { ...SALES_IN_VIEW_TRANSITION, ...transition };
+  const resolvedViewport = { ...SALES_IN_VIEW_VIEWPORT, ...viewport };
+
+  const logAnimation = () => {
+    console.log("Animasyon tetiklendi");
+  };
 
   return (
     <motion.div
@@ -43,7 +49,23 @@ export default function SalesMotion({
       animate={reducedMotion ? undefined : animate}
       whileInView={reducedMotion || !useScrollReveal ? undefined : resolvedWhileInView}
       transition={reducedMotion ? { duration: 0 } : resolvedTransition}
-      viewport={resolvedViewport}
+      viewport={useScrollReveal ? resolvedViewport : viewport}
+      onViewportEnter={
+        useScrollReveal
+          ? (...args) => {
+              logAnimation();
+              onViewportEnter?.(...args);
+            }
+          : onViewportEnter
+      }
+      onAnimationStart={
+        !useScrollReveal
+          ? (...args) => {
+              logAnimation();
+              onAnimationStart?.(...args);
+            }
+          : onAnimationStart
+      }
       className={`${SALES_MOTION_LAYER_CLASS} ${className}`.trim()}
       style={{ willChange: "transform", ...style }}
       {...rest}

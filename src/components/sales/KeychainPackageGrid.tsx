@@ -52,7 +52,7 @@ function KeychainPackageCard({
   return (
     <SalesMotion
       layout
-      transition={{ duration: 0.5, ease: "easeOut", delay: index * 0.05 }}
+      transition={{ delay: index * 0.05 }}
       className={isVip ? "col-span-full" : undefined}
     >
       <article

@@ -9,42 +9,42 @@ import {
 
 export default function LuxuryShowcaseBanner() {
   return (
-    <div className="relative left-1/2 w-screen max-w-[100vw] -translate-x-1/2 overflow-hidden">
-      <SalesMotion>
-      <div
-        className="relative w-full bg-[#070b14]"
-        style={{ aspectRatio: String(LUXURY_SHOWCASE_ASPECT_RATIO) }}
-      >
-        <Image
-          src={LUXURY_SHOWCASE_IMAGE_PATH}
-          alt="AstroTag lüks NFC anahtarlık vitrini"
-          fill
-          priority
-          unoptimized
-          sizes="100vw"
-          className="object-contain object-center"
-        />
+    <div className="flex justify-center px-4 py-6 sm:px-6 sm:py-8">
+      <SalesMotion className="w-full max-w-sm sm:max-w-md md:max-w-lg">
         <div
-          className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#070b14]/10 via-transparent to-[#070b14]/75"
-          aria-hidden
-        />
+          className="relative mx-auto w-full bg-[#070b14]"
+          style={{ aspectRatio: String(LUXURY_SHOWCASE_ASPECT_RATIO) }}
+        >
+          <Image
+            src={LUXURY_SHOWCASE_IMAGE_PATH}
+            alt="AstroTag lüks NFC anahtarlık vitrini"
+            fill
+            priority
+            unoptimized
+            sizes="(max-width: 640px) 384px, (max-width: 768px) 448px, 512px"
+            className="object-contain object-center"
+          />
+          <div
+            className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#070b14]/10 via-transparent to-[#070b14]/75"
+            aria-hidden
+          />
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 px-4 pb-6 pt-12 sm:px-6 sm:pb-8">
-          <div className="mx-auto flex max-w-5xl flex-col gap-2 py-4 text-center sm:py-6 lg:text-left">
-            <p className="font-mono text-[10px] uppercase tracking-[0.38em] text-amber-300/80">
-              Lüks Vitrin
-            </p>
-            <h2 className="max-w-2xl text-2xl font-semibold tracking-tight text-white sm:text-3xl lg:text-4xl">
-              AstroTag NFC Anahtarlık Koleksiyonu
-            </h2>
-            <p className="max-w-xl text-sm leading-relaxed text-white/60 sm:text-base">
-              Fiziksel zarafet, dijital kozmik erişim — her anahtarlık kişisel burç
-              seçiminizle hazırlanır.
-            </p>
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 px-3 pb-4 pt-10 sm:px-4 sm:pb-5">
+            <div className="flex flex-col gap-1.5 py-2 text-center sm:gap-2 sm:py-3 lg:text-left">
+              <p className="font-mono text-[10px] uppercase tracking-[0.38em] text-amber-300/80">
+                Lüks Vitrin
+              </p>
+              <h2 className="text-lg font-semibold tracking-tight text-white sm:text-2xl md:text-3xl">
+                AstroTag NFC Anahtarlık Koleksiyonu
+              </h2>
+              <p className="text-xs leading-relaxed text-white/60 sm:text-sm">
+                Fiziksel zarafet, dijital kozmik erişim — her anahtarlık kişisel burç
+                seçiminizle hazırlanır.
+              </p>
+            </div>
           </div>
         </div>
-      </div>
-    </SalesMotion>
+      </SalesMotion>
     </div>
   );
 }

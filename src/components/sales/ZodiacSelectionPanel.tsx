@@ -2,6 +2,7 @@
 
 import { AnimatePresence } from "framer-motion";
 import SalesMotion from "@/components/sales/SalesMotion";
+import { SALES_IN_VIEW_TRANSITION } from "@/lib/sales/sales-motion";
 import { ZODIAC_SIGN_OPTIONS } from "@/lib/sales/star-packages-catalog";
 
 interface ZodiacSelectionPanelProps {
@@ -21,7 +22,7 @@ export default function ZodiacSelectionPanel({
         initial={{ opacity: 0, height: 0, marginTop: 0 }}
         animate={{ opacity: 1, height: "auto", marginTop: 16 }}
         exit={{ opacity: 0, height: 0, marginTop: 0 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
+        transition={SALES_IN_VIEW_TRANSITION}
         className="overflow-hidden"
       >
       <div className="rounded-2xl border border-white/10 bg-[#0a1020]/90 p-4 backdrop-blur-xl sm:p-5">
