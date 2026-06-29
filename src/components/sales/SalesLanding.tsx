@@ -25,14 +25,15 @@ export default function SalesLanding() {
       <div className="relative">
         <SalesHero />
         <StarPackageGrid />
-        <ExpertJoinSection />
+      </div>
 
-        <footer className="border-t border-white/8 px-4 py-8 text-center sm:px-6">
+      <ExpertJoinSection />
+
+      <footer className="relative border-t border-white/8 px-4 py-8 text-center sm:px-6">
           <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/25">
             {SITE_HOST} · Kozmik Satış Platformu
           </p>
         </footer>
-      </div>
     </main>
   );
 }

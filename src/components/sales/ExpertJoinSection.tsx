@@ -6,35 +6,38 @@ import { SALES_EXPERT_LOGIN_PATH } from "@/lib/sales/star-packages-catalog";
 
 export default function ExpertJoinSection() {
   return (
-    <section className="px-4 pb-16 pt-4 sm:px-6 sm:pb-20">
+    <section
+      id="uzman-katilim"
+      className="border-t border-white/[0.06] px-4 py-16 sm:px-6 sm:py-20"
+    >
       <motion.div
-        initial={{ opacity: 0, y: 16 }}
+        initial={{ opacity: 0, y: 12 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="mx-auto max-w-5xl rounded-[28px] border border-white/10 bg-[#0f172a]/80 p-6 backdrop-blur-2xl sm:p-8"
+        className="mx-auto max-w-3xl text-center"
       >
-        <p className="sales-kicker text-[10px] uppercase tracking-[0.28em] text-amber-400/70">
-          Uzman Ağı
+        <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-white/35">
+          Profesyonel Ağ
         </p>
-        <h2 className="mt-2 text-2xl font-bold text-white">Uzman Olarak Katıl</h2>
-        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/55">
-          Astroloji veya danışmanlık veriyorsanız AstroTag uzman paneline katılın. NFC
-          anahtarlık sahiplerine özel profil ve yönlendirme altyapısı.
+        <h2 className="mt-3 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+          Uzman Olarak Katıl
+        </h2>
+        <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-white/50 sm:text-base">
+          AstroTag, danışmanlık veren profesyoneller için ayrı bir vitrin sunar. Satış
+          vitrini değil — platformun güvenilir, uzman yüzü.
         </p>
-
-        <ul className="mt-5 space-y-2 text-sm text-white/50">
-          <li>· Kişisel NFC profil sayfanız</li>
-          <li>· Müşteri yönlendirme ve güven rozeti</li>
-          <li>· Kozmik Başlangıç aktivasyon akışı</li>
-        </ul>
 
         <Link
           href={SALES_EXPERT_LOGIN_PATH}
-          className="mt-6 inline-flex min-h-11 items-center justify-center rounded-xl border border-white/15 bg-white/[0.04] px-6 py-3 text-sm font-semibold text-white/85 transition hover:border-amber-400/30 hover:text-amber-100"
+          className="mt-8 inline-flex min-h-12 items-center justify-center rounded-full border border-white/15 bg-white/[0.03] px-8 py-3 text-sm font-medium text-white/85 transition hover:border-white/25 hover:bg-white/[0.06] hover:text-white"
         >
-          Uzman Girişi
+          Uzman Platformuna Geç
         </Link>
+
+        <p className="mt-4 text-xs text-white/30">
+          NFC profiliniz, müşteri yönlendirme ve doğrulanmış uzman rozeti.
+        </p>
       </motion.div>
     </section>
   );

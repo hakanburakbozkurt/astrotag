@@ -187,6 +187,25 @@ body::after {
   .astrotag-sales .sales-cta {
     color: #fffbeb;
   }
+
+  .astrotag-sales .sales-spotlight-card {
+    animation: sales-spotlight-pulse 4s ease-in-out infinite;
+  }
+}
+
+@keyframes sales-spotlight-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 60px rgba(251, 191, 36, 0.18),
+      inset 0 0 0 1px rgba(251, 191, 36, 0.12);
+  }
+
+  50% {
+    box-shadow:
+      0 0 90px rgba(251, 191, 36, 0.28),
+      inset 0 0 0 1px rgba(251, 191, 36, 0.22);
+  }
 }
 
 /* Karşılama: açık sistem temasında da görsel koyu çerçevede kalır */
