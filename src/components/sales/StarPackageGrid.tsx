@@ -7,7 +7,6 @@ import {
   SALES_CTA_GIFT_CLASS,
   SALES_CTA_PRIMARY_CLASS,
   SALES_CTA_STACK_CLASS,
-  SALES_MOTION_TRANSITION,
   SALES_SECTION_CLASS,
 } from "@/lib/sales/sales-motion";
 import {
@@ -34,10 +33,7 @@ function StarPackageCard({ product, index, onPurchase, onGift }: StarPackageCard
 
   return (
     <SalesMotion
-      initial={{ opacity: 0, y: 14 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-40px" }}
-      transition={{ ...SALES_MOTION_TRANSITION, delay: index * 0.04 }}
+      transition={{ duration: 0.5, ease: "easeOut", delay: index * 0.04 }}
       className={`relative flex flex-col rounded-[24px] border p-5 backdrop-blur-xl sm:p-6 ${
         isSpotlight
           ? "sales-spotlight-card col-span-full overflow-hidden border-amber-300/45 bg-gradient-to-br from-amber-400/[0.14] via-[#0f172a]/90 to-violet-950/40 shadow-[0_0_80px_rgba(251,191,36,0.22)] sm:p-8 lg:flex-row lg:items-stretch lg:gap-8"

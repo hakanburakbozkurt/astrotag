@@ -16,6 +16,18 @@ export const SALES_SECTION_CLASS =
 
 export const SALES_MOTION_LAYER_CLASS = "sales-motion-layer will-change-transform";
 
+/** Scroll-reveal — tüm vitrin kartları ve bölümler */
+export const SALES_IN_VIEW_INITIAL = { opacity: 0, y: 50 } as const;
+
+export const SALES_IN_VIEW_VISIBLE = { opacity: 1, y: 0 } as const;
+
+export const SALES_IN_VIEW_VIEWPORT = { once: true, amount: 0.2 } as const;
+
+export const SALES_IN_VIEW_TRANSITION: Transition = {
+  duration: 0.5,
+  ease: "easeOut",
+};
+
 export const SALES_FADE_UP: Variants = {
   hidden: { opacity: 0, y: 14 },
   visible: { opacity: 1, y: 0 },

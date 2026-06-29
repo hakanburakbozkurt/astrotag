@@ -10,7 +10,6 @@ import {
   SALES_CTA_GIFT_CLASS,
   SALES_CTA_PRIMARY_CLASS,
   SALES_CTA_STACK_CLASS,
-  SALES_MOTION_TRANSITION,
   SALES_SECTION_CLASS,
 } from "@/lib/sales/sales-motion";
 import {
@@ -53,10 +52,7 @@ function KeychainPackageCard({
   return (
     <SalesMotion
       layout
-      initial={{ opacity: 0, y: 14 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-40px" }}
-      transition={{ ...SALES_MOTION_TRANSITION, delay: index * 0.05 }}
+      transition={{ duration: 0.5, ease: "easeOut", delay: index * 0.05 }}
       className={isVip ? "col-span-full" : undefined}
     >
       <article

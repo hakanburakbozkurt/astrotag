@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import SalesMotion from "@/components/sales/SalesMotion";
-import { SALES_MOTION_TRANSITION_FAST } from "@/lib/sales/sales-motion";
 import {
   LUXURY_SHOWCASE_ASPECT_RATIO,
   LUXURY_SHOWCASE_IMAGE_PATH,
@@ -10,12 +9,8 @@ import {
 
 export default function LuxuryShowcaseBanner() {
   return (
-    <SalesMotion
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={SALES_MOTION_TRANSITION_FAST}
-      className="relative left-1/2 w-screen max-w-[100vw] -translate-x-1/2 overflow-hidden"
-    >
+    <div className="relative left-1/2 w-screen max-w-[100vw] -translate-x-1/2 overflow-hidden">
+      <SalesMotion>
       <div
         className="relative w-full bg-[#070b14]"
         style={{ aspectRatio: String(LUXURY_SHOWCASE_ASPECT_RATIO) }}
@@ -50,5 +45,6 @@ export default function LuxuryShowcaseBanner() {
         </div>
       </div>
     </SalesMotion>
+    </div>
   );
 }

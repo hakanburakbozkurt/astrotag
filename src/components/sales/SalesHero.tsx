@@ -1,20 +1,14 @@
 "use client";
 
 import SalesMotion from "@/components/sales/SalesMotion";
-import {
-  SALES_JOURNEY_TAGLINE,
-  SALES_MOTION_TRANSITION,
-  SALES_SECTION_CLASS,
-} from "@/lib/sales/sales-motion";
+import { SALES_JOURNEY_TAGLINE, SALES_SECTION_CLASS } from "@/lib/sales/sales-motion";
 import { NFC_KEYCHAIN_PRODUCT } from "@/lib/sales/star-packages-catalog";
 
 export default function SalesHero() {
   return (
     <section className={`${SALES_SECTION_CLASS} border-b border-white/[0.06]`}>
       <SalesMotion
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ ...SALES_MOTION_TRANSITION, delay: 0.08 }}
+        transition={{ duration: 0.5, ease: "easeOut", delay: 0.08 }}
         className="mx-auto flex w-full max-w-5xl flex-col gap-8 lg:grid lg:grid-cols-2 lg:items-end lg:gap-12"
       >
         <div className="flex flex-col gap-4 text-center lg:text-left">

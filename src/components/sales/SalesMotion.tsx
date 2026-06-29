@@ -2,30 +2,50 @@
 
 import { motion, type HTMLMotionProps } from "framer-motion";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
-import { SALES_MOTION_LAYER_CLASS } from "@/lib/sales/sales-motion";
+import {
+  SALES_IN_VIEW_INITIAL,
+  SALES_IN_VIEW_TRANSITION,
+  SALES_IN_VIEW_VIEWPORT,
+  SALES_IN_VIEW_VISIBLE,
+  SALES_MOTION_LAYER_CLASS,
+} from "@/lib/sales/sales-motion";
 
-type SalesMotionProps = HTMLMotionProps<"div">;
+type SalesMotionProps = HTMLMotionProps<"div"> & {
+  /** false = animate/exit (panel, modal); true = whileInView scroll reveal */
+  scrollReveal?: boolean;
+};
 
 export default function SalesMotion({
   className = "",
+  scrollReveal = true,
   initial,
   animate,
   whileInView,
   transition,
   viewport,
+  style,
   ...rest
 }: SalesMotionProps) {
   const reducedMotion = usePrefersReducedMotion();
 
+  const useScrollReveal = scrollReveal && animate === undefined;
+
+  const resolvedInitial = initial ?? (useScrollReveal ? SALES_IN_VIEW_INITIAL : undefined);
+  const resolvedWhileInView = useScrollReveal
+    ? (whileInView ?? SALES_IN_VIEW_VISIBLE)
+    : whileInView;
+  const resolvedTransition = transition ?? SALES_IN_VIEW_TRANSITION;
+  const resolvedViewport = viewport ?? (useScrollReveal ? SALES_IN_VIEW_VIEWPORT : undefined);
+
   return (
     <motion.div
-      initial={reducedMotion ? false : initial}
+      initial={reducedMotion ? false : resolvedInitial}
       animate={reducedMotion ? undefined : animate}
-      whileInView={reducedMotion ? undefined : whileInView}
-      transition={reducedMotion ? { duration: 0 } : transition}
-      viewport={viewport}
+      whileInView={reducedMotion || !useScrollReveal ? undefined : resolvedWhileInView}
+      transition={reducedMotion ? { duration: 0 } : resolvedTransition}
+      viewport={resolvedViewport}
       className={`${SALES_MOTION_LAYER_CLASS} ${className}`.trim()}
-      style={{ willChange: "transform", ...rest.style }}
+      style={{ willChange: "transform", ...style }}
       {...rest}
     />
   );
