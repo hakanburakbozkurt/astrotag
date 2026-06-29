@@ -1,21 +1,57 @@
 "use client";
 
+import Image from "next/image";
+import Link from "next/link";
 import { motion } from "framer-motion";
-import { SALES_JOURNEY_TAGLINE, SALES_SECTION_CLASS } from "@/lib/sales/sales-motion";
-import { NFC_KEYCHAIN_PRODUCT } from "@/lib/sales/star-packages-catalog";
+import { Gift } from "lucide-react";
+import {
+  SALES_CTA_GIFT_CLASS,
+  SALES_CTA_PRIMARY_CLASS,
+  SALES_CTA_STACK_CLASS,
+  SALES_JOURNEY_TAGLINE,
+  SALES_MOTION_EASE,
+  SALES_SECTION_CLASS,
+} from "@/lib/sales/sales-motion";
+import {
+  LUXURY_SHOWCASE_ASPECT_RATIO,
+  LUXURY_SHOWCASE_IMAGE_PATH,
+} from "@/lib/sales/luxury-showcase-image";
+import {
+  NFC_KEYCHAIN_PRODUCT,
+  SALES_CTA_LABEL,
+  SALES_GIFT_CTA_LABEL,
+} from "@/lib/sales/star-packages-catalog";
 
-/** Geçici smoke test — doğrudan animate; whileInView yok */
 export default function SalesHero() {
   return (
     <section className={`${SALES_SECTION_CLASS} border-b border-white/[0.06]`}>
       <motion.div
-        initial={{ opacity: 0, scale: 0.5 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 1 }}
-        onAnimationStart={() => console.log('ANIMASYON TETIKLENDI')}
-        style={{ background: 'red', display: 'block', height: '200px', width: '100%' }}
-        className="mx-auto flex w-full max-w-5xl flex-col gap-8 lg:grid lg:grid-cols-2 lg:items-end lg:gap-12"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, ease: SALES_MOTION_EASE }}
+        className="mx-auto grid w-full max-w-5xl grid-cols-1 items-center gap-8 lg:grid-cols-2 lg:gap-12"
       >
+        <div className="mx-auto w-full max-w-sm sm:max-w-md lg:max-w-none">
+          <div
+            className="relative mx-auto w-full bg-[#070b14]"
+            style={{ aspectRatio: String(LUXURY_SHOWCASE_ASPECT_RATIO) }}
+          >
+            <Image
+              src={LUXURY_SHOWCASE_IMAGE_PATH}
+              alt="AstroTag lüks NFC anahtarlık vitrini"
+              fill
+              priority
+              unoptimized
+              sizes="(max-width: 640px) 384px, (max-width: 1024px) 448px, 512px"
+              className="object-contain object-center"
+            />
+            <div
+              className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#070b14]/40 via-transparent to-transparent"
+              aria-hidden
+            />
+          </div>
+        </div>
+
         <div className="flex flex-col gap-4 text-center lg:text-left">
           <p className="sales-kicker font-mono text-[10px] uppercase tracking-[0.38em] text-amber-400/70">
             {SALES_JOURNEY_TAGLINE}
@@ -26,9 +62,6 @@ export default function SalesHero() {
           <h1 className="sales-title bg-gradient-to-b from-white via-amber-50 to-amber-300/90 bg-clip-text text-3xl font-extrabold tracking-tight text-transparent sm:text-4xl lg:text-5xl">
             {NFC_KEYCHAIN_PRODUCT.title}
           </h1>
-        </div>
-
-        <div className="flex flex-col gap-4 text-center lg:text-left">
           <p className="sales-subtitle text-sm leading-relaxed text-white/55 sm:text-base">
             {NFC_KEYCHAIN_PRODUCT.description}
           </p>
@@ -37,9 +70,25 @@ export default function SalesHero() {
             <span className="font-semibold text-amber-200/90">
               {NFC_KEYCHAIN_PRODUCT.priceLabel}
             </span>
-            &apos;den başlayan fiyatlarla — yıldız stokunuzu yükleyin veya anahtarlık
-            vitrininden seçim yapın.
+            &apos;den başlayan fiyatlarla — burç seçiminizle kişiselleştirilmiş anahtarlık
+            veya dijital yıldız stoku.
           </p>
+
+          <div className={`${SALES_CTA_STACK_CLASS} lg:max-w-sm`}>
+            <Link
+              href="#anahtarlik-paketleri"
+              className={`${SALES_CTA_PRIMARY_CLASS} bg-gradient-to-r from-amber-300 to-amber-400 text-[#0f172a] shadow-[0_0_32px_rgba(251,191,36,0.25)] hover:from-amber-200 hover:to-amber-300`}
+            >
+              {SALES_CTA_LABEL}
+            </Link>
+            <Link
+              href="#anahtarlik-paketleri"
+              className={SALES_CTA_GIFT_CLASS}
+            >
+              <Gift className="h-4 w-4 shrink-0" aria-hidden />
+              {SALES_GIFT_CTA_LABEL}
+            </Link>
+          </div>
         </div>
       </motion.div>
     </section>

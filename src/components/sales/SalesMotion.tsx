@@ -39,10 +39,6 @@ export default function SalesMotion({
   const resolvedTransition = { ...SALES_IN_VIEW_TRANSITION, ...transition };
   const resolvedViewport = { ...SALES_IN_VIEW_VIEWPORT, ...viewport };
 
-  const logAnimation = () => {
-    console.log("Animasyon tetiklendi");
-  };
-
   return (
     <motion.div
       initial={reducedMotion ? false : resolvedInitial}
@@ -50,22 +46,8 @@ export default function SalesMotion({
       whileInView={reducedMotion || !useScrollReveal ? undefined : resolvedWhileInView}
       transition={reducedMotion ? { duration: 0 } : resolvedTransition}
       viewport={useScrollReveal ? resolvedViewport : viewport}
-      onViewportEnter={
-        useScrollReveal
-          ? (...args) => {
-              logAnimation();
-              onViewportEnter?.(...args);
-            }
-          : onViewportEnter
-      }
-      onAnimationStart={
-        !useScrollReveal
-          ? (...args) => {
-              logAnimation();
-              onAnimationStart?.(...args);
-            }
-          : onAnimationStart
-      }
+      onViewportEnter={onViewportEnter}
+      onAnimationStart={onAnimationStart}
       className={`${SALES_MOTION_LAYER_CLASS} ${className}`.trim()}
       style={{ willChange: "transform", ...style }}
       {...rest}
