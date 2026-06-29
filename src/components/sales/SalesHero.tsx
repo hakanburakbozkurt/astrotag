@@ -1,14 +1,19 @@
 "use client";
 
-import SalesMotion from "@/components/sales/SalesMotion";
+import { motion } from "framer-motion";
 import { SALES_JOURNEY_TAGLINE, SALES_SECTION_CLASS } from "@/lib/sales/sales-motion";
 import { NFC_KEYCHAIN_PRODUCT } from "@/lib/sales/star-packages-catalog";
 
+/** Geçici smoke test — doğrudan animate; whileInView yok */
 export default function SalesHero() {
   return (
     <section className={`${SALES_SECTION_CLASS} border-b border-white/[0.06]`}>
-      <SalesMotion
-        transition={{ delay: 0.08 }}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.5 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 1 }}
+        onAnimationStart={() => console.log("ANIMASYON TETIKLENDI")}
+        style={{ background: "red" }}
         className="mx-auto flex w-full max-w-5xl flex-col gap-8 lg:grid lg:grid-cols-2 lg:items-end lg:gap-12"
       >
         <div className="flex flex-col gap-4 text-center lg:text-left">
@@ -36,7 +41,7 @@ export default function SalesHero() {
             vitrininden seçim yapın.
           </p>
         </div>
-      </SalesMotion>
+      </motion.div>
     </section>
   );
 }
