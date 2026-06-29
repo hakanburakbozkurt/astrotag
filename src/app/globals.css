@@ -143,6 +143,34 @@ body::after {
   }
 }
 
+.astrotag-sales-journey {
+  -webkit-overflow-scrolling: touch;
+}
+
+.sales-motion-layer {
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .astrotag-sales .sales-spotlight-card {
+    animation: none;
+  }
+
+  .sales-nebula-parallax {
+    transform: none !important;
+  }
+
+  .sales-motion-layer {
+    will-change: auto;
+  }
+}
+
+@media (max-width: 767px) {
+  .astrotag-sales .sales-spotlight-card {
+    animation-duration: 7s;
+  }
+}
+
 /* Kozmik satış sayfası — sistem temasından bağımsız koyu görünüm */
 .astrotag-sales {
   color-scheme: dark;

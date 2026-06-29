@@ -1,10 +1,18 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import { Gift } from "lucide-react";
+import SalesMotion from "@/components/sales/SalesMotion";
 import { useGiftCheckout } from "@/hooks/useGiftCheckout";
 import ZodiacSelectionPanel from "@/components/sales/ZodiacSelectionPanel";
+import {
+  SALES_CTA_GIFT_CLASS,
+  SALES_CTA_PRIMARY_CLASS,
+  SALES_CTA_STACK_CLASS,
+  SALES_MOTION_TRANSITION,
+  SALES_SECTION_CLASS,
+} from "@/lib/sales/sales-motion";
 import {
   KEYCHAIN_BUNDLE_CATALOG,
   SALES_CTA_LABEL,
@@ -43,12 +51,12 @@ function KeychainPackageCard({
   const zodiacReady = !selected || areZodiacSelectionsComplete(zodiacValues);
 
   return (
-    <motion.div
+    <SalesMotion
       layout
       initial={{ opacity: 0, y: 14 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-40px" }}
-      transition={{ duration: 0.45, delay: index * 0.05, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ ...SALES_MOTION_TRANSITION, delay: index * 0.05 }}
       className={isVip ? "col-span-full" : undefined}
     >
       <article
@@ -111,12 +119,12 @@ function KeychainPackageCard({
           {bundle.shippingNote}
         </p>
 
-        <div className="mt-5 space-y-2" onClick={(event) => event.stopPropagation()}>
+        <div className={SALES_CTA_STACK_CLASS} onClick={(event) => event.stopPropagation()}>
           <button
             type="button"
             onClick={onPurchase}
             disabled={selected && !zodiacReady}
-            className={`min-h-11 w-full rounded-xl px-4 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-45 ${
+            className={`${SALES_CTA_PRIMARY_CLASS} disabled:cursor-not-allowed disabled:opacity-45 ${
               isVip
                 ? "bg-gradient-to-r from-amber-300 to-amber-400 text-[#0f172a] hover:from-amber-200 hover:to-amber-300"
                 : "bg-amber-400/95 text-[#0f172a] hover:bg-amber-300"
@@ -125,12 +133,8 @@ function KeychainPackageCard({
             {SALES_CTA_LABEL}
           </button>
 
-          <button
-            type="button"
-            onClick={onGift}
-            className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/[0.03] px-4 py-3 text-sm font-medium text-white/80 transition hover:border-emerald-400/25 hover:bg-emerald-400/[0.06] hover:text-emerald-100"
-          >
-            <Gift className="h-4 w-4" aria-hidden />
+          <button type="button" onClick={onGift} className={SALES_CTA_GIFT_CLASS}>
+            <Gift className="h-4 w-4 shrink-0" aria-hidden />
             {SALES_GIFT_CTA_LABEL}
           </button>
         </div>
@@ -145,7 +149,7 @@ function KeychainPackageCard({
           />
         ) : null}
       </AnimatePresence>
-    </motion.div>
+    </SalesMotion>
   );
 }
 
@@ -228,7 +232,7 @@ export default function KeychainPackageGrid() {
   );
 
   return (
-    <section id="anahtarlik-paketleri" className="border-t border-white/[0.06] px-4 py-12 sm:px-6 sm:py-16">
+    <section id="anahtarlik-paketleri" className={SALES_SECTION_CLASS}>
       <div className="mx-auto max-w-5xl">
         <p className="sales-kicker text-[10px] uppercase tracking-[0.3em] text-amber-400/70">
           NFC Anahtarlık Paketleri

@@ -6,36 +6,41 @@ import KeychainPackageGrid from "@/components/sales/KeychainPackageGrid";
 import LuxuryShowcaseBanner from "@/components/sales/LuxuryShowcaseBanner";
 import SalesHero from "@/components/sales/SalesHero";
 import SalesNav from "@/components/sales/SalesNav";
+import SalesNebulaBackdrop from "@/components/sales/SalesNebulaBackdrop";
 import StarPackageGrid from "@/components/sales/StarPackageGrid";
 import { SITE_HOST } from "@/lib/nfc/constants";
 
 export default function SalesLanding() {
   return (
-    <main className="astrotag-sales relative min-h-dvh overflow-x-hidden bg-[#070b14] font-sans text-white">
-      <Starfield />
+    <main className="astrotag-sales astrotag-sales-journey relative min-h-dvh overflow-x-hidden bg-[#070b14] font-sans text-white">
+      <Starfield variant="sales" />
+      <SalesNebulaBackdrop />
       <SalesNav />
 
       <div
-        className="pointer-events-none absolute inset-0 opacity-60"
+        className="pointer-events-none absolute inset-0 opacity-50"
         style={{
           background:
-            "radial-gradient(ellipse 80% 50% at 50% 20%, rgba(251,191,36,0.1) 0%, transparent 65%)",
+            "radial-gradient(ellipse 85% 55% at 50% 12%, rgba(251,191,36,0.08) 0%, transparent 62%)",
         }}
         aria-hidden
       />
 
       <div className="relative pt-14 sm:pt-16">
         <LuxuryShowcaseBanner />
-        <SalesHero />
-        <StarPackageGrid />
-        <KeychainPackageGrid />
+
+        <div className="mx-auto flex max-w-5xl flex-col">
+          <SalesHero />
+          <StarPackageGrid />
+          <KeychainPackageGrid />
+        </div>
       </div>
 
       <ExpertJoinSection />
 
       <footer className="relative border-t border-white/8 px-4 py-8 text-center sm:px-6">
         <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/25">
-          {SITE_HOST} · Kozmik Satış Platformu
+          {SITE_HOST} · Journey Beyond Earth
         </p>
       </footer>
     </main>

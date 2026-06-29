@@ -2,8 +2,25 @@
 
 import { useEffect, useRef } from "react";
 
-const MAX_STATIC_STARS = 50;
-const MAX_FOREGROUND_STARS = 6;
+type StarfieldVariant = "default" | "sales";
+
+interface StarfieldProps {
+  variant?: StarfieldVariant;
+}
+
+interface StarfieldProfile {
+  maxStaticStars: number;
+  maxForegroundStars: number;
+  shootingStarsEnabled: boolean;
+  shootingIntervalMin: number;
+  shootingIntervalMax: number;
+  animate: boolean;
+  twinkleEnabled: boolean;
+  shadowEnabled: boolean;
+}
+
+const DEFAULT_MAX_STATIC_STARS = 50;
+const DEFAULT_MAX_FOREGROUND_STARS = 6;
 const SHOOTING_STAR_INTERVAL_MIN = 3000;
 const SHOOTING_STAR_INTERVAL_MAX = 5000;
 
@@ -154,10 +171,72 @@ function createStaticStar(
   };
 }
 
-function buildStaticStars(width: number, height: number): StaticStar[] {
+function resolveStarfieldProfile(
+  variant: StarfieldVariant,
+  width: number,
+  reducedMotion: boolean
+): StarfieldProfile {
+  if (variant === "default") {
+    return {
+      maxStaticStars: DEFAULT_MAX_STATIC_STARS,
+      maxForegroundStars: DEFAULT_MAX_FOREGROUND_STARS,
+      shootingStarsEnabled: true,
+      shootingIntervalMin: SHOOTING_STAR_INTERVAL_MIN,
+      shootingIntervalMax: SHOOTING_STAR_INTERVAL_MAX,
+      animate: !reducedMotion,
+      twinkleEnabled: true,
+      shadowEnabled: true,
+    };
+  }
+
+  if (reducedMotion) {
+    return {
+      maxStaticStars: 14,
+      maxForegroundStars: 1,
+      shootingStarsEnabled: false,
+      shootingIntervalMin: 999_999,
+      shootingIntervalMax: 999_999,
+      animate: false,
+      twinkleEnabled: false,
+      shadowEnabled: false,
+    };
+  }
+
+  const isMobile = width < 768;
+
+  if (isMobile) {
+    return {
+      maxStaticStars: 18,
+      maxForegroundStars: 2,
+      shootingStarsEnabled: false,
+      shootingIntervalMin: 999_999,
+      shootingIntervalMax: 999_999,
+      animate: true,
+      twinkleEnabled: false,
+      shadowEnabled: false,
+    };
+  }
+
+  return {
+    maxStaticStars: 32,
+    maxForegroundStars: 4,
+    shootingStarsEnabled: true,
+    shootingIntervalMin: 6000,
+    shootingIntervalMax: 9000,
+    animate: true,
+    twinkleEnabled: true,
+    shadowEnabled: false,
+  };
+}
+
+function buildStaticStars(
+  width: number,
+  height: number,
+  profile: StarfieldProfile
+): StaticStar[] {
   const total = Math.min(
-    MAX_STATIC_STARS,
-    Math.max(32, Math.floor((width * height) / 12000))
+    profile.maxStaticStars,
+    Math.max(12, Math.floor((width * height) / 16000))
   );
 
   const stars: StaticStar[] = [];
@@ -170,7 +249,7 @@ function buildStaticStars(width: number, height: number): StaticStar[] {
       : Math.floor(total * preset.share);
 
     if (preset.layer === "foreground") {
-      layerCount = Math.min(MAX_FOREGROUND_STARS, Math.max(3, layerCount));
+      layerCount = Math.min(profile.maxForegroundStars, Math.max(1, layerCount));
     }
 
     assigned += layerCount;
@@ -261,7 +340,7 @@ function wrapStaticStar(star: StaticStar, width: number, height: number) {
   }
 }
 
-export default function Starfield() {
+export default function Starfield({ variant = "default" }: StarfieldProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -280,27 +359,11 @@ export default function Starfield() {
     let running = false;
     let time = 0;
     let nextShootingStarAt = 0;
+    let profile = resolveStarfieldProfile(variant, window.innerWidth, false);
 
     const scheduleNextShootingStar = (from = performance.now()) => {
       nextShootingStarAt =
-        from +
-        randomBetween(SHOOTING_STAR_INTERVAL_MIN, SHOOTING_STAR_INTERVAL_MAX);
-    };
-
-    const resize = () => {
-      width = window.innerWidth;
-      height = window.innerHeight;
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
-
-      canvas.width = Math.floor(width * dpr);
-      canvas.height = Math.floor(height * dpr);
-      canvas.style.width = `${width}px`;
-      canvas.style.height = `${height}px`;
-
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      staticStars = buildStaticStars(width, height);
-      shootingStars = [];
-      scheduleNextShootingStar();
+        from + randomBetween(profile.shootingIntervalMin, profile.shootingIntervalMax);
     };
 
     const drawBackground = () => {
@@ -312,19 +375,21 @@ export default function Starfield() {
       for (const star of staticStars) {
         if (star.layer !== layer) continue;
 
-        star.x += star.speedX;
-        star.y += star.speedY;
-        wrapStaticStar(star, width, height);
+        if (profile.animate) {
+          star.x += star.speedX;
+          star.y += star.speedY;
+          wrapStaticStar(star, width, height);
+        }
 
         let opacity = star.baseOpacity;
 
-        if (layer === "foreground") {
+        if (layer === "foreground" && profile.twinkleEnabled) {
           opacity = 0.5 + 0.3 * Math.sin(time * star.twinkleSpeed + star.twinklePhase);
         }
 
         ctx.beginPath();
 
-        if (layer === "foreground") {
+        if (layer === "foreground" && profile.shadowEnabled) {
           ctx.shadowBlur = 10;
           ctx.shadowColor = "rgba(255, 255, 255, 0.55)";
         } else {
@@ -397,12 +462,14 @@ export default function Starfield() {
     };
 
     const updateAndDraw = () => {
-      if (time >= nextShootingStarAt) {
+      if (profile.shootingStarsEnabled && time >= nextShootingStarAt) {
         shootingStars.push(spawnShootingStar(width, height));
         scheduleNextShootingStar(time);
       }
 
-      updateShootingStars();
+      if (profile.shootingStarsEnabled) {
+        updateShootingStars();
+      }
 
       drawBackground();
       drawStaticLayer("background");
@@ -419,6 +486,34 @@ export default function Starfield() {
       }
     };
 
+    const resize = () => {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      dpr = Math.min(window.devicePixelRatio || 1, variant === "sales" ? 1.5 : 2);
+      profile = resolveStarfieldProfile(
+        variant,
+        width,
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      );
+
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      staticStars = buildStaticStars(width, height, profile);
+      shootingStars = [];
+      scheduleNextShootingStar();
+
+      if (!profile.animate) {
+        drawBackground();
+        drawStaticLayer("background");
+        drawStaticLayer("midground");
+        drawStaticLayer("foreground");
+      }
+    };
+
     const tick = (now: number) => {
       if (!running) return;
       time = now;
@@ -427,7 +522,7 @@ export default function Starfield() {
     };
 
     const start = () => {
-      if (running) return;
+      if (running || !profile.animate) return;
       running = true;
       scheduleNextShootingStar();
       rafId = requestAnimationFrame(tick);
@@ -441,7 +536,7 @@ export default function Starfield() {
     const handleVisibility = () => {
       if (document.hidden) {
         stop();
-      } else {
+      } else if (profile.animate) {
         scheduleNextShootingStar();
         start();
       }
@@ -458,7 +553,7 @@ export default function Starfield() {
       window.removeEventListener("resize", resize);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, []);
+  }, [variant]);
 
   return (
     <canvas

@@ -1,8 +1,15 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { Gift } from "lucide-react";
+import SalesMotion from "@/components/sales/SalesMotion";
 import { useGiftCheckout } from "@/hooks/useGiftCheckout";
+import {
+  SALES_CTA_GIFT_CLASS,
+  SALES_CTA_PRIMARY_CLASS,
+  SALES_CTA_STACK_CLASS,
+  SALES_MOTION_TRANSITION,
+  SALES_SECTION_CLASS,
+} from "@/lib/sales/sales-motion";
 import {
   SALES_CTA_LABEL,
   SALES_GIFT_CTA_LABEL,
@@ -26,11 +33,11 @@ function StarPackageCard({ product, index, onPurchase, onGift }: StarPackageCard
   const isSpotlight = Boolean(product.spotlight);
 
   return (
-    <motion.article
+    <SalesMotion
       initial={{ opacity: 0, y: 14 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-40px" }}
-      transition={{ duration: 0.45, delay: index * 0.04, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ ...SALES_MOTION_TRANSITION, delay: index * 0.04 }}
       className={`relative flex flex-col rounded-[24px] border p-5 backdrop-blur-xl sm:p-6 ${
         isSpotlight
           ? "sales-spotlight-card col-span-full overflow-hidden border-amber-300/45 bg-gradient-to-br from-amber-400/[0.14] via-[#0f172a]/90 to-violet-950/40 shadow-[0_0_80px_rgba(251,191,36,0.22)] sm:p-8 lg:flex-row lg:items-stretch lg:gap-8"
@@ -95,11 +102,11 @@ function StarPackageCard({ product, index, onPurchase, onGift }: StarPackageCard
         </p>
       </div>
 
-      <div className={`mt-5 space-y-2 ${isSpotlight ? "lg:flex lg:w-56 lg:flex-col lg:justify-end" : ""}`}>
+      <div className={`${SALES_CTA_STACK_CLASS} ${isSpotlight ? "lg:w-56 lg:justify-end" : ""}`}>
         <button
           type="button"
           onClick={() => onPurchase(product)}
-          className={`min-h-11 w-full rounded-xl px-4 py-3 text-sm font-semibold transition ${
+          className={`${SALES_CTA_PRIMARY_CLASS} ${
             isSpotlight
               ? "bg-gradient-to-r from-amber-300 to-amber-400 text-[#0f172a] shadow-[0_0_32px_rgba(251,191,36,0.35)] hover:from-amber-200 hover:to-amber-300"
               : isFeatured
@@ -110,16 +117,12 @@ function StarPackageCard({ product, index, onPurchase, onGift }: StarPackageCard
           {SALES_CTA_LABEL}
         </button>
 
-        <button
-          type="button"
-          onClick={() => onGift(product)}
-          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/[0.03] px-4 py-3 text-sm font-medium text-white/80 transition hover:border-emerald-400/25 hover:bg-emerald-400/[0.06] hover:text-emerald-100"
-        >
-          <Gift className="h-4 w-4" aria-hidden />
+        <button type="button" onClick={() => onGift(product)} className={SALES_CTA_GIFT_CLASS}>
+          <Gift className="h-4 w-4 shrink-0" aria-hidden />
           {SALES_GIFT_CTA_LABEL}
         </button>
       </div>
-    </motion.article>
+    </SalesMotion>
   );
 }
 
@@ -127,7 +130,7 @@ export default function StarPackageGrid() {
   const { giftModal, openGiftModal, purchase } = useGiftCheckout();
 
   return (
-    <section id="yildiz-paketleri" className="px-4 py-12 sm:px-6 sm:py-16">
+    <section id="yildiz-paketleri" className={`${SALES_SECTION_CLASS} border-b border-white/[0.06]`}>
       <div className="mx-auto max-w-5xl">
         <p className="sales-kicker text-[10px] uppercase tracking-[0.3em] text-amber-400/70">
           Yıldız Paketleri
