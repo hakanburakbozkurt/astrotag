@@ -6,6 +6,7 @@ import KeychainPackageGrid from "@/components/sales/KeychainPackageGrid";
 import LuxuryShowcaseBanner from "@/components/sales/LuxuryShowcaseBanner";
 import SalesHero from "@/components/sales/SalesHero";
 import SalesNav from "@/components/sales/SalesNav";
+import StarPackageGrid from "@/components/sales/StarPackageGrid";
 import { SITE_HOST } from "@/lib/nfc/constants";
 
 export default function SalesLanding() {
@@ -25,11 +26,9 @@ export default function SalesLanding() {
 
       <div className="relative pt-14 sm:pt-16">
         <LuxuryShowcaseBanner />
-
-        <div className="relative">
-          <SalesHero />
-          <KeychainPackageGrid />
-        </div>
+        <SalesHero />
+        <StarPackageGrid />
+        <KeychainPackageGrid />
       </div>
 
       <ExpertJoinSection />

@@ -131,7 +131,7 @@ export default function GiftOrderModal({
                 }
                 className="min-h-11 flex-1 rounded-xl bg-emerald-400/90 px-4 text-sm font-semibold text-[#052e1a] transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-45"
               >
-                Hediye Olarak Devam Et
+                Hediye Olarak Gönder
               </button>
             </div>
           </motion.div>

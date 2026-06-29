@@ -21,11 +21,11 @@ export default function ExpertJoinSection() {
           Profesyonel Ağ
         </p>
         <h2 className="mt-3 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-          Uzman Olarak Katıl
+          Astrolog Kiti
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-white/50 sm:text-base">
-          AstroTag, danışmanlık veren profesyoneller için ayrı bir vitrin sunar. Satış
-          vitrini değil — platformun güvenilir, uzman yüzü.
+          AstroTag uzman paneli — danışmanlık veren profesyoneller için platformun güvenilir
+          yüzü. Satış vitrini değil; kariyerinizi büyüten profesyonel altyapı.
         </p>
 
         <Link

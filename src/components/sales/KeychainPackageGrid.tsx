@@ -1,16 +1,14 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Gift } from "lucide-react";
-import { useRouter } from "next/navigation";
-import GiftOrderModal from "@/components/sales/GiftOrderModal";
+import { useGiftCheckout } from "@/hooks/useGiftCheckout";
 import ZodiacSelectionPanel from "@/components/sales/ZodiacSelectionPanel";
 import {
   KEYCHAIN_BUNDLE_CATALOG,
   SALES_CTA_LABEL,
   SALES_GIFT_CTA_LABEL,
-  buildPurchaseSuccessUrl,
   createEmptyZodiacSelections,
   type GiftOrderDetails,
   type KeychainBundleProduct,
@@ -42,7 +40,7 @@ function KeychainPackageCard({
   onGift,
 }: KeychainPackageCardProps) {
   const isVip = Boolean(bundle.vip);
-  const zodiacReady = areZodiacSelectionsComplete(zodiacValues);
+  const zodiacReady = !selected || areZodiacSelectionsComplete(zodiacValues);
 
   return (
     <motion.div
@@ -130,8 +128,7 @@ function KeychainPackageCard({
           <button
             type="button"
             onClick={onGift}
-            disabled={selected && !zodiacReady}
-            className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/[0.03] px-4 py-3 text-sm font-medium text-white/80 transition hover:border-emerald-400/25 hover:bg-emerald-400/[0.06] hover:text-emerald-100 disabled:cursor-not-allowed disabled:opacity-45"
+            className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/[0.03] px-4 py-3 text-sm font-medium text-white/80 transition hover:border-emerald-400/25 hover:bg-emerald-400/[0.06] hover:text-emerald-100"
           >
             <Gift className="h-4 w-4" aria-hidden />
             {SALES_GIFT_CTA_LABEL}
@@ -153,17 +150,29 @@ function KeychainPackageCard({
 }
 
 export default function KeychainPackageGrid() {
-  const router = useRouter();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [zodiacByProduct, setZodiacByProduct] = useState<Record<string, string[]>>({});
-  const [giftModalOpen, setGiftModalOpen] = useState(false);
-  const [giftTargetId, setGiftTargetId] = useState<string | null>(null);
-  const [pendingGift, setPendingGift] = useState<GiftOrderDetails | null>(null);
+  const [pendingGiftByProduct, setPendingGiftByProduct] = useState<
+    Record<string, GiftOrderDetails>
+  >({});
 
-  const selectedBundle = useMemo(
-    () => KEYCHAIN_BUNDLE_CATALOG.find((item) => item.id === selectedId),
-    [selectedId]
-  );
+  const { giftModal, openGiftModal, purchase } = useGiftCheckout({
+    getCheckoutOptions: (productId) => {
+      const signs = zodiacByProduct[productId]?.filter(Boolean);
+      return signs?.length ? { zodiacSigns: signs } : undefined;
+    },
+    canProceedToCheckout: (productId) => {
+      const bundle = KEYCHAIN_BUNDLE_CATALOG.find((item) => item.id === productId);
+      if (!bundle) {
+        return true;
+      }
+      const signs = zodiacByProduct[productId] ?? createEmptyZodiacSelections(bundle.quantity);
+      return areZodiacSelectionsComplete(signs);
+    },
+    onGiftPending: (productId, details) => {
+      setPendingGiftByProduct((current) => ({ ...current, [productId]: details }));
+    },
+  });
 
   const ensureZodiacState = useCallback((bundle: KeychainBundleProduct) => {
     setZodiacByProduct((current) => {
@@ -196,19 +205,6 @@ export default function KeychainPackageGrid() {
     []
   );
 
-  const navigateToCheckout = useCallback(
-    (productId: string, gift?: GiftOrderDetails | null) => {
-      const signs = zodiacByProduct[productId]?.filter(Boolean);
-      router.push(
-        buildPurchaseSuccessUrl(productId, {
-          zodiacSigns: signs,
-          gift: gift ?? undefined,
-        })
-      );
-    },
-    [router, zodiacByProduct]
-  );
-
   const handlePurchase = useCallback(
     (bundle: KeychainBundleProduct) => {
       handleSelect(bundle);
@@ -218,39 +214,21 @@ export default function KeychainPackageGrid() {
         return;
       }
 
-      navigateToCheckout(bundle.id, pendingGift?.recipientName ? pendingGift : null);
+      purchase(bundle.id, pendingGiftByProduct[bundle.id] ?? null);
     },
-    [handleSelect, navigateToCheckout, pendingGift, zodiacByProduct]
+    [handleSelect, pendingGiftByProduct, purchase, zodiacByProduct]
   );
 
   const handleGiftOpen = useCallback(
     (bundle: KeychainBundleProduct) => {
       handleSelect(bundle);
-      setGiftTargetId(bundle.id);
-      setGiftModalOpen(true);
+      openGiftModal(bundle.id, bundle.title);
     },
-    [handleSelect]
-  );
-
-  const handleGiftConfirm = useCallback(
-    (details: GiftOrderDetails) => {
-      setPendingGift(details);
-      setGiftModalOpen(false);
-
-      if (!giftTargetId) {
-        return;
-      }
-
-      const signs = zodiacByProduct[giftTargetId] ?? [];
-      if (areZodiacSelectionsComplete(signs)) {
-        navigateToCheckout(giftTargetId, details);
-      }
-    },
-    [giftTargetId, navigateToCheckout, zodiacByProduct]
+    [handleSelect, openGiftModal]
   );
 
   return (
-    <section id="anahtarlik-paketleri" className="px-4 py-12 sm:px-6 sm:py-16">
+    <section id="anahtarlik-paketleri" className="border-t border-white/[0.06] px-4 py-12 sm:px-6 sm:py-16">
       <div className="mx-auto max-w-5xl">
         <p className="sales-kicker text-[10px] uppercase tracking-[0.3em] text-amber-400/70">
           NFC Anahtarlık Paketleri
@@ -284,12 +262,7 @@ export default function KeychainPackageGrid() {
         </div>
       </div>
 
-      <GiftOrderModal
-        open={giftModalOpen}
-        packageTitle={selectedBundle?.title ?? "Hediye Paketi"}
-        onClose={() => setGiftModalOpen(false)}
-        onConfirm={handleGiftConfirm}
-      />
+      {giftModal}
     </section>
   );
 }

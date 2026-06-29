@@ -4,7 +4,7 @@ const OFFLINE_URL = "/";
 const PRECACHE_URLS = [
   "/",
   "/manifest.json",
-  "/assets/sales/a98ae98a-fff5-43ff-a684-011bdfc6aa82.jfif?v=2",
+  "/assets/sales/image_485027.PNG?v=3",
   "/private-mode-warning",
 ];
 

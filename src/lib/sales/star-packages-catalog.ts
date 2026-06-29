@@ -36,7 +36,7 @@ export interface GiftOrderDetails {
 }
 
 export const SALES_CTA_LABEL = "Sipariş Ver";
-export const SALES_GIFT_CTA_LABEL = "Hediye Et";
+export const SALES_GIFT_CTA_LABEL = "Hediye Olarak Gönder";
 
 export const ZODIAC_SIGN_OPTIONS = [...ZODIAC_SIGNS];
 
@@ -162,8 +162,6 @@ const STAR_PACKAGE_TIERS = [
     stars: 30,
     title: "Yıldız Taşlağı",
     description: "Düzenli kullanım için dengeli stok; haftalık ritminize uyum sağlar.",
-    featured: true,
-    badge: "En Çok Tercih Edilen",
   },
   {
     id: "stars-60",
@@ -185,10 +183,25 @@ const STAR_PACKAGE_TIERS = [
     description: "Yoğun analiz ve paylaşım döngüleri için güçlü stok.",
   },
   {
+    id: "stars-500",
+    stars: 500,
+    title: "Nebula Stoku",
+    description: "Profesyonel kullanım için yüksek kapasiteli kozmik bakiye.",
+    badge: "Popüler",
+  },
+  {
     id: "stars-750",
     stars: 750,
     title: "Süpernova",
     description: "Uzun vadeli kozmik yolculuk — maksimum esneklik ve derinlik.",
+  },
+  {
+    id: "stars-1000",
+    stars: 1000,
+    title: "Kozmik İmparatorluk",
+    description: "1.000 yıldız eşiği — derin analizler ve paylaşım için premium stok.",
+    featured: true,
+    badge: "En Çok Tercih Edilen",
   },
   {
     id: "stars-2500",
