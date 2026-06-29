@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, type HTMLMotionProps } from "framer-motion";
+import { useMotionReady } from "@/hooks/useMotionReady";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import {
   SALES_IN_VIEW_INITIAL,
@@ -28,9 +29,11 @@ export default function SalesMotion({
   onAnimationStart,
   ...rest
 }: SalesMotionProps) {
+  const motionReady = useMotionReady();
   const reducedMotion = usePrefersReducedMotion();
 
   const useScrollReveal = scrollReveal && animate === undefined;
+  const canAnimate = motionReady && !reducedMotion;
 
   const resolvedInitial = initial ?? (useScrollReveal ? SALES_IN_VIEW_INITIAL : undefined);
   const resolvedWhileInView = useScrollReveal
@@ -41,15 +44,15 @@ export default function SalesMotion({
 
   return (
     <motion.div
-      initial={reducedMotion ? false : resolvedInitial}
-      animate={reducedMotion ? undefined : animate}
-      whileInView={reducedMotion || !useScrollReveal ? undefined : resolvedWhileInView}
-      transition={reducedMotion ? { duration: 0 } : resolvedTransition}
+      initial={canAnimate ? resolvedInitial : false}
+      animate={canAnimate ? animate : undefined}
+      whileInView={canAnimate && useScrollReveal ? resolvedWhileInView : undefined}
+      transition={canAnimate ? resolvedTransition : { duration: 0 }}
       viewport={useScrollReveal ? resolvedViewport : viewport}
       onViewportEnter={onViewportEnter}
       onAnimationStart={onAnimationStart}
       className={`${SALES_MOTION_LAYER_CLASS} ${className}`.trim()}
-      style={{ willChange: "transform", ...style }}
+      style={{ willChange: canAnimate ? "transform" : undefined, ...style }}
       {...rest}
     />
   );

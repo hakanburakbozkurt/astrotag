@@ -4,6 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Gift } from "lucide-react";
+import { useMotionReady } from "@/hooks/useMotionReady";
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import {
   SALES_CTA_GIFT_CLASS,
   SALES_CTA_PRIMARY_CLASS,
@@ -23,12 +25,16 @@ import {
 } from "@/lib/sales/star-packages-catalog";
 
 export default function SalesHero() {
+  const motionReady = useMotionReady();
+  const reducedMotion = usePrefersReducedMotion();
+  const canAnimate = motionReady && !reducedMotion;
+
   return (
     <section className={`${SALES_SECTION_CLASS} border-b border-white/[0.06]`}>
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: SALES_MOTION_EASE }}
+        initial={canAnimate ? { opacity: 0, y: 20 } : false}
+        animate={canAnimate ? { opacity: 1, y: 0 } : undefined}
+        transition={canAnimate ? { duration: 0.8, ease: SALES_MOTION_EASE } : { duration: 0 }}
         className="mx-auto grid w-full max-w-5xl grid-cols-1 items-center gap-8 lg:grid-cols-2 lg:gap-12"
       >
         <div className="mx-auto w-full max-w-sm sm:max-w-md lg:max-w-none">
