@@ -1,4 +1,4 @@
-const CACHE_NAME = "astrotag-v2";
+const CACHE_NAME = "astrotag-v3";
 const OFFLINE_URL = "/";
 
 const PRECACHE_URLS = [
@@ -59,6 +59,24 @@ self.addEventListener("fetch", (event) => {
         const cache = await caches.open(CACHE_NAME);
         return (await cache.match(OFFLINE_URL)) ?? new Response("Offline", { status: 503 });
       })
+    );
+    return;
+  }
+
+  if (url.pathname === "/" || url.pathname === "/kozmik-baslangic" || url.pathname === "/siparislerim") {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok && url.origin === self.location.origin) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        })
+        .catch(async () => {
+          const cache = await caches.open(CACHE_NAME);
+          return (await cache.match(request)) ?? (await cache.match(OFFLINE_URL)) ?? new Response("Offline", { status: 503 });
+        })
     );
     return;
   }

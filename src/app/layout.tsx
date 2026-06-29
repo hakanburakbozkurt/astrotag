@@ -6,7 +6,6 @@ import PwaRegister from "@/components/PwaRegister";
 import SecurityBootstrap from "@/components/SecurityBootstrap";
 import ToastBootstrap from "@/components/ToastBootstrap";
 import StaleActionGuard from "@/components/errors/StaleActionGuard";
-import NfcAuthPersistenceBootstrap from "@/components/nfc/NfcAuthPersistenceBootstrap";
 import { SITE_URL, WELCOME_IMAGE_PATH } from "@/lib/nfc/constants";
 import "./globals.css";
 
@@ -78,7 +77,6 @@ export default function RootLayout({
             <SecurityBootstrap />
             <ToastBootstrap />
             <StaleActionGuard />
-            <NfcAuthPersistenceBootstrap />
             {children}
           </AppProviders>
         </RouterReadyProvider>
