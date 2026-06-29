@@ -12,8 +12,8 @@ export default function SalesHero() {
         initial={{ opacity: 0, scale: 0.5 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 1 }}
-        onAnimationStart={() => console.log("ANIMASYON TETIKLENDI")}
-        style={{ background: "red" }}
+        onAnimationStart={() => console.log('ANIMASYON TETIKLENDI')}
+        style={{ background: 'red', display: 'block', height: '200px', width: '100%' }}
         className="mx-auto flex w-full max-w-5xl flex-col gap-8 lg:grid lg:grid-cols-2 lg:items-end lg:gap-12"
       >
         <div className="flex flex-col gap-4 text-center lg:text-left">

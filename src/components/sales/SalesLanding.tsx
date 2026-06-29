@@ -1,16 +1,22 @@
-"use client";
+'use client';
 
-import Starfield from "@/components/Starfield";
-import ExpertJoinSection from "@/components/sales/ExpertJoinSection";
-import KeychainPackageGrid from "@/components/sales/KeychainPackageGrid";
-import LuxuryShowcaseBanner from "@/components/sales/LuxuryShowcaseBanner";
-import SalesHero from "@/components/sales/SalesHero";
-import SalesNav from "@/components/sales/SalesNav";
-import SalesNebulaBackdrop from "@/components/sales/SalesNebulaBackdrop";
-import StarPackageGrid from "@/components/sales/StarPackageGrid";
-import { SITE_HOST } from "@/lib/nfc/constants";
+import { motion } from 'framer-motion';
+import { useEffect } from 'react';
+import Starfield from '@/components/Starfield';
+import ExpertJoinSection from '@/components/sales/ExpertJoinSection';
+import KeychainPackageGrid from '@/components/sales/KeychainPackageGrid';
+import LuxuryShowcaseBanner from '@/components/sales/LuxuryShowcaseBanner';
+import SalesHero from '@/components/sales/SalesHero';
+import SalesNav from '@/components/sales/SalesNav';
+import SalesNebulaBackdrop from '@/components/sales/SalesNebulaBackdrop';
+import StarPackageGrid from '@/components/sales/StarPackageGrid';
+import { SITE_HOST } from '@/lib/nfc/constants';
 
 export default function SalesLanding() {
+  useEffect(() => {
+    console.log('[Smoke Test] SalesLanding mount — framer-motion:', typeof motion);
+  }, []);
+
   return (
     <main className="astrotag-sales astrotag-sales-journey relative min-h-dvh overflow-x-hidden bg-[#070b14] font-sans text-white">
       <Starfield variant="sales" />
@@ -21,7 +27,7 @@ export default function SalesLanding() {
         className="pointer-events-none absolute inset-0 opacity-50"
         style={{
           background:
-            "radial-gradient(ellipse 85% 55% at 50% 12%, rgba(251,191,36,0.08) 0%, transparent 62%)",
+            'radial-gradient(ellipse 85% 55% at 50% 12%, rgba(251,191,36,0.08) 0%, transparent 62%)',
         }}
         aria-hidden
       />
