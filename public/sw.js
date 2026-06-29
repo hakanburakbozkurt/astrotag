@@ -1,10 +1,10 @@
-const CACHE_NAME = "astrotag-v3";
+const CACHE_NAME = "astrotag-v4";
 const OFFLINE_URL = "/";
 
 const PRECACHE_URLS = [
   "/",
   "/manifest.json",
-  "/image_485027.png",
+  "/assets/sales/a98ae98a-fff5-43ff-a684-011bdfc6aa82.jfif?v=2",
   "/private-mode-warning",
 ];
 

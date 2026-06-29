@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import Starfield from "@/components/Starfield";
 import SalesNav from "@/components/sales/SalesNav";
 import {
+  findKeychainBundle,
   NFC_KEYCHAIN_PRODUCT,
   STAR_PACKAGE_CATALOG,
 } from "@/lib/sales/star-packages-catalog";
@@ -19,6 +20,11 @@ function resolveProductLabel(productId: string | null): string {
 
   if (productId === NFC_KEYCHAIN_PRODUCT.id) {
     return NFC_KEYCHAIN_PRODUCT.title;
+  }
+
+  const keychainBundle = productId ? findKeychainBundle(productId) : undefined;
+  if (keychainBundle) {
+    return keychainBundle.title;
   }
 
   const starPack = STAR_PACKAGE_CATALOG.find((item) => item.id === productId);
@@ -47,7 +53,12 @@ function KozmikBaslangicContent() {
   }
 
   const productLabel = resolveProductLabel(productId);
-  const isKeychain = productId === NFC_KEYCHAIN_PRODUCT.id;
+  const isKeychain =
+    productId === NFC_KEYCHAIN_PRODUCT.id ||
+    Boolean(productId && findKeychainBundle(productId));
+  const giftTo = searchParams.get("giftTo");
+  const giftNote = searchParams.get("giftNote");
+  const zodiacSigns = searchParams.get("signs")?.split(",").filter(Boolean) ?? [];
 
   return (
     <div className="mx-auto max-w-lg px-4 py-24 sm:px-6 sm:py-28">
@@ -63,10 +74,26 @@ function KozmikBaslangicContent() {
         <h1 className="mt-3 text-2xl font-bold text-white">Hoş geldiniz ✨</h1>
         <p className="mt-3 text-sm leading-relaxed text-white/60">
           <span className="text-amber-100/90">{productLabel}</span> siparişiniz alındı.
+          {giftTo ? (
+            <>
+              {" "}
+              Hediye alıcısı: <span className="text-emerald-300/90">{giftTo}</span>.
+            </>
+          ) : null}
           {isKeychain
             ? " Anahtarlığınız elinize ulaştığında aktivasyonu bir dakikada tamamlayın."
             : " Yıldız bakiyeniz hesabınıza tanımlandığında NFC profilinizden kullanabilirsiniz."}
         </p>
+
+        {zodiacSigns.length > 0 ? (
+          <p className="mt-3 text-xs text-white/45">
+            Burç seçimleri: {zodiacSigns.join(" · ")}
+          </p>
+        ) : null}
+
+        {giftNote ? (
+          <p className="mt-2 text-xs italic text-white/40">&quot;{giftNote}&quot;</p>
+        ) : null}
 
         <div className="mt-8 space-y-3 text-left">
           <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
