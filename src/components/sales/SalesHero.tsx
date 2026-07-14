@@ -82,13 +82,13 @@ export default function SalesHero() {
 
           <div className={`${SALES_CTA_STACK_CLASS} lg:max-w-sm`}>
             <Link
-              href="#anahtarlik-paketleri"
+              href="#paketler"
               className={`${SALES_CTA_PRIMARY_CLASS} bg-gradient-to-r from-amber-300 to-amber-400 text-[#0f172a] shadow-[0_0_32px_rgba(251,191,36,0.25)] hover:from-amber-200 hover:to-amber-300`}
             >
               {SALES_CTA_LABEL}
             </Link>
             <Link
-              href="#anahtarlik-paketleri"
+              href="#paketler"
               className={SALES_CTA_GIFT_CLASS}
             >
               <Gift className="h-4 w-4 shrink-0" aria-hidden />

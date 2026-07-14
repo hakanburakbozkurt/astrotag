@@ -2,11 +2,10 @@
 
 import Starfield from '@/components/Starfield';
 import ExpertJoinSection from '@/components/sales/ExpertJoinSection';
-import KeychainPackageGrid from '@/components/sales/KeychainPackageGrid';
+import ProductSection from '@/components/sales/ProductSection';
 import SalesHero from '@/components/sales/SalesHero';
 import SalesNav from '@/components/sales/SalesNav';
 import SalesNebulaBackdrop from '@/components/sales/SalesNebulaBackdrop';
-import StarPackageGrid from '@/components/sales/StarPackageGrid';
 import { SITE_HOST } from '@/lib/nfc/constants';
 
 export default function SalesLanding() {
@@ -28,8 +27,7 @@ export default function SalesLanding() {
       <div className="relative pt-14 sm:pt-16">
         <div className="mx-auto flex max-w-5xl flex-col">
           <SalesHero />
-          <StarPackageGrid />
-          <KeychainPackageGrid />
+          <ProductSection />
         </div>
       </div>
 
