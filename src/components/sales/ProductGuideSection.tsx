@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import { useMotionReady } from "@/hooks/useMotionReady";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
-import { PRODUCT_GUIDE_SECTIONS } from "@/lib/sales/guide-content";
+import { guideSections } from "@/lib/sales/guide-content";
 import {
   SALES_MOTION_EASE,
   SALES_SECTION_CLASS,
@@ -13,18 +13,14 @@ import {
 
 function GuideAccordionItem({
   id,
-  kicker,
   title,
-  paragraphs,
-  highlights,
+  content,
   isOpen,
   onToggle,
 }: {
   id: string;
-  kicker?: string;
   title: string;
-  paragraphs: string[];
-  highlights?: string[];
+  content: string;
   isOpen: boolean;
   onToggle: () => void;
 }) {
@@ -42,15 +38,8 @@ function GuideAccordionItem({
         onClick={onToggle}
         className="flex min-h-14 w-full items-start justify-between gap-4 py-6 text-left transition-colors duration-200 hover:text-amber-50 sm:min-h-16 sm:py-8"
       >
-        <span className="flex flex-col gap-2 pr-2">
-          {kicker ? (
-            <span className="font-mono text-[10px] uppercase tracking-[0.32em] text-amber-400/65">
-              {kicker}
-            </span>
-          ) : null}
-          <span className="text-lg font-semibold leading-snug tracking-tight text-white sm:text-xl md:text-2xl">
-            {title}
-          </span>
+        <span className="pr-2 text-lg font-semibold leading-snug tracking-tight text-white sm:text-xl md:text-2xl">
+          {title}
         </span>
         <span
           className={`mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition-[border-color,background-color,transform] duration-300 ${
@@ -78,26 +67,9 @@ function GuideAccordionItem({
             transition={{ duration: 0.45, ease: SALES_MOTION_EASE }}
             className="overflow-hidden"
           >
-            <div className="pb-8 sm:pb-10">
-              <div className="space-y-5 text-[17px] leading-[1.9] text-white/62 sm:text-lg sm:leading-[1.95]">
-                {paragraphs.map((paragraph) => (
-                  <p key={paragraph.slice(0, 48)}>{paragraph}</p>
-                ))}
-              </div>
-
-              {highlights?.length ? (
-                <ul className="mt-8 space-y-4 border-t border-white/[0.06] pt-8">
-                  {highlights.map((line) => (
-                    <li
-                      key={line}
-                      className="border-l-2 border-amber-400/45 pl-5 text-base italic leading-[1.85] text-amber-100/75 sm:text-[17px]"
-                    >
-                      {line}
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-            </div>
+            <p className="pb-8 text-[17px] leading-[1.9] text-white/62 sm:pb-10 sm:text-lg sm:leading-[1.95]">
+              {content}
+            </p>
           </motion.div>
         ) : null}
       </AnimatePresence>
@@ -106,7 +78,7 @@ function GuideAccordionItem({
 }
 
 export default function ProductGuideSection() {
-  const [openId, setOpenId] = useState<string | null>(PRODUCT_GUIDE_SECTIONS[0]?.id ?? null);
+  const [openId, setOpenId] = useState<string | null>(guideSections[0]?.id ?? null);
 
   const handleToggle = useCallback((id: string) => {
     setOpenId((current) => (current === id ? null : id));
@@ -122,23 +94,21 @@ export default function ProductGuideSection() {
           Ürün Rehberi ve Güven Merkezi
         </p>
         <h2 className="mt-3 text-2xl font-bold tracking-tight text-white sm:text-3xl md:text-4xl md:leading-tight">
-          AstroTag ile Tanışın, Güvenle Kullanın
+          AstroTag ile Tanış, Güvenle Kullan
         </h2>
         <p className="mt-4 max-w-2xl text-base leading-[1.85] text-white/50 sm:text-lg sm:leading-[1.9]">
-          Teknik detaylarla değil; anlaşılır rehberlikle. Aşağıdaki başlıklarda sistemin
-          nasıl çalıştığını, yıldız ekonomisini ve gizliliğinizi nasıl koruduğumuzu
-          adım adım bulabilirsiniz.
+          Aşağıdaki başlıklarda AstroTag&apos;in ne olduğunu, günlük ritüelini, yıldız
+          ekonomisini ve verilerinin nasıl korunduğunu sakin ve net bir dille
+          okuyabilirsin.
         </p>
 
         <div className="mt-10 rounded-[28px] border border-white/10 bg-[#0f172a]/35 px-5 backdrop-blur-xl sm:mt-12 sm:px-8 md:px-10">
-          {PRODUCT_GUIDE_SECTIONS.map((section) => (
+          {guideSections.map((section) => (
             <GuideAccordionItem
               key={section.id}
               id={section.id}
-              kicker={section.kicker}
               title={section.title}
-              paragraphs={section.paragraphs}
-              highlights={section.highlights}
+              content={section.content}
               isOpen={openId === section.id}
               onToggle={() => handleToggle(section.id)}
             />

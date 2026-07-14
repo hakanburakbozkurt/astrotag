@@ -1,84 +1,47 @@
 export interface GuideSection {
   id: string;
   title: string;
-  kicker?: string;
-  paragraphs: string[];
-  highlights?: string[];
+  content: string;
 }
 
-export const PRODUCT_GUIDE_SECTIONS: GuideSection[] = [
+export const guideSections: GuideSection[] = [
   {
-    id: "nfc-cosmic-assistant",
-    kicker: "Başlangıç",
-    title: "AstroTag ve Uygulama Nasıl Birleşiyor?",
-    paragraphs: [
-      "AstroTag anahtarlığının içinde, telefonunuzla konuşan küçük bir NFC çipi bulunur. Bu çip bir uygulama mağazası değildir; sizin size özel dijital kapınızdır. Anahtarlığı telefonunuzun arkasına yaklaştırdığınızda, çip benzersiz kimliğinizi okur ve tarayıcınızda kişisel kozmik profilinizi açar.",
-      "Burada gördüğünüz deneyim, soğuk bir yazılım ekranı değil; sizin için çalışan bir kozmik asistandır. Doğum bilgilerinize göre hazırlanmış yorumlar, günlük rehberlik ve paylaşılabilir içgörüler — hepsi tek bir dokunuşla elinizin altındadır. Kurulum, şifre ezberleme veya güncelleme derdi yok: telefonunuzun tarayıcısı yeterlidir.",
-      "Anahtarlık fiziksel hatıranızdır; dijital profil ise yaşayan yolculuğunuzdur. İkisi bir araya geldiğinde AstroTag, teknolojiyi arka plana alıp size sadece anlamlı bir deneyim sunar.",
-    ],
-    highlights: [
-      "Uygulama mağazasından indirme gerekmez — tarayıcıdan açılır, ana ekranınıza eklenebilir.",
-      "Her anahtarlık burcunuza göre kişiselleştirilir; profiliniz size özeldir.",
-    ],
+    id: "astro-tag-nedir",
+    title: "AstroTag tam olarak nedir?",
+    content:
+      "AstroTag, fiziksel dünyadaki bir nesneyi dijital evrenin derinlikleriyle birleştiren bir köprüdür. NFC çip teknolojisine sahip anahtarlığını telefonuna yaklaştırdığında, sadece bir web sayfası açılmaz; senin için özel olarak işlenmiş kozmik kimliğin canlanır. Bu sistem, karmaşık hesaplamaları senin için sadeleştirip günlük yaşamına rehberlik eden bir asistan gibi çalışır.",
   },
   {
-    id: "precision-engine",
-    kicker: "Güvenilirlik",
-    title: "Sistemimiz Neden Bu Kadar Kesin?",
-    paragraphs: [
-      "AstroTag’in arkasında, gökyüzünün anlık konumlarını astronomik verilerle hesaplayan güçlü bir motor çalışır. Gezegen dereceleri, burç geçişleri ve doğum haritanızdaki açılar — hepsi Swiss Ephemeris tabanlı astronomi motoru ve Nexus hesaplama katmanıyla üretilir. Bu, tahmine dayalı değil; ölçülebilir gökyüzü verisine dayalı bir temeldir.",
-      "Siz ekranda bunu asla formül veya teknik tablo olarak görmezsiniz. Sistem, ham veriyi sizin için sadeleştirir ve anlaşılır bir yoruma dönüştürür. Günlük Nexus rehberiniz, uyum analizleriniz ve Oracle okumalarınız — hepsi aynı hesaplama motorundan beslenir; siz yalnızca net, okunabilir ve kişisel sonucu görürsünüz.",
-      "Kısacası: arka planda bilimsel titizlik, ön planda sıcak ve anlaşılır bir rehberlik. AstroTag sizi veriyle boğmaz; size anlam sunar.",
-    ],
-    highlights: [
-      "Hesaplamalar astronomik ephemeris verisine dayanır — rastgele metin üretilmez.",
-      "Gördüğünüz her yorum, hesaplanmış gökyüzü verisinin sadeleştirilmiş halidir.",
-    ],
+    id: "astro-tag-bir-gun",
+    title: "AstroTag ile bir günün",
+    content:
+      "Sabah uyandığında anahtarlığını telefonuna dokundurarak günün enerjisini görmek, bir ritüel haline dönüşür. Uygulama, gökyüzünün anlık konumunu analiz eder ve sana odaklanman gereken anahtar cümleyi fısıldar. Gün boyu aklına takılan her türlü soruyu Oracle modülüne sorabilir, akşam arkadaşınla buluşmadan önce aranızdaki uyumu test edebilirsin. Bu sistem, senin gökyüzüyle kurduğun şahsi bağın bir yansımasıdır.",
   },
   {
-    id: "star-economy",
-    kicker: "Şeffaflık",
-    title: "Yıldız Ekonomisi",
-    paragraphs: [
-      "AstroTag’de yıldızlar, kozmik enerji biriminizdir. Nexus günlük rehberiniz, Oracle sorularınız ve derin analizleriniz bu enerjiyle çalışır — tıpkı bir yolculukta yakıt gibi. Her okuma, sistemde gerçek hesaplama ve yorum üretimi tetiklediği için küçük bir yıldız maliyeti vardır; bu sayede deneyim sürdürülebilir ve adil kalır.",
-      "Yıldızlarınız zamanla yenilenir: belirli aralıklarla kozmik stokunuz otomatik olarak dolar. Ayrıca anahtarlık paketlerinizle gelen hediye yıldızlar veya satın aldığınız yıldız paketleri, stoğunuzu anında yükseltir. Böylece hem günlük kullanım hem de yoğun keşif dönemleri için esneklik sağlanır.",
-      "Paketler yalnızca bir fiyat etiketi değildir; platformun size kesintisiz, kaliteli bir kozmik asistan sunabilmesi için tasarlanmış şeffaf bir ekonomidir. Ne harcadığınızı, ne kazandığınızı ve ne zaman yenileneceğinizi her zaman takip edebilirsiniz.",
-    ],
-    highlights: [
-      "Yıldızlar Oracle ve Nexus okumaları için yakıttır — her işlem görünür ve ölçülebilirdir.",
-      "Paketler dijital stokunuzu yükseltir; fiziksel anahtarlık paketleri hediye yıldız bonusu içerir.",
-    ],
+    id: "sistem-kesinligi",
+    title: "Sistemimiz ne kadar kesin?",
+    content:
+      "Astrolojinin arkasındaki matematik oldukça derin ve biz bu karmaşıklığı senin yerine yönetiyoruz. Ephemeris ve Nexus motorlarımız, gökyüzündeki hareketleri saniyesi saniyesine takip ederek senin haritanla eşleştiriyor. Sana sunduğumuz her yorum, bu teknik hesaplamaların damıtılmış ve anlaşılır bir hali. Bizim işimiz rakamlarla boğuşmanı önlemek, sana ise sadece gökyüzünün mesajını net bir şekilde ulaştırmak.",
   },
   {
-    id: "security-privacy",
-    kicker: "Gizlilik",
-    title: "Güvenliğiniz Önceliğimiz",
-    paragraphs: [
-      "Kişisel doğum bilgileriniz, profil tercihleriniz ve kozmik notlarınız yalnızca size aittir. Verileriniz, hesabınıza özel güvenlik kurallarıyla korunan sunucu altyapısında saklanır; başka kullanıcıların profiline erişemez, veriniz izinsiz paylaşılmaz.",
-      "Hassas günlük ve kozmik notlarınız şifreli olarak işlenir. Oturum tercihleri ve yerel hatırlatmalar cihazınızda tutulur; böylece deneyiminiz hızlı kalırken kontrol sizde olur. NFC anahtarlığınız ise isteğe bağlı PIN korumasıyla ek bir güvenlik katmanı sunar.",
-      "AstroTag, verinizi satmaz veya reklam profili oluşturmaz. Amacımız yalnızca size güvenilir, kişisel ve huzur veren bir kozmik deneyim sunmaktır.",
-    ],
-    highlights: [
-      "Profil verileriniz hesap bazlı izole edilir — yalnızca siz erişirsiniz.",
-      "Kozmik notlar şifreli saklanır; NFC profiliniz isteğe bağlı PIN ile korunabilir.",
-    ],
+    id: "yildiz-ekonomisi",
+    title: "Yıldızların ekonomisi",
+    content:
+      "Uygulama içindeki yıldızlar, senin kozmik enerjini temsil eden birimlerdir. Oracle'a sorduğun her soru veya yaptığın her özel analiz, bu enerjinin bir kısmını kullanır. Bu sistem, uygulamanın sürdürülebilirliğini sağlamak ve sadece gerçekten ihtiyaç duyduğun anlarda rehberlik almanı teşvik etmek için tasarlandı. Yıldızların tükendiğinde, küçük paketlerle enerji tazeleyebilir ve gökyüzüyle olan randevuna kaldığın yerden devam edebilirsin.",
   },
   {
-    id: "no-app-download",
-    kicker: "Pratik",
-    title: "Uygulama İndirmem Gerekir mi?",
-    paragraphs: [
-      "Hayır. AstroTag, telefonunuzun tarayıcısında çalışan modern bir web deneyimidir. Anahtarlığınıza dokunduğunuzda sayfa anında açılır; isterseniz tek dokunuşla ana ekranınıza ekleyerek her zamanki uygulamalarınız gibi kullanabilirsiniz.",
-      "Güncellemeler otomatik gelir; mağazadan yeniden indirme, sürüm uyumsuzluğu veya depolama sorunu yaşamazsınız.",
-    ],
+    id: "uzman-platformu",
+    title: "Kozmik Randevu: Uzmanlarla Buluşma",
+    content:
+      "Dijital analizlerimiz, gökyüzünün dilini öğrenmen için sana harika bir rehberlik sunar. Ancak bazen haritanın ötesine geçmek, o derinliği bir insanla paylaşmak ve sorularına birebir yanıtlar almak istersin. Uzman Platformumuz, tam olarak bu ihtiyacını karşılamak için var. Burası, kendi alanlarında yetkin astrologlarla senin aranda kurduğumuz güvenli bir köprü. Uzmanlarımızla yapacağın her görüşme, Iyzico'nun güvenli ödeme altyapısı ile korunur ve senin için özel bir deneyim olur. Bu platformda, uzmanlarımızın emeğine duyduğumuz saygı gereği her görüşme ayrı ayrı fiyatlandırılır. Biz ise bu köprüyü ayakta tutan teknolojik altyapıyı sunduğumuz için küçük bir hizmet bedeli alırız. Senin için en doğru rehberle buluşmanı sağlayan bu güvenli ekosistem, haritanın en derin katmanlarına inebilmen için seni bekliyor.",
   },
   {
-    id: "personalization",
-    kicker: "Kişiselleştirme",
-    title: "Anahtarlığım Nasıl Kişiselleştirilir?",
-    paragraphs: [
-      "Sipariş sırasında her anahtarlık için burç tercihinizi belirlersiniz. Paketiniz birden fazla anahtarlık içeriyorsa, her biri farklı bir burç için ayrı ayrı hazırlanabilir — sevdiklerinize özel hediye senaryoları için idealdir.",
-      "Dijital profiliniz ise doğum tarihi, saati ve konumunuzla zenginleşir; ne kadar çok bilgi eklerseniz, kozmik asistanınız o kadar kişisel yorumlar sunar.",
-    ],
+    id: "guvenlik-onceligi",
+    title: "Güvenliğiniz önceliğimiz",
+    content:
+      "Doğum bilgilerin, senin kozmik parmak izindir. Bu yüzden verilerini asla başka kişi veya kurumlarla paylaşmıyor, sadece senin haritanı oluşturmak için kullanıyoruz. Uygulama mimarimizi, senin verilerin üzerinde tam kontrole sahip olacağın şekilde kurguladık. PWA yapımız sayesinde mağazalara bağımlı kalmadan, doğrudan tarayıcın üzerinden güvenli bir şekilde giriş yapabilir ve tüm kozmik yolculuğunu gizlilik içinde yönetebilirsin.",
   },
 ];
+
+/** @deprecated Use guideSections */
+export const PRODUCT_GUIDE_SECTIONS = guideSections;
