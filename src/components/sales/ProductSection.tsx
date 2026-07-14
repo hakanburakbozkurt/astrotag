@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
+import { Gift, Package } from "lucide-react";
 import { useGiftCheckout } from "@/hooks/useGiftCheckout";
 import { useMotionReady } from "@/hooks/useMotionReady";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
@@ -26,6 +27,8 @@ import {
 
 const STAR_DIGITAL_IMAGE = "/assets/sales/star-digital.svg";
 
+const PRODUCT_GRID_CLASS = "grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3";
+
 type ProductCategory = "keychain" | "stars";
 
 const TABS: { id: ProductCategory; label: string; subtitle: string }[] = [
@@ -43,14 +46,18 @@ interface ProductCardProps {
   unoptimized?: boolean;
   title: string;
   priceLabel: string;
-  badge?: string;
-  featured?: boolean;
-  spotlight?: boolean;
-  vip?: boolean;
   index: number;
   onSelect: () => void;
   selected?: boolean;
   className?: string;
+  variant: "keychain" | "stars";
+  badge?: string;
+  featured?: boolean;
+  spotlight?: boolean;
+  vip?: boolean;
+  kitQuantity?: number;
+  giftStars?: number;
+  freeShipping?: boolean;
   children?: React.ReactNode;
 }
 
@@ -60,62 +67,108 @@ function ProductCard({
   unoptimized = false,
   title,
   priceLabel,
-  badge,
-  featured,
-  spotlight,
-  vip,
   index,
   onSelect,
   selected,
   className = "",
+  variant,
+  badge,
+  featured,
+  spotlight,
+  vip,
+  kitQuantity,
+  giftStars,
+  freeShipping,
   children,
 }: ProductCardProps) {
   const motionReady = useMotionReady();
   const reducedMotion = usePrefersReducedMotion();
   const canAnimate = motionReady && !reducedMotion;
 
+  const isStar = variant === "stars";
+  const showStarBadge = isStar && Boolean(badge);
+
   return (
     <motion.article
       initial={canAnimate ? { opacity: 0, y: 16 } : false}
       animate={canAnimate ? { opacity: 1, y: 0 } : undefined}
       transition={{ duration: 0.5, ease: SALES_MOTION_EASE, delay: index * 0.05 }}
-      className={`flex flex-col overflow-hidden rounded-[24px] border backdrop-blur-xl ${className} ${
+      className={`flex flex-col overflow-hidden rounded-2xl border shadow-lg backdrop-blur-xl ${className} ${
         spotlight
-          ? "col-span-full border-amber-300/40 bg-gradient-to-br from-amber-400/[0.12] via-[#0f172a]/80 to-violet-950/30 shadow-[0_0_60px_rgba(245,158,11,0.15)]"
+          ? "col-span-2 border-amber-300/40 bg-gradient-to-br from-amber-400/[0.12] via-[#0f172a]/85 to-violet-950/30 shadow-[0_12px_40px_rgba(245,158,11,0.18)] lg:col-span-full"
           : vip || featured
-            ? "border-amber-400/35 bg-amber-400/[0.06] shadow-[0_0_32px_rgba(245,158,11,0.1)]"
+            ? "border-amber-400/35 bg-amber-400/[0.06] shadow-[0_10px_32px_rgba(245,158,11,0.14)]"
             : selected
-              ? "border-amber-400/45 bg-amber-400/[0.07]"
-              : "border-white/10 bg-[#0f172a]/55 hover:border-white/18"
+              ? "border-amber-400/45 bg-amber-400/[0.07] shadow-[0_10px_28px_rgba(245,158,11,0.12)]"
+              : "border-white/10 bg-[#0f172a]/60 shadow-[0_8px_24px_rgba(0,0,0,0.35)] hover:border-white/18"
       }`}
     >
       <div
-        className="relative w-full bg-[#070b14]"
+        className="relative w-full overflow-hidden bg-[#070b14]"
         style={{ aspectRatio: String(LUXURY_SHOWCASE_ASPECT_RATIO) }}
       >
+        <div
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_50%,rgba(245,158,11,0.22),transparent_72%)]"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute inset-2 rounded-xl bg-[radial-gradient(circle_at_50%_40%,rgba(251,191,36,0.12),transparent_65%)] blur-sm"
+          aria-hidden
+        />
         <Image
           src={imageSrc}
           alt={imageAlt}
           fill
           unoptimized={unoptimized}
-          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 280px"
-          className="object-contain object-center p-4"
+          sizes="(max-width: 640px) 46vw, (max-width: 1024px) 31vw, 280px"
+          className="object-cover object-center"
         />
-        {badge ? (
-          <span className="absolute left-3 top-3 rounded-full border border-amber-400/30 bg-[#070b14]/80 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.14em] text-amber-100 backdrop-blur-sm">
+
+        {showStarBadge ? (
+          <span className="absolute left-2 top-2 z-10 max-w-[calc(100%-1rem)] truncate rounded-full border border-amber-300/40 bg-[#070b14]/88 px-2 py-1 text-[8px] font-bold uppercase tracking-[0.12em] text-amber-50 backdrop-blur-md sm:left-3 sm:top-3 sm:px-2.5 sm:text-[9px]">
+            {badge}
+          </span>
+        ) : null}
+
+        {!isStar && vip && badge ? (
+          <span className="absolute right-2 top-2 z-10 rounded-full border border-amber-300/45 bg-amber-400/20 px-2 py-1 text-[8px] font-bold uppercase tracking-[0.12em] text-amber-50 backdrop-blur-md sm:right-3 sm:top-3 sm:px-2.5 sm:text-[9px]">
             {badge}
           </span>
         ) : null}
       </div>
 
-      <div className="flex flex-1 flex-col p-4 sm:p-5">
-        <h3 className="text-base font-semibold text-white sm:text-lg">{title}</h3>
-        <p className="mt-1 text-xl font-semibold tabular-nums text-[#F59E0B]">{priceLabel}</p>
+      {!isStar && kitQuantity ? (
+        <div className="mx-2.5 mt-2.5 rounded-xl border border-amber-400/20 bg-amber-400/[0.07] px-2.5 py-2 sm:mx-3 sm:mt-3 sm:px-3">
+          <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-200/90 sm:text-[11px]">
+            <Package className="h-3 w-3 shrink-0 text-amber-400/80" aria-hidden />
+            <span>{kitQuantity} Adet Kit</span>
+          </div>
+          {giftStars ? (
+            <div className="mt-1.5 flex items-center gap-1.5 text-[10px] font-medium text-emerald-300/95 sm:text-[11px]">
+              <Gift className="h-3 w-3 shrink-0 text-emerald-400/80" aria-hidden />
+              <span>+{giftStars.toLocaleString("tr-TR")} Hediye Yıldız</span>
+            </div>
+          ) : null}
+          {freeShipping ? (
+            <p className="mt-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-emerald-400/85 sm:text-[10px]">
+              Ücretsiz Kargo
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div className="flex flex-1 flex-col p-3 sm:p-4">
+        <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-white sm:text-base">
+          {title}
+        </h3>
+        <p className="mt-1.5 text-lg font-semibold tabular-nums text-[#F59E0B] sm:text-xl">
+          {priceLabel}
+        </p>
 
         <button
           type="button"
           onClick={onSelect}
-          className="mt-4 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-gradient-to-r from-amber-400 to-[#F59E0B] px-4 py-3 text-sm font-semibold text-[#0f172a] shadow-[0_0_24px_rgba(245,158,11,0.2)] transition-[transform,opacity] duration-200 ease-out hover:from-amber-300 hover:to-amber-400 active:scale-[0.98]"
+          className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-gradient-to-r from-amber-400 to-[#F59E0B] px-3 py-2.5 text-xs font-semibold text-[#0f172a] shadow-[0_0_20px_rgba(245,158,11,0.22)] transition-[transform,opacity] duration-200 ease-out hover:from-amber-300 hover:to-amber-400 active:scale-[0.98] sm:min-h-12 sm:text-sm"
         >
           Hemen Seç
         </button>
@@ -140,7 +193,7 @@ function KeychainShowcase({
   onPurchase: (bundle: KeychainBundleProduct) => void;
 }) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className={PRODUCT_GRID_CLASS}>
       {KEYCHAIN_BUNDLE_CATALOG.map((bundle, index) => {
         const selected = selectedId === bundle.id;
         const zodiacValues =
@@ -149,6 +202,7 @@ function KeychainShowcase({
         return (
           <ProductCard
             key={bundle.id}
+            variant="keychain"
             imageSrc={LUXURY_SHOWCASE_IMAGE_PATH}
             imageAlt={bundle.title}
             unoptimized
@@ -156,7 +210,10 @@ function KeychainShowcase({
             priceLabel={bundle.priceLabel}
             badge={bundle.badge}
             vip={bundle.vip}
-            className={bundle.vip ? "col-span-full" : undefined}
+            kitQuantity={bundle.quantity}
+            giftStars={bundle.giftStars}
+            freeShipping={bundle.freeShipping}
+            className={bundle.vip ? "col-span-2 lg:col-span-full" : undefined}
             index={index}
             selected={selected}
             onSelect={() => {
@@ -167,7 +224,7 @@ function KeychainShowcase({
             }}
           >
             {selected ? (
-              <div className="px-4 pb-4 sm:px-5 sm:pb-5">
+              <div className="px-3 pb-3 sm:px-4 sm:pb-4">
                 <AnimatePresence initial={false}>
                   <ZodiacSelectionPanel
                     quantity={bundle.quantity}
@@ -179,7 +236,7 @@ function KeychainShowcase({
                   <button
                     type="button"
                     onClick={() => onPurchase(bundle)}
-                    className="mt-4 inline-flex min-h-12 w-full items-center justify-center rounded-xl border border-amber-400/35 bg-amber-400/10 text-sm font-semibold text-amber-100 transition hover:bg-amber-400/18"
+                    className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-amber-400/35 bg-amber-400/10 text-xs font-semibold text-amber-100 transition hover:bg-amber-400/18 sm:min-h-12 sm:text-sm"
                   >
                     Siparişi Tamamla
                   </button>
@@ -199,10 +256,11 @@ function StarShowcase({
   onPurchase: (product: StarPackageProduct) => void;
 }) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className={PRODUCT_GRID_CLASS}>
       {STAR_PACKAGE_CATALOG.map((product, index) => (
         <ProductCard
           key={product.id}
+          variant="stars"
           imageSrc={STAR_DIGITAL_IMAGE}
           imageAlt={`${product.title} — ${product.stars} yıldız`}
           title={product.title}
@@ -210,7 +268,7 @@ function StarShowcase({
           badge={product.badge}
           featured={product.featured}
           spotlight={product.spotlight}
-          className={product.spotlight ? "col-span-full" : undefined}
+          className={product.spotlight ? "col-span-2 lg:col-span-full" : undefined}
           index={index}
           onSelect={() => onPurchase(product)}
         />
