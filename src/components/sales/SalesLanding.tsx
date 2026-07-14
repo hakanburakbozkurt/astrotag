@@ -2,6 +2,7 @@
 
 import Starfield from '@/components/Starfield';
 import ExpertJoinSection from '@/components/sales/ExpertJoinSection';
+import ProductGuideSection from '@/components/sales/ProductGuideSection';
 import ProductSection from '@/components/sales/ProductSection';
 import SalesHero from '@/components/sales/SalesHero';
 import SalesNav from '@/components/sales/SalesNav';
@@ -28,6 +29,7 @@ export default function SalesLanding() {
         <div className="mx-auto flex max-w-5xl flex-col">
           <SalesHero />
           <ProductSection />
+          <ProductGuideSection />
         </div>
       </div>
 
