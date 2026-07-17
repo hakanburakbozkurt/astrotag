@@ -25,20 +25,32 @@ function generateGuestCode(): string {
   return `GUEST-${segment}`;
 }
 
-async function requireAuthUserId(): Promise<
+/** Oturum yoksa sunucuda anonymous sign-in — client auth/DB işlemi yapmaz */
+async function ensureServerAuthUserId(): Promise<
   { userId: string } | { error: string }
 > {
   const supabase = await createServerSupabaseClient();
   const {
     data: { user },
-    error,
+    error: userError,
   } = await supabase.auth.getUser();
 
-  if (error || !user?.id) {
+  if (userError) {
     return { error: "Oturum açılamadı. Lütfen tekrar deneyin." };
   }
 
-  return { userId: user.id };
+  if (user?.id) {
+    return { userId: user.id };
+  }
+
+  const { data: signInData, error: signInError } =
+    await supabase.auth.signInAnonymously();
+
+  if (signInError || !signInData.user?.id) {
+    return { error: "Oturum açılamadı. Lütfen tekrar deneyin." };
+  }
+
+  return { userId: signInData.user.id };
 }
 
 async function redeemAccessCode(
@@ -80,22 +92,26 @@ async function redeemAccessCode(
   return { ok: true };
 }
 
-/** Anonim giriş sonrası misafir profili — service role ile RLS güvenli yazım */
+/**
+ * Misafir girişi — tek giriş noktası.
+ * Auth (anonymous sign-in) + profiles INSERT/UPDATE yalnızca sunucuda;
+ * service role ile RLS/privileged alan bypass.
+ */
 export async function finalizeGuestAccessAction(): Promise<QuickAccessResult> {
-  const auth = await requireAuthUserId();
+  const auth = await ensureServerAuthUserId();
   if ("error" in auth) {
     return { success: false, error: auth.error };
   }
 
   try {
-    const admin = createServiceRoleClient();
+    const supabaseAdmin = createServiceRoleClient();
     const { profileId } = await ensureProfileForAuthUser(auth.userId);
 
     const expiresAt = new Date(Date.now() + GUEST_TTL_MS).toISOString();
     let guestCode = generateGuestCode();
 
     for (let attempt = 0; attempt < 5; attempt += 1) {
-      const { data: existingCode } = await admin
+      const { data: existingCode } = await supabaseAdmin
         .from("profiles")
         .select("id")
         .eq("guest_code", guestCode)
@@ -108,7 +124,7 @@ export async function finalizeGuestAccessAction(): Promise<QuickAccessResult> {
       guestCode = generateGuestCode();
     }
 
-    const { error: updateError } = await admin
+    const { error: updateError } = await supabaseAdmin
       .from("profiles")
       .update({
         is_guest: true,
@@ -151,7 +167,7 @@ export async function redeemDigitalAccessCodeAction(
     return { success: false, error: "8 haneli geçerli bir kod girin." };
   }
 
-  const auth = await requireAuthUserId();
+  const auth = await ensureServerAuthUserId();
   if ("error" in auth) {
     return { success: false, error: auth.error };
   }
@@ -162,10 +178,10 @@ export async function redeemDigitalAccessCodeAction(
   }
 
   try {
-    const admin = createServiceRoleClient();
+    const supabaseAdmin = createServiceRoleClient();
     const { profileId } = await ensureProfileForAuthUser(auth.userId);
 
-    const { error: updateError } = await admin
+    const { error: updateError } = await supabaseAdmin
       .from("profiles")
       .update({
         is_guest: false,
@@ -206,7 +222,7 @@ export async function redeemExpertAccessCodeAction(
     };
   }
 
-  const auth = await requireAuthUserId();
+  const auth = await ensureServerAuthUserId();
   if ("error" in auth) {
     return { success: false, error: auth.error };
   }
@@ -217,10 +233,10 @@ export async function redeemExpertAccessCodeAction(
   }
 
   try {
-    const admin = createServiceRoleClient();
+    const supabaseAdmin = createServiceRoleClient();
     const { profileId } = await ensureProfileForAuthUser(auth.userId);
 
-    const { error: updateError } = await admin
+    const { error: updateError } = await supabaseAdmin
       .from("profiles")
       .update({ user_role: "expert" })
       .eq("id", profileId);

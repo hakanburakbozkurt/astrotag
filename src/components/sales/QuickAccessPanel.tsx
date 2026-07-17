@@ -26,7 +26,6 @@ import {
 } from "@/lib/sales/quick-access-codes";
 import { SALES_EXPERT_APPLY_PATH } from "@/lib/sales/star-packages-catalog";
 import { SALES_IN_VIEW_TRANSITION, SALES_SECTION_CLASS } from "@/lib/sales/sales-motion";
-import { supabase } from "@/lib/supabase";
 
 const ICONS = {
   nfc: Nfc,
@@ -125,21 +124,6 @@ function QuickAccessModal({
   );
 }
 
-async function ensureAuthenticatedSession(): Promise<{ ok: true } | { ok: false; error: string }> {
-  const { data: sessionData } = await supabase.auth.getSession();
-
-  if (sessionData.session?.user?.id) {
-    return { ok: true };
-  }
-
-  const { error } = await supabase.auth.signInAnonymously();
-  if (error) {
-    return { ok: false, error: "Oturum açılamadı. Lütfen tekrar deneyin." };
-  }
-
-  return { ok: true };
-}
-
 export default function QuickAccessPanel() {
   const router = useRouter();
   const [activeFlow, setActiveFlow] = useState<PanelFlow>(null);
@@ -165,12 +149,6 @@ export default function QuickAccessPanel() {
     setGuestCode(null);
 
     try {
-      const session = await ensureAuthenticatedSession();
-      if (!session.ok) {
-        setError(session.error);
-        return;
-      }
-
       const result = await finalizeGuestAccessAction();
       if (!result.success) {
         setError(result.error);
@@ -195,12 +173,6 @@ export default function QuickAccessPanel() {
     setError(null);
 
     try {
-      const session = await ensureAuthenticatedSession();
-      if (!session.ok) {
-        setError(session.error);
-        return;
-      }
-
       const result = await redeemDigitalAccessCodeAction(digitalCode);
       if (!result.success) {
         setError(result.error);
@@ -221,12 +193,6 @@ export default function QuickAccessPanel() {
     setError(null);
 
     try {
-      const session = await ensureAuthenticatedSession();
-      if (!session.ok) {
-        setError(session.error);
-        return;
-      }
-
       const result = await redeemExpertAccessCodeAction(expertCode);
       if (!result.success) {
         setError(result.error);
