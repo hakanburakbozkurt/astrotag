@@ -128,6 +128,7 @@ function ProductCard({
           src={imageSrc}
           alt={imageAlt}
           fill
+          loading="lazy"
           unoptimized={unoptimized}
           sizes="(max-width: 640px) 46vw, (max-width: 1024px) 31vw, 280px"
           className={imageClassName ?? LUXURY_SHOWCASE_CARD_IMAGE_CLASS}
