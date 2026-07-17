@@ -13,8 +13,11 @@ import {
   SALES_SECTION_CLASS,
 } from "@/lib/sales/sales-motion";
 import {
-  LUXURY_SHOWCASE_ASPECT_RATIO,
+  LUXURY_SHOWCASE_CARD_ASPECT_RATIO,
+  LUXURY_SHOWCASE_CARD_IMAGE_CLASS,
   LUXURY_SHOWCASE_IMAGE_PATH,
+  STAR_PACKAGE_IMAGE_CLASS,
+  STAR_PACKAGE_IMAGE_PATH,
 } from "@/lib/sales/luxury-showcase-image";
 import {
   KEYCHAIN_BUNDLE_CATALOG,
@@ -25,7 +28,7 @@ import {
   type StarPackageProduct,
 } from "@/lib/sales/star-packages-catalog";
 
-const STAR_DIGITAL_IMAGE = "/assets/sales/star-digital.svg";
+const STAR_DIGITAL_IMAGE = STAR_PACKAGE_IMAGE_PATH;
 
 const PRODUCT_GRID_CLASS = "grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3";
 
@@ -58,6 +61,8 @@ interface ProductCardProps {
   kitQuantity?: number;
   giftStars?: number;
   freeShipping?: boolean;
+  imageAspectRatio?: string;
+  imageClassName?: string;
   children?: React.ReactNode;
 }
 
@@ -79,6 +84,8 @@ function ProductCard({
   kitQuantity,
   giftStars,
   freeShipping,
+  imageAspectRatio,
+  imageClassName,
   children,
 }: ProductCardProps) {
   const motionReady = useMotionReady();
@@ -105,7 +112,9 @@ function ProductCard({
     >
       <div
         className="relative w-full overflow-hidden bg-[#070b14]"
-        style={{ aspectRatio: String(LUXURY_SHOWCASE_ASPECT_RATIO) }}
+        style={{
+          aspectRatio: imageAspectRatio ?? LUXURY_SHOWCASE_CARD_ASPECT_RATIO,
+        }}
       >
         <div
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_50%,rgba(245,158,11,0.22),transparent_72%)]"
@@ -121,7 +130,7 @@ function ProductCard({
           fill
           unoptimized={unoptimized}
           sizes="(max-width: 640px) 46vw, (max-width: 1024px) 31vw, 280px"
-          className="object-cover object-center"
+          className={imageClassName ?? LUXURY_SHOWCASE_CARD_IMAGE_CLASS}
         />
 
         {showStarBadge ? (
@@ -204,7 +213,8 @@ function KeychainShowcase({
             key={bundle.id}
             variant="keychain"
             imageSrc={LUXURY_SHOWCASE_IMAGE_PATH}
-            imageAlt={bundle.title}
+            imageAlt={`${bundle.title} — AstroTag burç anahtarlık kiti`}
+            imageClassName={LUXURY_SHOWCASE_CARD_IMAGE_CLASS}
             unoptimized
             title={bundle.title}
             priceLabel={bundle.priceLabel}
@@ -262,7 +272,8 @@ function StarShowcase({
           key={product.id}
           variant="stars"
           imageSrc={STAR_DIGITAL_IMAGE}
-          imageAlt={`${product.title} — ${product.stars} yıldız`}
+          imageAlt={`${product.title} — ${product.stars.toLocaleString("tr-TR")} yıldız`}
+          imageClassName={STAR_PACKAGE_IMAGE_CLASS}
           title={product.title}
           priceLabel={product.priceLabel}
           badge={product.badge}

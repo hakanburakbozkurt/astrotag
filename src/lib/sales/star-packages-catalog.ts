@@ -234,12 +234,12 @@ function buildStarPackage(tier: (typeof STAR_PACKAGE_TIERS)[number]): StarPackag
 
 export const NFC_KEYCHAIN_PRODUCT = {
   id: "nfc-keychain",
-  title: "AstroTag NFC Anahtarlık",
+  title: "AstroTag",
   description:
-    "Telefonunuza yaklaştırın — profiliniz anında açılır. Fiziksel anahtarlık + dijital kozmik erişim.",
+    "On iki burçtan biriyle kişiselleştirilmiş NFC anahtarlık. Telefonuna dokundur; kozmik profilin anında açılsın.",
   priceLabel: formatTryPrice(599),
   featured: true,
-  badge: "Lüks Vitrin",
+  badge: "Kozmik Bağlantı Noktası",
 } as const;
 
 export const STAR_PACKAGE_CATALOG: StarPackageProduct[] =

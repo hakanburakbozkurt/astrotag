@@ -16,6 +16,7 @@ import {
 } from "@/lib/sales/sales-motion";
 import {
   LUXURY_SHOWCASE_ASPECT_RATIO,
+  LUXURY_SHOWCASE_HERO_IMAGE_CLASS,
   LUXURY_SHOWCASE_IMAGE_PATH,
 } from "@/lib/sales/luxury-showcase-image";
 import {
@@ -35,30 +36,34 @@ export default function SalesHero() {
         initial={canAnimate ? { opacity: 0, y: 20 } : false}
         animate={canAnimate ? { opacity: 1, y: 0 } : undefined}
         transition={canAnimate ? { duration: 0.8, ease: SALES_MOTION_EASE } : { duration: 0 }}
-        className="mx-auto grid w-full max-w-5xl grid-cols-1 items-center gap-8 lg:grid-cols-2 lg:gap-12"
+        className="mx-auto flex w-full max-w-5xl flex-col gap-8 lg:grid lg:grid-cols-[1.12fr_0.88fr] lg:items-center lg:gap-10"
       >
-        <div className="mx-auto w-full max-w-sm sm:max-w-md lg:max-w-none">
+        <div className="order-1 w-full lg:order-none">
           <div
-            className="relative mx-auto w-full bg-[#070b14]"
-            style={{ aspectRatio: String(LUXURY_SHOWCASE_ASPECT_RATIO) }}
+            className="relative w-full overflow-hidden rounded-2xl border border-white/10 bg-[#070b14] shadow-[0_12px_40px_rgba(0,0,0,0.35)]"
+            style={{ aspectRatio: LUXURY_SHOWCASE_ASPECT_RATIO }}
           >
+            <div
+              className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_55%_70%_at_28%_50%,rgba(245,158,11,0.18),transparent_70%)]"
+              aria-hidden
+            />
             <Image
               src={LUXURY_SHOWCASE_IMAGE_PATH}
-              alt="AstroTag lüks NFC anahtarlık vitrini"
+              alt="AstroTag — on iki burçtan kişiselleştirilmiş NFC anahtarlık koleksiyonu"
               fill
               priority
               unoptimized
-              sizes="(max-width: 640px) 384px, (max-width: 1024px) 448px, 512px"
-              className="object-contain object-center"
+              sizes="(max-width: 1024px) 100vw, 560px"
+              className={LUXURY_SHOWCASE_HERO_IMAGE_CLASS}
             />
             <div
-              className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#070b14]/40 via-transparent to-transparent"
+              className="pointer-events-none absolute inset-y-0 right-0 w-[38%] bg-gradient-to-l from-[#070b14] via-[#070b14]/85 to-transparent lg:w-[42%]"
               aria-hidden
             />
           </div>
         </div>
 
-        <div className="flex flex-col gap-4 text-center lg:text-left">
+        <div className="order-2 flex flex-col gap-4 text-center lg:order-none lg:text-left">
           <p className="sales-kicker font-mono text-[10px] uppercase tracking-[0.38em] text-amber-400/70">
             {SALES_JOURNEY_TAGLINE}
           </p>
@@ -71,13 +76,13 @@ export default function SalesHero() {
           <p className="sales-subtitle text-sm leading-relaxed text-white/55 sm:text-base">
             {NFC_KEYCHAIN_PRODUCT.description}
           </p>
-          <p className="text-sm text-white/40">
-            Paketler{" "}
+          <p className="text-sm leading-relaxed text-white/40">
+            Burç koleksiyonundan sana özel anahtarlığı seç; paketler{" "}
             <span className="font-semibold text-amber-200/90">
               {NFC_KEYCHAIN_PRODUCT.priceLabel}
             </span>
-            &apos;den başlayan fiyatlarla — burç seçiminizle kişiselleştirilmiş anahtarlık
-            veya dijital yıldız stoku.
+            &apos;den başlayan fiyatlarla. İstersen dijital yıldız stokunu da aynı
+            yolculukta yükle.
           </p>
 
           <div className={`${SALES_CTA_STACK_CLASS} lg:max-w-sm`}>
@@ -87,10 +92,7 @@ export default function SalesHero() {
             >
               {SALES_CTA_LABEL}
             </Link>
-            <Link
-              href="#paketler"
-              className={SALES_CTA_GIFT_CLASS}
-            >
+            <Link href="#paketler" className={SALES_CTA_GIFT_CLASS}>
               <Gift className="h-4 w-4 shrink-0" aria-hidden />
               {SALES_GIFT_CTA_LABEL}
             </Link>
