@@ -247,6 +247,8 @@ export const STAR_PACKAGE_CATALOG: StarPackageProduct[] =
 
 export const SALES_ORDERS_PATH = "/siparislerim";
 export const SALES_EXPERT_LOGIN_PATH = "/nfc-login";
+/** Uzman başvuru formu — landing #uzman-katilim bölümü */
+export const SALES_EXPERT_APPLY_PATH = "#uzman-katilim";
 export const KOZMIK_BASLANGIC_PATH = "/kozmik-baslangic";
 
 export const SALES_ONLY_PATHS = new Set<string>([

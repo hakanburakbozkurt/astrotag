@@ -1,5 +1,3 @@
-import { SALES_EXPERT_LOGIN_PATH } from "@/lib/sales/star-packages-catalog";
-
 export interface LandingNavItem {
   label: string;
   href: string;
@@ -45,19 +43,19 @@ export const QUICK_ACCESS_ITEMS = [
     id: "code",
     label: "Dijital Kod Gir",
     description: "Kart veya hediye kodunla giriş yap",
-    href: "/verify-otp",
+    href: "#",
   },
   {
     id: "guest",
     label: "Misafir Olarak Keşfet",
     description: "Kayıt olmadan özellikleri incele",
-    href: "#ozellikler",
+    href: "#",
   },
   {
     id: "expert",
     label: "AstroTag Uzmanıyım",
     description: "Uzman paneline geç",
-    href: SALES_EXPERT_LOGIN_PATH,
+    href: "#",
   },
 ] as const;
 

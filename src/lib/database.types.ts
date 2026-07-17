@@ -41,6 +41,36 @@ export type Database = {
         }
         Relationships: []
       }
+      access_codes: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          id: string
+          redeemed_at: string | null
+          redeemed_by: string | null
+          type: string
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          id?: string
+          redeemed_at?: string | null
+          redeemed_by?: string | null
+          type: string
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          id?: string
+          redeemed_at?: string | null
+          redeemed_by?: string | null
+          type?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           birth_date: string
@@ -48,7 +78,10 @@ export type Database = {
           birth_time: string
           star_points: number
           created_at: string | null
+          expires_at: string | null
+          guest_code: string | null
           id: string
+          is_guest: boolean
           name: string
           nfc_uid: string | null
           partner_birth_date: string | null
@@ -59,6 +92,7 @@ export type Database = {
           relationship_status: string | null
           rising_sign: string | null
           sun_sign: string | null
+          user_role: string
         }
         Insert: {
           birth_date: string
@@ -66,7 +100,10 @@ export type Database = {
           birth_time: string
           star_points?: number
           created_at?: string | null
+          expires_at?: string | null
+          guest_code?: string | null
           id?: string
+          is_guest?: boolean
           name: string
           nfc_uid?: string | null
           partner_birth_date?: string | null
@@ -77,6 +114,7 @@ export type Database = {
           relationship_status?: string | null
           rising_sign?: string | null
           sun_sign?: string | null
+          user_role?: string
         }
         Update: {
           birth_date?: string
@@ -84,7 +122,10 @@ export type Database = {
           birth_time?: string
           star_points?: number
           created_at?: string | null
+          expires_at?: string | null
+          guest_code?: string | null
           id?: string
+          is_guest?: boolean
           name?: string
           nfc_uid?: string | null
           partner_birth_date?: string | null
@@ -95,6 +136,7 @@ export type Database = {
           relationship_status?: string | null
           rising_sign?: string | null
           sun_sign?: string | null
+          user_role?: string
         }
         Relationships: []
       }
