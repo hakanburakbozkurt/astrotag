@@ -1,33 +1,33 @@
 import "server-only";
 
 /**
- * AnalysisResults geçişi: buildTarotDualLayerSystemPrompt + medium-kie-presentation
+ * AnalysisResults — çift katmanlı Tarot pipeline
  * @see src/lib/ai/oracle-presentation-prompts.ts
  */
 import type { EmphEnrichedPackage } from "@/lib/astrology/emph-processing-engine";
 import { processTarotThroughEmph } from "@/lib/astrology/emph-processing-engine";
-import {
-  TAROT_READING_FALLBACK_MESSAGE,
-} from "@/lib/ai/tarot-constants";
+import { TAROT_READING_FALLBACK_MESSAGE } from "@/lib/ai/tarot-constants";
 import { ORACLE_JSON_GUARDRAIL } from "@/lib/ai/oracle-guardrails";
 import {
-  MEDIUM_TAROT_SYSTEM_PROMPT,
-} from "@/lib/ai/medium-persona";
-import { requestMediumKieReading } from "@/lib/ai/medium-kie";
+  buildTarotDualLayerSystemPrompt,
+  ORACLE_DUAL_LAYER_USER_PROMPT_SUFFIX,
+} from "@/lib/ai/oracle-presentation-prompts";
+import { requestMediumKiePresentation } from "@/lib/ai/request-medium-kie-presentation";
 import {
   TarotPipelineInputSchema,
   type TarotPipelineInput,
   type TarotReadingCard,
 } from "@/lib/ai/tarot-pipeline-schemas";
+import type { OracleAnalysisPresentation } from "@/lib/analysis/types";
+import { formatPresentationForArchive } from "@/lib/analysis/types";
 import type { PipelineLogContext } from "@/lib/cosmic-journal/log-reading";
 import { logCosmicReadingToArchive } from "@/lib/cosmic-journal/log-reading";
+import { STAR_POINTS_COST_PER_ACTION } from "@/lib/constants/cosmic";
 import type { UserData } from "@/types/user";
 
 const SPREAD_POSITIONS = ["Sol", "Orta", "Sağ"] as const;
 
-function buildMediumUserPrompt(
-  emphPackage: EmphEnrichedPackage
-): string {
+function buildTarotUserPrompt(emphPackage: EmphEnrichedPackage): string {
   return `${ORACLE_JSON_GUARDRAIL}
 
 Aşağıdaki JSON, Emph ephemeris motorunun ürettiği GERÇEKLİK paketidir. Bunu tek kaynak kabul et; kart sembolizmi + natal harita etkisini birlikte oku.
@@ -35,28 +35,36 @@ Aşağıdaki JSON, Emph ephemeris motorunun ürettiği GERÇEKLİK paketidir. Bu
 EMPH PAKETİ (JSON):
 ${JSON.stringify(emphPackage, null, 2)}
 
-Kullanıcı verileri: [${emphPackage.profile.userSummary}].
-Partner verileri: [${emphPackage.profile.partnerSummary}].
+Kullanıcı: [${emphPackage.profile.userSummary}].
+Partner: [${emphPackage.profile.partnerSummary}].
 
-3 kart (Sol, Orta, Sağ) — her birinin hakkını ver, birbirini nasıl etkilediklerini hikayeleştir.
+3 kart (Sol, Orta, Sağ) — details içinde her birinin hakkını ver.
+executiveSummary: tam 3 cümle; kartların ruhuna dokunan fısıltı.
+Soru: "${emphPackage.question}"
 
-Yanıtını yalnızca şu JSON formatında ver:
-{
-  "paragraph1": "Paragraf 1",
-  "paragraph2": "Paragraf 2",
-  "paragraph3": "Tek cümlelik tavsiye"
-}`.trim();
+${ORACLE_DUAL_LAYER_USER_PROMPT_SUFFIX}`.trim();
+}
+
+function toTarotPresentation(
+  json: { executiveSummary: string; details: string }
+): OracleAnalysisPresentation {
+  return {
+    executiveSummary: json.executiveSummary.trim(),
+    details: json.details.trim(),
+    isPremium: true,
+    cost: STAR_POINTS_COST_PER_ACTION,
+  };
 }
 
 /**
- * Query → Emph (Processing) → Kie.ai (Medyum) → Zod + retry
+ * Query → Emph → KIE (dual-layer JSON) → OracleAnalysisPresentation
  */
 export async function runTarotReadingPipeline(
   input: TarotPipelineInput & {
     userProfile: UserData;
     logContext?: PipelineLogContext;
   }
-): Promise<string> {
+): Promise<OracleAnalysisPresentation | null> {
   const parsedInput = TarotPipelineInputSchema.safeParse({
     question: input.question,
     cards: input.cards,
@@ -65,7 +73,7 @@ export async function runTarotReadingPipeline(
 
   if (!parsedInput.success) {
     console.error("TAROT_PIPELINE_ERROR: Geçersiz tarot girdisi", parsedInput.error.flatten());
-    return TAROT_READING_FALLBACK_MESSAGE;
+    return null;
   }
 
   try {
@@ -75,36 +83,41 @@ export async function runTarotReadingPipeline(
       parsedInput.data.cards
     );
 
-    const reading = await requestMediumKieReading({
+    const json = await requestMediumKiePresentation({
       logLabel: "KIE Tarot Medyum",
-      systemPrompt: MEDIUM_TAROT_SYSTEM_PROMPT,
-      userPrompt: buildMediumUserPrompt(emphPackage),
+      systemPrompt: buildTarotDualLayerSystemPrompt(),
+      userPrompt: buildTarotUserPrompt(emphPackage),
       temperature: 0.78,
-      maxTokens: 850,
+      maxTokens: 950,
       maxRetries: 2,
     });
 
-    if (!reading) {
+    if (!json) {
       console.error("TAROT_PIPELINE_ERROR: Medyum yanıtı üretilemedi");
-      return TAROT_READING_FALLBACK_MESSAGE;
+      return null;
     }
+
+    const presentation = toTarotPresentation(json);
 
     if (input.logContext?.userId) {
       await logCosmicReadingToArchive({
         userId: input.logContext.userId,
         type: "Tarot",
         question: parsedInput.data.question,
-        readingResult: reading,
+        readingResult: formatPresentationForArchive(presentation),
         cardsJson: parsedInput.data.cards,
       });
     }
 
-    return reading;
+    return presentation;
   } catch (error) {
     console.error("TAROT_PIPELINE_ERROR:", error);
-    return TAROT_READING_FALLBACK_MESSAGE;
+    return null;
   }
 }
+
+/** @deprecated pipeline null döner; UI TAROT_READING_FALLBACK_MESSAGE kullanır */
+export const TAROT_PIPELINE_LEGACY_FALLBACK = TAROT_READING_FALLBACK_MESSAGE;
 
 export function assignSpreadPositions(
   cards: TarotReadingCard[]

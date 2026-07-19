@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import type { UserData } from "@/types/user";
 import {
   TAROT_ACTION_ERROR_MESSAGE,
@@ -15,15 +15,14 @@ import {
 } from "@/lib/tarot/deck";
 import TarotFlipCard, { FLIP_DURATION } from "@/components/tarot/TarotFlipCard";
 import TarotDeck from "@/components/tarot/TarotDeck";
-import TarotTypewriterText from "@/components/tarot/TarotTypewriterText";
 import TarotShareMenu from "@/components/tarot/TarotShareMenu";
+import AnalysisResults from "@/components/analysis/AnalysisResults";
+import { usePaidAnalysis } from "@/hooks/usePaidAnalysis";
+import type { AnalysisUiStatus, OracleAnalysisPresentation } from "@/lib/analysis/types";
+import { formatPresentationForArchive } from "@/lib/analysis/types";
 import { TAROT_SPREAD_POSITIONS } from "@/lib/tarot/share-content";
 import { tarotDeck } from "@/data/deck";
 
-const TAROT_ERROR_MESSAGES = [
-  TAROT_READING_FALLBACK_MESSAGE,
-  TAROT_ACTION_ERROR_MESSAGE,
-] as const;
 const RITUAL_GAP_MS = 1750;
 
 interface TarotPanelProps {
@@ -37,14 +36,23 @@ export default function TarotPanel({ user, onClose }: TarotPanelProps) {
   const [revealedCount, setRevealedCount] = useState(0);
   const [ritualFocusIndex, setRitualFocusIndex] = useState(0);
   const [ritualComplete, setRitualComplete] = useState(false);
-  const [isInterpreting, setIsInterpreting] = useState(false);
-  const [fullReading, setFullReading] = useState<string | null>(null);
+  const [analysisStatus, setAnalysisStatus] = useState<AnalysisUiStatus>("idle");
+  const [presentation, setPresentation] = useState<OracleAnalysisPresentation | null>(
+    null
+  );
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [isCached, setIsCached] = useState(false);
-  const [isError, setIsError] = useState(false);
-  const [useTypewriter, setUseTypewriter] = useState(false);
   const [validationHint, setValidationHint] = useState<string | null>(null);
   const [shareMessage, setShareMessage] = useState<string | null>(null);
   const ritualTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const {
+    totalStarPoints,
+    detailsUnlocked,
+    isUnlocking,
+    unlockError,
+    unlockDetails,
+    resetUnlock,
+  } = usePaidAnalysis();
 
   const selectedCards = useMemo(
     () =>
@@ -55,9 +63,11 @@ export default function TarotPanel({ user, onClose }: TarotPanelProps) {
   );
 
   const ritualActive =
-    selectedIds.length === TAROT_SPREAD_SIZE && !ritualComplete && !fullReading;
+    selectedIds.length === TAROT_SPREAD_SIZE && !ritualComplete && !presentation;
 
-  const showResultPanel = Boolean(fullReading) || isInterpreting;
+  const showResultPanel =
+    analysisStatus !== "idle" || Boolean(presentation);
+  const isInterpreting = analysisStatus === "loading";
 
   const clearRitualTimers = useCallback(() => {
     ritualTimersRef.current.forEach(clearTimeout);
@@ -72,7 +82,7 @@ export default function TarotPanel({ user, onClose }: TarotPanelProps) {
   useEffect(() => {
     clearRitualTimers();
 
-    if (selectedIds.length !== TAROT_SPREAD_SIZE || fullReading) {
+    if (selectedIds.length !== TAROT_SPREAD_SIZE || presentation) {
       if (selectedIds.length !== TAROT_SPREAD_SIZE) {
         setRevealedCount(0);
         setRitualFocusIndex(0);
@@ -103,10 +113,10 @@ export default function TarotPanel({ user, onClose }: TarotPanelProps) {
     }
 
     return clearRitualTimers;
-  }, [clearRitualTimers, fullReading, scheduleRitualTimer, selectedIds]);
+  }, [clearRitualTimers, presentation, scheduleRitualTimer, selectedIds]);
 
   const handleSelectCard = (cardId: string) => {
-    if (isInterpreting || fullReading || ritualActive) return;
+    if (isInterpreting || presentation || ritualActive) return;
 
     if (selectedIds.includes(cardId)) {
       setSelectedIds((current) => current.filter((id) => id !== cardId));
@@ -123,10 +133,10 @@ export default function TarotPanel({ user, onClose }: TarotPanelProps) {
 
     setValidationHint(null);
     setShareMessage(null);
-    setIsError(false);
-    setFullReading(null);
-    setUseTypewriter(false);
+    setPresentation(null);
+    setAnalysisError(null);
     setIsCached(false);
+    resetUnlock();
 
     if (!question.trim()) {
       setValidationHint("Yorum için önce sorunuzu yazın.");
@@ -143,7 +153,7 @@ export default function TarotPanel({ user, onClose }: TarotPanelProps) {
       return;
     }
 
-    setIsInterpreting(true);
+    setAnalysisStatus("loading");
 
     try {
       const result = await interpretTarotSpread({
@@ -159,51 +169,62 @@ export default function TarotPanel({ user, onClose }: TarotPanelProps) {
         })),
       });
 
-      const isFallback = TAROT_ERROR_MESSAGES.includes(
-        result.reading as (typeof TAROT_ERROR_MESSAGES)[number]
-      );
-      setIsError(isFallback);
+      if (!result.presentation) {
+        setAnalysisStatus("error");
+        setAnalysisError(
+          result.errorMessage ??
+            TAROT_READING_FALLBACK_MESSAGE ??
+            TAROT_ACTION_ERROR_MESSAGE
+        );
+        return;
+      }
+
       setIsCached(result.cached);
-      setFullReading(result.reading);
-      setUseTypewriter(!isFallback);
+      setPresentation(result.presentation);
+      setAnalysisStatus("ready");
     } catch {
-      setIsError(true);
-      setFullReading(TAROT_ACTION_ERROR_MESSAGE);
-      setUseTypewriter(false);
-    } finally {
-      setIsInterpreting(false);
+      setAnalysisStatus("error");
+      setAnalysisError(TAROT_ACTION_ERROR_MESSAGE);
     }
   };
 
+  const handleUnlockDetails = useCallback(() => {
+    if (!presentation) {
+      return;
+    }
+    void unlockDetails(presentation.cost);
+  }, [presentation, unlockDetails]);
+
   const handleReset = () => {
     clearRitualTimers();
+    resetUnlock();
     setQuestion("");
     setSelectedIds([]);
     setRevealedCount(0);
     setRitualFocusIndex(0);
     setRitualComplete(false);
-    setFullReading(null);
+    setPresentation(null);
+    setAnalysisStatus("idle");
+    setAnalysisError(null);
     setIsCached(false);
-    setIsError(false);
-    setUseTypewriter(false);
     setValidationHint(null);
     setShareMessage(null);
   };
 
   const sharePayload = useMemo(() => {
-    if (!fullReading || selectedCards.length !== TAROT_SPREAD_SIZE) {
+    if (!presentation || selectedCards.length !== TAROT_SPREAD_SIZE) {
       return null;
     }
 
     return {
       question: question.trim(),
-      reading: fullReading,
+      reading: formatPresentationForArchive(presentation),
       cards: selectedCards.map((card, index) => ({
         name: card.name,
         position: TAROT_SPREAD_POSITIONS[index],
       })),
     };
-  }, [fullReading, question, selectedCards]);
+  }, [presentation, question, selectedCards]);
 
   return (
     <motion.div
@@ -226,7 +247,10 @@ export default function TarotPanel({ user, onClose }: TarotPanelProps) {
               Oracle · Tarot
             </p>
             <h2 className="mt-1 text-xl font-bold text-white sm:text-2xl">Tarot</h2>
-            <p className="mt-1 text-xs text-white/45">Şimdilik ücretsiz</p>
+            <p className="mt-1 text-xs text-white/45">
+              Özet ücretsiz · detaylar −1 Yıldız
+              {isCached ? " · Önbellek" : ""}
+            </p>
           </div>
           <button
             type="button"
@@ -305,75 +329,25 @@ export default function TarotPanel({ user, onClose }: TarotPanelProps) {
                 </div>
               </div>
 
-              <AnimatePresence mode="wait">
-                {isInterpreting ? (
-                  <motion.div
-                    key="loading"
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    className="rounded-xl border border-amber-400/20 bg-amber-950/15 p-5 text-center"
-                  >
-                    <p className="text-[10px] uppercase tracking-[0.3em] text-amber-400/60">
-                      Kozmik Bağlantı
-                    </p>
-                    <p className="mt-3 text-sm text-amber-100/80">
-                      Yıldızlar rehberliğini hazırlıyor...
-                    </p>
-                    <div className="mx-auto mt-4 h-1 w-24 overflow-hidden rounded-full bg-white/10">
-                      <motion.div
-                        className="h-full rounded-full bg-amber-400/70"
-                        animate={{ x: ["-100%", "100%"] }}
-                        transition={{
-                          duration: 1.4,
-                          repeat: Infinity,
-                          ease: "easeInOut",
-                        }}
-                        style={{ width: "50%" }}
-                      />
-                    </div>
-                  </motion.div>
-                ) : fullReading ? (
-                  <motion.div
-                    key="reading"
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={`rounded-xl border p-4 ${
-                      isError
-                        ? "border-red-400/25 bg-gradient-to-b from-red-950/20 to-[#0f172a]/50"
-                        : "border-amber-400/25 bg-white/[0.03]"
-                    }`}
-                  >
-                    <p
-                      className={`text-[10px] uppercase tracking-[0.25em] ${
-                        isError ? "text-red-300/70" : "text-amber-400/60"
-                      }`}
-                    >
-                      {isError ? "Kozmik Sessizlik" : "Parşömen Yorumu"}
-                      {isCached && !isError ? " · Önbellek" : ""}
-                    </p>
-
-                    {isError ? (
-                      <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-red-200/80">
-                        {fullReading}
-                      </p>
-                    ) : (
-                      <TarotTypewriterText
-                        text={fullReading}
-                        active={useTypewriter}
-                        className="mt-3 text-sm leading-relaxed text-amber-100/85"
-                        onComplete={() => setUseTypewriter(false)}
-                      />
-                    )}
-                  </motion.div>
-                ) : null}
-              </AnimatePresence>
+              <AnalysisResults
+                status={analysisStatus}
+                presentation={presentation}
+                error={analysisError}
+                detailsUnlocked={detailsUnlocked}
+                isUnlocking={isUnlocking}
+                unlockError={unlockError}
+                totalStarPoints={totalStarPoints}
+                onUnlockDetails={handleUnlockDetails}
+                moduleLabel="Parşömen Yorumu"
+                loadingLabel="Yıldızlar rehberliğini hazırlıyor..."
+                question={question.trim() || undefined}
+              />
             </div>
           )}
         </div>
 
         <div className="space-y-2 border-t border-white/10 px-5 py-4">
-          {!fullReading ? (
+          {!presentation && analysisStatus !== "ready" ? (
             <>
               {ritualActive ? (
                 <p className="text-center text-xs text-amber-300/60">
@@ -409,7 +383,7 @@ export default function TarotPanel({ user, onClose }: TarotPanelProps) {
               {shareMessage ? (
                 <p className="text-center text-xs text-amber-200/70">{shareMessage}</p>
               ) : null}
-              {!isError && sharePayload ? (
+              {analysisStatus === "ready" && sharePayload ? (
                 <TarotShareMenu
                   payload={sharePayload}
                   onMessage={setShareMessage}

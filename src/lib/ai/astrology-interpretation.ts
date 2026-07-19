@@ -37,7 +37,8 @@ Doğum haritası teknik verileri (JSON — TEK KAYNAK):
 ${JSON.stringify(natalChartSummary, null, 2)}
 
 JSON dışına çıkmadan Türkçe yorum üret. Markdown kullanma.
-executiveSummary tam 3 cümle Kozmik Mesaj olsun; details derin teknik analiz (4-5 paragraf).
+executiveSummary: tam 3 cümle — şefkatli, aidiyet hissi; yıldızlar seni en başından tanıyor; hayalinle harita potansiyeli arasındaki bağı kur.
+details: derin teknik natal analiz (4-5 paragraf).
 Yanıt yalnızca geçerli JSON: {"executiveSummary":"...","details":"..."}
 `.trim();
 }

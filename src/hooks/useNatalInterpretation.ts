@@ -3,14 +3,16 @@
 import { useCallback, useState } from "react";
 import type { UserData } from "@/types/user";
 import { fetchNatalInterpretation } from "@/lib/ai/natal-interpretation-client";
-import { consumeStarPoints } from "@/lib/supabase-actions";
+import type { OracleAnalysisPresentation } from "@/lib/analysis/types";
 import { SupabaseActionError } from "@/lib/supabase-action-error";
 
 type InterpretationStatus = "idle" | "loading" | "ready" | "error";
 
 export function useNatalInterpretation(userData: UserData | null) {
   const [status, setStatus] = useState<InterpretationStatus>("idle");
-  const [interpretation, setInterpretation] = useState<string | null>(null);
+  const [presentation, setPresentation] = useState<OracleAnalysisPresentation | null>(
+    null
+  );
   const [error, setError] = useState<string | null>(null);
 
   const requestInterpretation = useCallback(async () => {
@@ -20,14 +22,14 @@ export function useNatalInterpretation(userData: UserData | null) {
 
     setStatus("loading");
     setError(null);
+    setPresentation(null);
 
     try {
-      await consumeStarPoints();
       const result = await fetchNatalInterpretation(userData);
-      setInterpretation(result.interpretation);
+      setPresentation(result.presentation);
       setStatus("ready");
     } catch (err) {
-      setInterpretation(null);
+      setPresentation(null);
       setStatus("error");
       setError(
         err instanceof SupabaseActionError
@@ -39,7 +41,19 @@ export function useNatalInterpretation(userData: UserData | null) {
     }
   }, [userData]);
 
-  return { status, interpretation, error, requestInterpretation };
+  const resetInterpretation = useCallback(() => {
+    setStatus("idle");
+    setPresentation(null);
+    setError(null);
+  }, []);
+
+  return {
+    status,
+    presentation,
+    error,
+    requestInterpretation,
+    resetInterpretation,
+  };
 }
 
 export function splitInterpretationParagraphs(text: string): string[] {

@@ -5,10 +5,9 @@ import type { UserData } from "@/types/user";
 import type { NatalChartViewMode } from "@/lib/astrology/types";
 import { ORACLE_COSMIC_DATA_ERROR } from "@/lib/oracle/oracle-errors";
 import { useNatalChart } from "@/hooks/useNatalChart";
-import {
-  splitInterpretationParagraphs,
-  useNatalInterpretation,
-} from "@/hooks/useNatalInterpretation";
+import { useNatalInterpretation } from "@/hooks/useNatalInterpretation";
+import { usePaidAnalysis } from "@/hooks/usePaidAnalysis";
+import AnalysisResults from "@/components/analysis/AnalysisResults";
 import { resolvePlanetRadiusOffsets } from "@/lib/astrology/planet-offset";
 import {
   ASPECT_LEGEND,
@@ -33,10 +32,18 @@ export default function NatalChart({ userData, viewMode }: NatalChartProps) {
   const isMaster = viewMode === "master";
   const {
     status: interpretationStatus,
-    interpretation,
+    presentation,
     error: interpretationError,
     requestInterpretation,
   } = useNatalInterpretation(status === "ready" ? userData : null);
+  const {
+    totalStarPoints,
+    detailsUnlocked,
+    isUnlocking,
+    unlockError,
+    unlockDetails,
+    resetUnlock,
+  } = usePaidAnalysis();
 
   const [activePlanetId, setActivePlanetId] = useState<
     import("@/lib/astrology/types").PlanetId | null
@@ -69,12 +76,6 @@ export default function NatalChart({ userData, viewMode }: NatalChartProps) {
     return isMaster ? data.extendedAspects : data.aspects;
   }, [data, isMaster]);
 
-  const interpretationParagraphs = useMemo(
-    () =>
-      interpretation ? splitInterpretationParagraphs(interpretation) : [],
-    [interpretation]
-  );
-
   const handlePlanetTap = useCallback(
     (planetId: import("@/lib/astrology/types").PlanetId) => {
       if (tooltipTimerRef.current) {
@@ -88,6 +89,18 @@ export default function NatalChart({ userData, viewMode }: NatalChartProps) {
     },
     []
   );
+
+  const handleRequestInterpretation = useCallback(() => {
+    resetUnlock();
+    void requestInterpretation();
+  }, [requestInterpretation, resetUnlock]);
+
+  const handleUnlockDetails = useCallback(() => {
+    if (!presentation) {
+      return;
+    }
+    void unlockDetails(presentation.cost);
+  }, [presentation, unlockDetails]);
 
   useEffect(() => {
     return () => {
@@ -236,43 +249,33 @@ export default function NatalChart({ userData, viewMode }: NatalChartProps) {
       )}
 
       <div className="w-full max-w-md">
-        <div className={isMaster ? "mt-1 border-t border-white/8 pt-5" : "pt-1"}>
-          <p className="mb-3 text-[10px] uppercase tracking-[0.25em] text-amber-400/55">
-            Açıların Kozmik Mesajı
-          </p>
-
-          {interpretationStatus === "idle" && (
+        {interpretationStatus === "idle" ? (
+          <div className={isMaster ? "mt-1 border-t border-white/8 pt-5" : "pt-1"}>
+            <p className="mb-3 text-[10px] uppercase tracking-[0.25em] text-amber-400/55">
+              Açıların Kozmik Mesajı
+            </p>
             <button
               type="button"
-              onClick={() => void requestInterpretation()}
+              onClick={handleRequestInterpretation}
               className="min-h-11 w-full rounded-xl border border-amber-400/30 bg-amber-400/10 py-2.5 text-sm font-medium text-amber-100 transition hover:bg-amber-400/20"
             >
-              Analizi Başlat (−1 Yıldız)
+              Kozmik Mesajı Al
             </button>
-          )}
-
-          {interpretationStatus === "loading" && (
-            <p className="text-sm leading-relaxed text-white/40">
-              Yıldızlar konuşuyor…
-            </p>
-          )}
-
-          {interpretationStatus === "error" && (
-            <p className="text-sm leading-relaxed text-rose-300/70">
-              {interpretationError ?? "Kozmik mesaj şu an ulaşmıyor."}
-            </p>
-          )}
-
-          {interpretationStatus === "ready" &&
-            interpretationParagraphs.map((paragraph) => (
-              <p
-                key={paragraph.slice(0, 48)}
-                className="mb-3 text-sm leading-relaxed text-white/72 last:mb-0"
-              >
-                {paragraph}
-              </p>
-            ))}
-        </div>
+          </div>
+        ) : (
+          <AnalysisResults
+            status={interpretationStatus}
+            presentation={presentation}
+            error={interpretationError}
+            detailsUnlocked={detailsUnlocked}
+            isUnlocking={isUnlocking}
+            unlockError={unlockError}
+            totalStarPoints={totalStarPoints}
+            onUnlockDetails={handleUnlockDetails}
+            moduleLabel="Açıların Kozmik Mesajı"
+            loadingLabel="Yıldızlar konuşuyor…"
+          />
+        )}
       </div>
 
       <p className="text-center text-[10px] uppercase tracking-[0.2em] text-white/30">

@@ -41,28 +41,30 @@ executiveSummary: ilişki dinamiğine odaklan; çiftin bugünkü en güçlü ger
 details: 3-4 paragraf; son paragrafta uygulanabilir ilişki rehberliği — karar verme, rehberlik et.`);
 }
 
-/** Natal yorum — AnalysisResults geçişine hazır */
+/** Natal yorum — AnalysisResults entegre */
 export function buildNatalInterpretationSystemPrompt(): string {
   return buildOracleDualLayerSystemPrompt(`Görevin: Doğum haritası JSON özetini kişisel kozmik hikâyeye dönüştürmek.
 Yalnızca JSON'daki gezegen yerleşimleri, evler ve aspect listesini kullan.
-executiveSummary: kullanıcının hayatında şu an en çok hissedilen tema ve potansiyeli 3 cümlede yakala.
-details: maksimum 4-5 paragraf derin natal yorum.`);
+executiveSummary: İnsana "evindeymiş" hissi veren, şefkatli, aidiyet duygusunu tetikleyen bir dil kullan.
+Yıldızların onu en başından beri tanıdığını vurgula; en büyük hayali ile haritadaki potansiyel arasındaki bağı 3 cümlede kur — teknik terim yok.
+details: maksimum 4-5 paragraf derin natal yorum; teknik derinlik burada.`);
 }
 
-/** Horary — pipeline user prompt henüz paragraph JSON; system prompt hazır */
+/** Tarot — AnalysisResults entegre */
+export function buildTarotDualLayerSystemPrompt(): string {
+  return buildOracleDualLayerSystemPrompt(`Görevin: Emph JSON paketindeki kart sembolizmi + natal harita + transit etkisini hikayeleştirmek.
+Sol, Orta ve Sağ kartların her birinin hakkını ver (details içinde).
+executiveSummary: Sadece kart anlamlarını listeleme; kartların kullanıcının şu anki en büyük çıkmazını (aşk, kariyer, hayaller) bildiğini hissettir.
+3 cümlelik özet, kartların kullanıcının ruhuna dokunan bir fısıltısı gibi olsun — duygusal, gizemli, kişisel.
+details: kart kart derin yorum + gökyüzü bağlantısı; 3 paragraf teknik derinlik.`);
+}
+
+/** Horary — pipeline geçişine hazır */
 export function buildHoraryDualLayerSystemPrompt(): string {
   return buildOracleDualLayerSystemPrompt(`Görevin: Horary anı gökyüzü ile natal haritayı birlikte okumak.
 Giriş cümlesi kurma; soruya doğrudan kozmik cevap ver.
 executiveSummary: sorunun kalbine inen, 3 cümlelik gizemli am net bir Kozmik Mesaj.
 details: horary anı + natal evler + transit kıyaslaması; 3 paragraf derinlik.`);
-}
-
-/** Tarot — pipeline geçişine hazır */
-export function buildTarotDualLayerSystemPrompt(): string {
-  return buildOracleDualLayerSystemPrompt(`Görevin: Emph JSON paketindeki kart sembolizmi + natal harita + transit etkisini hikayeleştirmek.
-Sol, Orta ve Sağ kartların her birinin hakkını ver.
-executiveSummary: kartların birleşik mesajını 3 cümlede duygusal ve çarpıcı aktar.
-details: kart kart derin yorum + gökyüzü bağlantısı; 3 paragraf.`);
 }
 
 /** Kozmik Profil — tier complexity'ye sadık kal */

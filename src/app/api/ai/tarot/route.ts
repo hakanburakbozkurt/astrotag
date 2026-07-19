@@ -60,7 +60,7 @@ export const POST = withNfcApiRoute("api/ai/tarot", async (request, access) => {
     partnerData: formatPartnerDataForPrompt(userData),
   };
 
-  const reading = await runTarotReadingPipeline({
+  const presentation = await runTarotReadingPipeline({
     question,
     cards: cardsWithPositions,
     profile: profileContext,
@@ -68,9 +68,9 @@ export const POST = withNfcApiRoute("api/ai/tarot", async (request, access) => {
     logContext: { userId: access.profileId },
   });
 
-  if (reading === TAROT_READING_FALLBACK_MESSAGE) {
+  if (!presentation) {
     throw new TarotReadingError(COSMIC_ERROR_MESSAGE);
   }
 
-  return NextResponse.json({ reading });
+  return NextResponse.json({ presentation });
 });
