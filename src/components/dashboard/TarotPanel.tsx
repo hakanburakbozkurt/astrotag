@@ -15,11 +15,9 @@ import {
 } from "@/lib/tarot/deck";
 import TarotFlipCard, { FLIP_DURATION } from "@/components/tarot/TarotFlipCard";
 import TarotDeck from "@/components/tarot/TarotDeck";
-import TarotShareMenu from "@/components/tarot/TarotShareMenu";
 import AnalysisResults from "@/components/analysis/AnalysisResults";
 import { usePaidAnalysis } from "@/hooks/usePaidAnalysis";
 import type { AnalysisUiStatus, OracleAnalysisPresentation } from "@/lib/analysis/types";
-import { formatPresentationForArchive } from "@/lib/analysis/types";
 import { TAROT_SPREAD_POSITIONS } from "@/lib/tarot/share-content";
 import { tarotDeck } from "@/data/deck";
 
@@ -43,7 +41,6 @@ export default function TarotPanel({ user, onClose }: TarotPanelProps) {
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [isCached, setIsCached] = useState(false);
   const [validationHint, setValidationHint] = useState<string | null>(null);
-  const [shareMessage, setShareMessage] = useState<string | null>(null);
   const ritualTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const {
     totalStarPoints,
@@ -132,7 +129,6 @@ export default function TarotPanel({ user, onClose }: TarotPanelProps) {
     if (isInterpreting) return;
 
     setValidationHint(null);
-    setShareMessage(null);
     setPresentation(null);
     setAnalysisError(null);
     setIsCached(false);
@@ -208,23 +204,18 @@ export default function TarotPanel({ user, onClose }: TarotPanelProps) {
     setAnalysisError(null);
     setIsCached(false);
     setValidationHint(null);
-    setShareMessage(null);
   };
 
-  const sharePayload = useMemo(() => {
-    if (!presentation || selectedCards.length !== TAROT_SPREAD_SIZE) {
-      return null;
-    }
-
-    return {
-      question: question.trim(),
-      reading: formatPresentationForArchive(presentation),
-      cards: selectedCards.map((card, index) => ({
-        name: card.name,
-        position: TAROT_SPREAD_POSITIONS[index],
-      })),
-    };
-  }, [presentation, question, selectedCards]);
+  const tarotShareCards = useMemo(
+    () =>
+      selectedCards.length === TAROT_SPREAD_SIZE
+        ? selectedCards.map((card, index) => ({
+            name: card.name,
+            position: TAROT_SPREAD_POSITIONS[index],
+          }))
+        : undefined,
+    [selectedCards]
+  );
 
   return (
     <motion.div
@@ -341,6 +332,14 @@ export default function TarotPanel({ user, onClose }: TarotPanelProps) {
                 moduleLabel="Parşömen Yorumu"
                 loadingLabel="Yıldızlar rehberliğini hazırlıyor..."
                 question={question.trim() || undefined}
+                share={{
+                  moduleId: "tarot",
+                  moduleLabel: "Tarot",
+                  content: {
+                    question: question.trim() || undefined,
+                    cards: tarotShareCards,
+                  },
+                }}
               />
             </div>
           )}
@@ -379,24 +378,13 @@ export default function TarotPanel({ user, onClose }: TarotPanelProps) {
               </button>
             </>
           ) : (
-            <>
-              {shareMessage ? (
-                <p className="text-center text-xs text-amber-200/70">{shareMessage}</p>
-              ) : null}
-              {analysisStatus === "ready" && sharePayload ? (
-                <TarotShareMenu
-                  payload={sharePayload}
-                  onMessage={setShareMessage}
-                />
-              ) : null}
-              <button
-                type="button"
-                onClick={handleReset}
-                className="min-h-11 w-full rounded-xl border border-amber-400/25 bg-amber-400/10 text-sm text-amber-100"
-              >
-                Yeni Açılım
-              </button>
-            </>
+            <button
+              type="button"
+              onClick={handleReset}
+              className="min-h-11 w-full rounded-xl border border-amber-400/25 bg-amber-400/10 text-sm text-amber-100"
+            >
+              Yeni Açılım
+            </button>
           )}
         </div>
       </motion.div>

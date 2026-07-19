@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import SubPageNav from "@/components/navigation/SubPageNav";
+import ShareButton from "@/components/analysis/ShareButton";
+import { splitLegacyAnalysisText } from "@/lib/analysis/parse-oracle-response";
 import { useRequireAuth, useUserProfile } from "@/lib/auth";
 import { STAR_POINTS_COST_PER_ACTION } from "@/lib/constants/cosmic";
 import { fetchHoraryReading } from "@/lib/ai/horary-client";
@@ -215,9 +217,17 @@ export default function HoraryPage() {
             transition={{ duration: 0.5 }}
             className="space-y-4"
           >
-            <p className="text-[10px] uppercase tracking-[0.25em] text-amber-400/70">
-              Kozmik Yanıt
-            </p>
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-[10px] uppercase tracking-[0.25em] text-amber-400/70">
+                Kozmik Yanıt
+              </p>
+              <ShareButton
+                executiveSummary={splitLegacyAnalysisText(answer).executiveSummary}
+                moduleId="horary"
+                moduleLabel="Horary"
+                content={{ question: question.trim() || undefined }}
+              />
+            </div>
             <p className="whitespace-pre-wrap text-sm leading-relaxed text-white/80">
               {answer}
             </p>

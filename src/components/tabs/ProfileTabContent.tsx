@@ -20,6 +20,11 @@ const CosmicJournal = dynamic(
   { loading: () => <SectionSkeleton title="Kozmik Günlüğüm" /> }
 );
 
+const AchievementsSection = dynamic(
+  () => import("@/components/badges/AchievementsSection"),
+  { loading: () => <SectionSkeleton title="Rozetlerim" /> }
+);
+
 const ProfileInfoSection = dynamic(
   () => import("@/components/profile/ProfileInfoSection"),
   { loading: () => <SectionSkeleton title="Partner & Astro-Bağ" /> }
@@ -116,6 +121,10 @@ export default function ProfileTabContent() {
 
         <Suspense fallback={<SectionSkeleton title="Partner & Astro-Bağ" />}>
           <ProfileInfoSection />
+        </Suspense>
+
+        <Suspense fallback={<SectionSkeleton title="Rozetlerim" />}>
+          <AchievementsSection />
         </Suspense>
       </div>
 

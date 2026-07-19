@@ -6,7 +6,8 @@ import {
   runCosmicProfilePipeline,
 } from "@/lib/ai/cosmic-profile-pipeline";
 import { resolveBirthPlace } from "@/lib/astrology/geocode";
-import { logInaccurateAnalysisFeedback } from "@/lib/cosmic-profile/feedback-log.server";
+import { trackAnalysisFeedback } from "@/lib/badges/feedback-tracker.server";
+import type { GrantedBadgePayload } from "@/lib/badges/badge-definitions";
 import {
   getCosmicProfileTier,
   type CosmicProfileFormInput,
@@ -189,6 +190,8 @@ export async function submitCosmicProfileFeedback(input: {
   refundedStars?: number;
   remainingStars?: number;
   canSave?: boolean;
+  earnedBadges?: GrantedBadgePayload[];
+  feedbackCount?: number;
   error?: string;
 }> {
   const userId = await getNfcSessionProfileId();
@@ -196,12 +199,45 @@ export async function submitCosmicProfileFeedback(input: {
     return { success: false, error: "Oturum bulunamadı." };
   }
 
+  let earnedBadges: GrantedBadgePayload[] = [];
+  let feedbackCount = 0;
+  let remainingStars: number | undefined;
+
+  try {
+    const tracker = await trackAnalysisFeedback({
+      userId,
+      module: "cosmic-profile",
+      accurate: input.accurate,
+      tier: input.tier,
+      referenceId: input.sessionId,
+      metadata: {
+        subjectName: input.subjectName,
+        birthPlace: input.birthPlace,
+        readingPreview: input.readingPreview?.slice(0, 240) ?? null,
+      },
+    });
+    earnedBadges = tracker.earnedBadges;
+    feedbackCount = tracker.feedbackCount;
+
+    if (earnedBadges.length > 0) {
+      remainingStars = await getStarPoints();
+    }
+  } catch (error) {
+    console.error("COSMIC_PROFILE_FEEDBACK_TRACKER_ERROR:", error);
+  }
+
   if (input.accurate) {
-    return { success: true, canSave: true };
+    return {
+      success: true,
+      canSave: true,
+      earnedBadges,
+      feedbackCount,
+      remainingStars,
+    };
   }
 
   try {
-    const remainingStars = await creditStarPointsRefund(userId, COSMIC_PROFILE_REFUND_STARS);
+    remainingStars = await creditStarPointsRefund(userId, COSMIC_PROFILE_REFUND_STARS);
 
     await logStarsLedgerEntry({
       userId,
@@ -215,22 +251,13 @@ export async function submitCosmicProfileFeedback(input: {
       },
     });
 
-    await logInaccurateAnalysisFeedback({
-      userId,
-      tier: input.tier,
-      referenceId: input.sessionId,
-      metadata: {
-        subjectName: input.subjectName,
-        birthPlace: input.birthPlace,
-        readingPreview: input.readingPreview?.slice(0, 240) ?? null,
-      },
-    });
-
     return {
       success: true,
       refundedStars: COSMIC_PROFILE_REFUND_STARS,
       remainingStars,
       canSave: false,
+      earnedBadges,
+      feedbackCount,
     };
   } catch (error) {
     console.error("COSMIC_PROFILE_FEEDBACK_ERROR:", error);

@@ -4,6 +4,10 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import ShareButton from "@/components/analysis/ShareButton";
+import BadgeEarnedModal from "@/components/badges/BadgeEarnedModal";
+import { splitLegacyAnalysisText } from "@/lib/analysis/parse-oracle-response";
+import type { GrantedBadgePayload } from "@/lib/badges/badge-definitions";
 import { citiesData } from "@/data/cities.js";
 import {
   runCosmicProfileAnalysis,
@@ -56,6 +60,7 @@ export default function CosmicProfilePanel({ user, onClose }: CosmicProfilePanel
   const [canSave, setCanSave] = useState(false);
   const [savedToJournal, setSavedToJournal] = useState(false);
   const [refundMessage, setRefundMessage] = useState<string | null>(null);
+  const [earnedBadges, setEarnedBadges] = useState<GrantedBadgePayload[]>([]);
 
   const districtOptions = useMemo(() => {
     if (!birthCity) return [];
@@ -134,6 +139,14 @@ export default function CosmicProfilePanel({ user, onClose }: CosmicProfilePanel
     if (!result.success) {
       setError(result.error ?? "Geri bildirim kaydedilemedi.");
       return;
+    }
+
+    if (result.earnedBadges?.length) {
+      setEarnedBadges(result.earnedBadges);
+    }
+
+    if (result.remainingStars !== undefined) {
+      notifyStarPointsUpdated(result.remainingStars);
     }
 
     if (result.refundedStars && result.remainingStars !== undefined) {
@@ -377,7 +390,22 @@ export default function CosmicProfilePanel({ user, onClose }: CosmicProfilePanel
             </div>
 
             <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-              <p className="whitespace-pre-wrap text-sm leading-relaxed text-white/85">
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-[10px] uppercase tracking-[0.25em] text-amber-400/70">
+                  Kozmik Mesaj
+                </p>
+                <ShareButton
+                  executiveSummary={
+                    splitLegacyAnalysisText(analysis.reading).executiveSummary
+                  }
+                  moduleId="cosmic-profile"
+                  moduleLabel="Kozmik Profil"
+                  content={{
+                    subtitle: `${analysis.subjectName} · ${analysis.birthPlace}`,
+                  }}
+                />
+              </div>
+              <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-white/85">
                 {analysis.reading}
               </p>
             </div>
@@ -440,6 +468,8 @@ export default function CosmicProfilePanel({ user, onClose }: CosmicProfilePanel
           </div>
         )}
       </motion.div>
+
+      <BadgeEarnedModal badges={earnedBadges} onClose={() => setEarnedBadges([])} />
     </motion.div>
   );
 }

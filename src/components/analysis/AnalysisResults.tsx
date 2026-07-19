@@ -4,6 +4,16 @@ import { motion } from "framer-motion";
 import type { AnalysisUiStatus, OracleAnalysisPresentation } from "@/lib/analysis/types";
 import AnalysisDetailsAccordion from "@/components/analysis/AnalysisDetailsAccordion";
 import AnalysisExecutiveSummary from "@/components/analysis/AnalysisExecutiveSummary";
+import KozmicShareButton, {
+  type OracleShareModuleId,
+  type ShareableCardModuleContent,
+} from "@/components/analysis/KozmicShareButton";
+
+export interface AnalysisShareConfig {
+  moduleId: OracleShareModuleId;
+  moduleLabel: string;
+  content?: ShareableCardModuleContent;
+}
 
 interface AnalysisResultsProps {
   status: AnalysisUiStatus;
@@ -18,6 +28,7 @@ interface AnalysisResultsProps {
   loadingLabel?: string;
   question?: string;
   defaultDetailsOpen?: boolean;
+  share?: AnalysisShareConfig;
 }
 
 function AnalysisLoadingState({ label }: { label: string }) {
@@ -46,6 +57,7 @@ export default function AnalysisResults({
   loadingLabel = "Kozmik veriler harmanlanıyor...",
   question,
   defaultDetailsOpen = false,
+  share,
 }: AnalysisResultsProps) {
   if (status === "idle") {
     return null;
@@ -76,7 +88,22 @@ export default function AnalysisResults({
           transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
           className="mt-4 space-y-4"
         >
-          <AnalysisExecutiveSummary summary={presentation.executiveSummary} />
+          <AnalysisExecutiveSummary
+            summary={presentation.executiveSummary}
+            shareAction={
+              share ? (
+                <KozmicShareButton
+                  executiveSummary={presentation.executiveSummary}
+                  moduleId={share.moduleId}
+                  moduleLabel={share.moduleLabel}
+                  content={{
+                    ...share.content,
+                    question: share.content?.question ?? question,
+                  }}
+                />
+              ) : null
+            }
+          />
 
           <AnalysisDetailsAccordion
             details={presentation.details}

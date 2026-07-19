@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { CosmicReadingRecord, CosmicReadingType } from "@/lib/cosmic-journal/types";
 import { parseArchiveReadingPresentation } from "@/lib/analysis/archive-presentation";
-import AnalysisResults from "@/components/analysis/AnalysisResults";
+import AnalysisResults, { type AnalysisShareConfig } from "@/components/analysis/AnalysisResults";
 import ReadingTypeBadge from "@/components/dashboard/ReadingTypeBadge";
 
 type ReadingDetailViewProps = {
@@ -38,6 +38,40 @@ function moduleLabelForType(type: CosmicReadingType): string {
     default:
       return "Parşömen Yorumu";
   }
+}
+
+function shareModuleIdForType(type: CosmicReadingType): AnalysisShareConfig["moduleId"] {
+  switch (type) {
+    case "Synastry":
+      return "synastry";
+    case "CosmicProfile":
+      return "cosmic-profile";
+    case "Horary":
+      return "horary";
+    case "Tarot":
+    default:
+      return "tarot";
+  }
+}
+
+function buildArchiveShareConfig(reading: CosmicReadingRecord): AnalysisShareConfig {
+  return {
+    moduleId: shareModuleIdForType(reading.type),
+    moduleLabel: moduleLabelForType(reading.type).replace(" Yorumu", ""),
+    content: {
+      question: reading.question,
+      score: reading.synastry?.compatibility_score,
+      scoreLabel: "Uyum Skoru",
+      subtitle:
+        reading.synastry?.partner_name ??
+        reading.cosmicProfile?.subject_name ??
+        undefined,
+      cards: reading.cards?.map((card) => ({
+        name: card.name,
+        position: card.position,
+      })),
+    },
+  };
 }
 
 function ReadingDetailContent({ reading }: { reading: CosmicReadingRecord }) {
@@ -119,6 +153,7 @@ function ReadingDetailContent({ reading }: { reading: CosmicReadingRecord }) {
         defaultDetailsOpen
         moduleLabel={moduleLabelForType(reading.type)}
         question={reading.question}
+        share={buildArchiveShareConfig(reading)}
       />
     </>
   );

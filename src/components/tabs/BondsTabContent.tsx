@@ -227,7 +227,16 @@ export default function BondsTabContent() {
             onUnlockDetails={handleUnlockDetails}
             moduleLabel="Synastry Analizi"
             loadingLabel="Natal + transit + synastry harmanlanıyor..."
-            question={selectedQuestion || undefined}
+            share={{
+              moduleId: "synastry",
+              moduleLabel: "Synastry",
+              content: {
+                score: cachedScore?.score,
+                scoreLabel: "Uyum Skoru",
+                subtitle: partner?.partnerName,
+                question: selectedQuestion || undefined,
+              },
+            }}
           />
         </>
       )}

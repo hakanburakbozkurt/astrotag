@@ -222,6 +222,11 @@ export default function NatalChart({ userData, viewMode }: NatalChartProps) {
             onUnlockDetails={handleUnlockDetails}
             moduleLabel="Açıların Kozmik Mesajı"
             loadingLabel="Yıldızlar konuşuyor…"
+            share={{
+              moduleId: "natal",
+              moduleLabel: "Natal Harita",
+              content: { subtitle: userData.name },
+            }}
           />
         )}
       </div>
