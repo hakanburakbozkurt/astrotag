@@ -1,7 +1,10 @@
 "use client";
 
+import { useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import type { CosmicReadingRecord } from "@/lib/cosmic-journal/types";
+import type { CosmicReadingRecord, CosmicReadingType } from "@/lib/cosmic-journal/types";
+import { parseArchiveReadingPresentation } from "@/lib/analysis/archive-presentation";
+import AnalysisResults from "@/components/analysis/AnalysisResults";
 import ReadingTypeBadge from "@/components/dashboard/ReadingTypeBadge";
 
 type ReadingDetailViewProps = {
@@ -21,6 +24,104 @@ function formatDate(iso: string): string {
   } catch {
     return iso;
   }
+}
+
+function moduleLabelForType(type: CosmicReadingType): string {
+  switch (type) {
+    case "Synastry":
+      return "Synastry Yorumu";
+    case "CosmicProfile":
+      return "Kozmik Profil Yorumu";
+    case "Horary":
+      return "Horary Yorumu";
+    case "Tarot":
+    default:
+      return "Parşömen Yorumu";
+  }
+}
+
+function ReadingDetailContent({ reading }: { reading: CosmicReadingRecord }) {
+  const presentation = useMemo(
+    () => parseArchiveReadingPresentation(reading.reading_result),
+    [reading.reading_result]
+  );
+
+  return (
+    <>
+      {reading.type === "Tarot" && reading.cards && reading.cards.length > 0 ? (
+        <div className="mb-5">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
+            Kartlar
+          </p>
+          <ul className="mt-2 space-y-2">
+            {reading.cards.map((card) => (
+              <li
+                key={`${card.id}-${card.position ?? "card"}`}
+                className="rounded-lg border border-white/[0.06] bg-white/[0.03] px-3 py-2 font-mono text-xs text-white/65"
+              >
+                <span className="text-amber-400/70">{card.position ?? "—"}</span>
+                {" · "}
+                {card.name}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {reading.type === "Synastry" && reading.synastry ? (
+        <div className="mb-5">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
+            Synastry Özeti
+          </p>
+          <div className="mt-3 flex flex-col gap-3 rounded-xl border border-white/[0.06] bg-white/[0.03] p-4 sm:flex-row sm:items-center">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center self-start rounded-full border border-emerald-400/30 bg-emerald-400/10 sm:self-center">
+              <span className="text-xl font-bold text-emerald-100">
+                {reading.synastry.compatibility_score}
+              </span>
+            </div>
+            <div className="min-w-0">
+              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/40">
+                Partner
+              </p>
+              <p className="mt-1 text-sm text-white/85">
+                {reading.synastry.partner_name}
+              </p>
+              <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.18em] text-emerald-400/60">
+                Uyum Skoru
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {reading.type === "CosmicProfile" && reading.cosmicProfile ? (
+        <div className="mb-5">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
+            Kozmik Profil
+          </p>
+          <div className="mt-2 rounded-xl border border-white/[0.06] bg-white/[0.03] p-4 text-sm text-white/75">
+            <p>{reading.cosmicProfile.subject_name}</p>
+            <p className="mt-1 text-xs text-white/45">
+              {reading.cosmicProfile.birth_place} · {reading.cosmicProfile.tier_label}
+            </p>
+          </div>
+        </div>
+      ) : null}
+
+      <AnalysisResults
+        status="ready"
+        presentation={presentation}
+        detailsUnlocked
+        isUnlocking={false}
+        unlockError={null}
+        totalStarPoints={0}
+        onUnlockDetails={() => {}}
+        defaultDetailsOpen
+        moduleLabel={moduleLabelForType(reading.type)}
+        question={reading.question}
+      />
+    </>
+  );
 }
 
 export default function ReadingDetailView({
@@ -81,89 +182,7 @@ export default function ReadingDetailView({
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-5">
-              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
-                Soru
-              </p>
-              <p className="mt-2 text-sm leading-relaxed text-white/80">
-                {reading.question}
-              </p>
-
-              {reading.type === "Tarot" &&
-              reading.cards &&
-              reading.cards.length > 0 ? (
-                <div className="mt-5">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
-                    Kartlar
-                  </p>
-                  <ul className="mt-2 space-y-2">
-                    {reading.cards.map((card) => (
-                      <li
-                        key={`${card.id}-${card.position ?? "card"}`}
-                        className="rounded-lg border border-white/[0.06] bg-white/[0.03] px-3 py-2 font-mono text-xs text-white/65"
-                      >
-                        <span className="text-amber-400/70">
-                          {card.position ?? "—"}
-                        </span>
-                        {" · "}
-                        {card.name}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
-
-              {reading.type === "Synastry" && reading.synastry ? (
-                <div className="mt-5">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
-                    Synastry Özeti
-                  </p>
-                  <div className="mt-3 flex flex-col gap-3 rounded-xl border border-white/[0.06] bg-white/[0.03] p-4 sm:flex-row sm:items-center">
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center self-start rounded-full border border-emerald-400/30 bg-emerald-400/10 sm:self-center">
-                      <span className="text-xl font-bold text-emerald-100">
-                        {reading.synastry.compatibility_score}
-                      </span>
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-white/40">
-                        Partner
-                      </p>
-                      <p className="mt-1 text-sm text-white/85">
-                        {reading.synastry.partner_name}
-                      </p>
-                      <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.18em] text-emerald-400/60">
-                        Uyum Skoru
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-
-              {reading.type === "CosmicProfile" && reading.cosmicProfile ? (
-                <div className="mt-5">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
-                    Kozmik Profil
-                  </p>
-                  <div className="mt-2 rounded-xl border border-white/[0.06] bg-white/[0.03] p-4 text-sm text-white/75">
-                    <p>{reading.cosmicProfile.subject_name}</p>
-                    <p className="mt-1 text-xs text-white/45">
-                      {reading.cosmicProfile.birth_place} · {reading.cosmicProfile.tier_label}
-                    </p>
-                  </div>
-                </div>
-              ) : null}
-
-              <div className="mt-5">
-                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/40">
-                  {reading.type === "Synastry"
-                    ? "Synastry Yorumu"
-                    : reading.type === "CosmicProfile"
-                      ? "Kozmik Profil Yorumu"
-                      : "Medyum Yorumu"}
-                </p>
-                <p className="mt-2 whitespace-pre-wrap text-sm leading-[1.75] text-white/75">
-                  {reading.reading_result}
-                </p>
-              </div>
+              <ReadingDetailContent reading={reading} />
             </div>
           </motion.div>
         </>

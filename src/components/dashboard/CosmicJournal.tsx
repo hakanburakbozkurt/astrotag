@@ -9,6 +9,7 @@ import type {
   CosmicJournalFilter,
   CosmicReadingRecord,
 } from "@/lib/cosmic-journal/types";
+import { getArchiveReadingPreview } from "@/lib/analysis/archive-presentation";
 import ReadingDetailView from "@/components/dashboard/ReadingDetailView";
 import ReadingTypeBadge from "@/components/dashboard/ReadingTypeBadge";
 
@@ -42,21 +43,17 @@ function excerpt(text: string, max = 88): string {
 }
 
 function readingPreview(reading: CosmicReadingRecord): string {
+  const summary = getArchiveReadingPreview(reading.reading_result, 96);
+
   if (reading.type === "Synastry" && reading.synastry) {
-    return excerpt(
-      `${reading.synastry.partner_name} · Skor ${reading.synastry.compatibility_score} — ${reading.reading_result}`,
-      96
-    );
+    return `${reading.synastry.partner_name} · Skor ${reading.synastry.compatibility_score} — ${summary}`;
   }
 
   if (reading.type === "CosmicProfile" && reading.cosmicProfile) {
-    return excerpt(
-      `${reading.cosmicProfile.subject_name} · ${reading.cosmicProfile.tier_label} — ${reading.reading_result}`,
-      96
-    );
+    return `${reading.cosmicProfile.subject_name} · ${reading.cosmicProfile.tier_label} — ${summary}`;
   }
 
-  return excerpt(reading.reading_result, 96);
+  return summary;
 }
 
 export default function CosmicJournal() {

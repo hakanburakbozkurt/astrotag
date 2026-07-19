@@ -5,6 +5,7 @@ import type {
   PlanetPosition,
 } from "@/lib/astrology/types";
 import { formatDegreeMinutes } from "@/lib/astrology/natal-master-data";
+import CollapsiblePanel from "@/components/ui/CollapsiblePanel";
 
 type NatalChartDataGridProps = {
   planets: PlanetPosition[];
@@ -51,12 +52,9 @@ export default function NatalChartDataGrid({
   ];
 
   return (
-    <div className="w-full space-y-4">
-      <div>
-        <p className="text-[10px] uppercase tracking-[0.25em] text-amber-400/60">
-          Gezegen & Nokta Tablosu
-        </p>
-        <div className="mt-3 overflow-x-auto rounded-xl border border-white/10">
+    <div className="w-full space-y-3">
+      <CollapsiblePanel title="Gezegen & Nokta Tablosu" defaultOpen={false}>
+        <div className="overflow-x-auto rounded-xl border border-white/10">
           <table className="w-full min-w-[520px] border-collapse text-left text-xs">
             <thead>
               <tr className="border-b border-white/10 bg-white/[0.03] text-[10px] uppercase tracking-[0.18em] text-white/40">
@@ -85,13 +83,10 @@ export default function NatalChartDataGrid({
             </tbody>
           </table>
         </div>
-      </div>
+      </CollapsiblePanel>
 
-      <div>
-        <p className="text-[10px] uppercase tracking-[0.25em] text-amber-400/60">
-          Aspect Grid
-        </p>
-        <div className="mt-3 overflow-x-auto rounded-xl border border-white/10">
+      <CollapsiblePanel title="Aspect Grid" defaultOpen={false}>
+        <div className="overflow-x-auto rounded-xl border border-white/10">
           <table className="w-full min-w-[480px] border-collapse text-left text-xs">
             <thead>
               <tr className="border-b border-white/10 bg-white/[0.03] text-[10px] uppercase tracking-[0.18em] text-white/40">
@@ -132,7 +127,7 @@ export default function NatalChartDataGrid({
             </tbody>
           </table>
         </div>
-      </div>
+      </CollapsiblePanel>
     </div>
   );
 }

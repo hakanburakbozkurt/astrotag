@@ -15,6 +15,7 @@ interface AnalysisDetailsAccordionProps {
   unlockError: string | null;
   onUnlock: () => void;
   totalStarPoints: number;
+  defaultOpen?: boolean;
 }
 
 export default function AnalysisDetailsAccordion({
@@ -26,8 +27,9 @@ export default function AnalysisDetailsAccordion({
   unlockError,
   onUnlock,
   totalStarPoints,
+  defaultOpen = false,
 }: AnalysisDetailsAccordionProps) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const panelId = useId();
 
   const canViewDetails = !isPremium || detailsUnlocked;

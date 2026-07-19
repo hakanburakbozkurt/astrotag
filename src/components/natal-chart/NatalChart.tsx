@@ -19,6 +19,7 @@ import AspectLines from "./AspectLines";
 import PlanetMarkers from "./PlanetMarkers";
 import MinorPointMarkers from "./MinorPointMarkers";
 import { NatalChartDataGridFromData } from "./NatalChartDataGrid";
+import CollapsiblePanel from "@/components/ui/CollapsiblePanel";
 
 const TOOLTIP_DURATION_MS = 2000;
 
@@ -195,62 +196,9 @@ export default function NatalChart({ userData, viewMode }: NatalChartProps) {
         </p>
       </div>
 
-      {isMaster ? (
-        <div className="w-full max-w-2xl">
-          <NatalChartDataGridFromData data={data} />
-        </div>
-      ) : (
-        <>
-          <ul className="grid w-full max-w-md grid-cols-2 gap-2 text-xs text-white/70">
-            {data.planets.map((planet) => (
-              <li
-                key={planet.id}
-                className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2"
-              >
-                <span className="text-amber-200/90">{planet.symbol}</span>{" "}
-                <span className="font-medium text-white/85">{planet.name}</span>
-                <span className="mt-0.5 block text-[11px] text-white/45">
-                  {planet.cardLabel}
-                </span>
-              </li>
-            ))}
-          </ul>
-
-          <div className="w-full max-w-md">
-            {data.aspects.length > 0 && (
-              <>
-                <p className="mb-2 text-[10px] uppercase tracking-[0.25em] text-white/35">
-                  Açılar
-                </p>
-                <ul className="space-y-1.5 text-[11px] text-white/55">
-                  {data.aspects.slice(0, 8).map((aspect) => {
-                    const planetA = data.planets.find(
-                      (p) => p.id === aspect.planetA
-                    );
-                    const planetB = data.planets.find(
-                      (p) => p.id === aspect.planetB
-                    );
-                    return (
-                      <li
-                        key={aspect.id}
-                        className="rounded-lg border border-white/8 bg-white/[0.02] px-3 py-1.5"
-                      >
-                        {planetA?.name} — {planetB?.name}:{" "}
-                        <span className="text-white/75">{aspect.typeLabel}</span>{" "}
-                        <span className="text-white/35">(orb {aspect.orb}°)</span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </>
-            )}
-          </div>
-        </>
-      )}
-
       <div className="w-full max-w-md">
         {interpretationStatus === "idle" ? (
-          <div className={isMaster ? "mt-1 border-t border-white/8 pt-5" : "pt-1"}>
+          <div className="pt-1">
             <p className="mb-3 text-[10px] uppercase tracking-[0.25em] text-amber-400/55">
               Açıların Kozmik Mesajı
             </p>
@@ -277,6 +225,52 @@ export default function NatalChart({ userData, viewMode }: NatalChartProps) {
           />
         )}
       </div>
+
+      {isMaster ? (
+        <div className="w-full max-w-2xl">
+          <NatalChartDataGridFromData data={data} />
+        </div>
+      ) : (
+        <div className="w-full max-w-md space-y-3">
+          <CollapsiblePanel title="Gezegen Tablosu" defaultOpen={false}>
+            <ul className="grid grid-cols-2 gap-2 text-xs text-white/70">
+              {data.planets.map((planet) => (
+                <li
+                  key={planet.id}
+                  className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2"
+                >
+                  <span className="text-amber-200/90">{planet.symbol}</span>{" "}
+                  <span className="font-medium text-white/85">{planet.name}</span>
+                  <span className="mt-0.5 block text-[11px] text-white/45">
+                    {planet.cardLabel}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </CollapsiblePanel>
+
+          {data.aspects.length > 0 ? (
+            <CollapsiblePanel title="Açılar (Aspect Grid)" defaultOpen={false}>
+              <ul className="space-y-1.5 text-[11px] text-white/55">
+                {data.aspects.slice(0, 8).map((aspect) => {
+                  const planetA = data.planets.find((p) => p.id === aspect.planetA);
+                  const planetB = data.planets.find((p) => p.id === aspect.planetB);
+                  return (
+                    <li
+                      key={aspect.id}
+                      className="rounded-lg border border-white/8 bg-white/[0.02] px-3 py-1.5"
+                    >
+                      {planetA?.name} — {planetB?.name}:{" "}
+                      <span className="text-white/75">{aspect.typeLabel}</span>{" "}
+                      <span className="text-white/35">(orb {aspect.orb}°)</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </CollapsiblePanel>
+          ) : null}
+        </div>
+      )}
 
       <p className="text-center text-[10px] uppercase tracking-[0.2em] text-white/30">
         {data.coordinates.displayName} · {data.ascendant.signName} ASC

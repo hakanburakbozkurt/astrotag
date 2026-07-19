@@ -17,6 +17,7 @@ interface AnalysisResultsProps {
   moduleLabel?: string;
   loadingLabel?: string;
   question?: string;
+  defaultDetailsOpen?: boolean;
 }
 
 function AnalysisLoadingState({ label }: { label: string }) {
@@ -44,6 +45,7 @@ export default function AnalysisResults({
   moduleLabel = "Analiz Sonucu",
   loadingLabel = "Kozmik veriler harmanlanıyor...",
   question,
+  defaultDetailsOpen = false,
 }: AnalysisResultsProps) {
   if (status === "idle") {
     return null;
@@ -85,6 +87,7 @@ export default function AnalysisResults({
             unlockError={unlockError}
             onUnlock={onUnlockDetails}
             totalStarPoints={totalStarPoints}
+            defaultOpen={defaultDetailsOpen}
           />
         </motion.div>
       ) : null}
