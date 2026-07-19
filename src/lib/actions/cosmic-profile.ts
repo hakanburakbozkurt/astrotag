@@ -21,7 +21,7 @@ import {
 import { encryptCosmicJournalText } from "@/lib/crypto/cosmic-journal-crypto.server";
 import { getNfcSessionProfileId } from "@/lib/nfc/session.server";
 import { ORACLE_COSMIC_DATA_ERROR } from "@/lib/oracle/oracle-errors";
-import { createSupabaseServiceClient } from "@/lib/supabase/service";
+import { createServiceRoleClient } from "@/lib/supabase/service";
 import {
   cosmicProfileLedgerType,
   logStarsLedgerEntry,
@@ -67,12 +67,12 @@ function formToUserData(input: CosmicProfileFormInput): UserData {
   };
 }
 
-async function creditStarPointsRefund(userId: string, amount: number): Promise<number> {
-  const supabase = createSupabaseServiceClient();
-  const { data, error: readError } = await supabase
+async function creditStarPointsRefund(profileId: string, amount: number): Promise<number> {
+  const supabaseAdmin = createServiceRoleClient();
+  const { data, error: readError } = await supabaseAdmin
     .from(PROFILE_TABLE)
     .select("star_points, star_points_bonus")
-    .eq("id", userId)
+    .eq("id", profileId)
     .maybeSingle();
 
   if (readError || !data) {
@@ -82,10 +82,10 @@ async function creditStarPointsRefund(userId: string, amount: number): Promise<n
   const starPoints = data.star_points ?? 0;
   const starPointsBonus = (data.star_points_bonus ?? 0) + amount;
 
-  const { error: updateError } = await supabase
+  const { error: updateError } = await supabaseAdmin
     .from(PROFILE_TABLE)
     .update({ star_points_bonus: starPointsBonus })
-    .eq("id", userId);
+    .eq("id", profileId);
 
   if (updateError) {
     throw new SupabaseActionError("Yıldız iadesi uygulanamadı.");
@@ -97,8 +97,8 @@ async function creditStarPointsRefund(userId: string, amount: number): Promise<n
 export async function runCosmicProfileAnalysis(
   input: CosmicProfileFormInput
 ): Promise<RunCosmicProfileResult> {
-  const userId = await getNfcSessionProfileId();
-  if (!userId) {
+  const profileId = await getNfcSessionProfileId();
+  if (!profileId) {
     return { success: false, error: "Oturum bulunamadı." };
   }
 
@@ -126,7 +126,7 @@ export async function runCosmicProfileAnalysis(
     const remainingStars = await consumeStarPoints(tier.stars);
 
     await logStarsLedgerEntry({
-      userId,
+      profileId,
       transactionType: cosmicProfileLedgerType(tier.id),
       starPointsDelta: -tier.stars,
       referenceId: sessionId,
@@ -141,9 +141,9 @@ export async function runCosmicProfileAnalysis(
     const reading = await runCosmicProfilePipeline(userData, name, tier.id);
 
     if (!reading) {
-      await creditStarPointsRefund(userId, tier.stars);
+      await creditStarPointsRefund(profileId, tier.stars);
       await logStarsLedgerEntry({
-        userId,
+        profileId,
         transactionType: "REFUND_ANALYSIS",
         starPointsDelta: tier.stars,
         referenceId: sessionId,
@@ -194,8 +194,8 @@ export async function submitCosmicProfileFeedback(input: {
   feedbackCount?: number;
   error?: string;
 }> {
-  const userId = await getNfcSessionProfileId();
-  if (!userId) {
+  const profileId = await getNfcSessionProfileId();
+  if (!profileId) {
     return { success: false, error: "Oturum bulunamadı." };
   }
 
@@ -205,7 +205,7 @@ export async function submitCosmicProfileFeedback(input: {
 
   try {
     const tracker = await trackAnalysisFeedback({
-      userId,
+      userId: profileId,
       module: "cosmic-profile",
       accurate: input.accurate,
       tier: input.tier,
@@ -237,10 +237,10 @@ export async function submitCosmicProfileFeedback(input: {
   }
 
   try {
-    remainingStars = await creditStarPointsRefund(userId, COSMIC_PROFILE_REFUND_STARS);
+    remainingStars = await creditStarPointsRefund(profileId, COSMIC_PROFILE_REFUND_STARS);
 
     await logStarsLedgerEntry({
-      userId,
+      profileId,
       transactionType: "REFUND_ANALYSIS",
       starPointsDelta: COSMIC_PROFILE_REFUND_STARS,
       referenceId: input.sessionId,
@@ -272,8 +272,8 @@ export async function saveCosmicProfileToJournal(input: {
   subjectName: string;
   birthPlace: string;
 }): Promise<{ success: boolean; error?: string }> {
-  const userId = await getNfcSessionProfileId();
-  if (!userId) {
+  const profileId = await getNfcSessionProfileId();
+  if (!profileId) {
     return { success: false, error: "Oturum bulunamadı." };
   }
 
@@ -293,9 +293,9 @@ export async function saveCosmicProfileToJournal(input: {
       encrypted: true,
     };
 
-    const supabase = createSupabaseServiceClient();
-    const { error } = await supabase.from(COSMIC_READINGS_TABLE).insert({
-      user_id: userId,
+    const supabaseAdmin = createServiceRoleClient();
+    const { error } = await supabaseAdmin.from(COSMIC_READINGS_TABLE).insert({
+      user_id: profileId,
       type: "CosmicProfile",
       question: `${input.subjectName.trim()} · ${tier.label} Kozmik Profil`,
       reading_result: encryptedReading,
@@ -308,7 +308,7 @@ export async function saveCosmicProfileToJournal(input: {
     }
 
     await logStarsLedgerEntry({
-      userId,
+      profileId,
       transactionType: cosmicProfileLedgerType(tier.id),
       starPointsDelta: 0,
       referenceId: input.sessionId,

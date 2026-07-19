@@ -1,7 +1,7 @@
 "use server";
 
 import { getNfcSessionProfileId } from "@/lib/nfc/session.server";
-import { createSupabaseServiceClient } from "@/lib/supabase/service";
+import { createServiceRoleClient } from "@/lib/supabase/service";
 import type { TarotReadingCard } from "@/lib/ai/tarot-pipeline-schemas";
 import { decryptCosmicJournalText } from "@/lib/crypto/cosmic-journal-crypto.server";
 import type {
@@ -108,16 +108,16 @@ export async function getCosmicJournalReadings(
   filter: CosmicReadingType | "all" = "all",
   limit = 40
 ): Promise<CosmicReadingRecord[]> {
-  const userId = await getServerAuthUserId();
-  if (!userId) {
+  const profileId = await getServerAuthUserId();
+  if (!profileId) {
     return [];
   }
 
-  const supabase = createSupabaseServiceClient();
-  let query = supabase
+  const supabaseAdmin = createServiceRoleClient();
+  let query = supabaseAdmin
     .from(COSMIC_READINGS_TABLE)
     .select("id, type, question, reading_result, cards_json, created_at")
-    .eq("user_id", userId)
+    .eq("user_id", profileId)
     .order("created_at", { ascending: false })
     .limit(limit);
 

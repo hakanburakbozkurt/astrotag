@@ -65,7 +65,7 @@ export const POST = withNfcApiRoute("api/ai/tarot", async (request, access) => {
     cards: cardsWithPositions,
     profile: profileContext,
     userProfile: userData,
-    logContext: { userId: access.profileId },
+    logContext: { profileId: access.profileId },
   });
 
   if (!presentation) {

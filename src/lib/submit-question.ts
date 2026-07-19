@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { createSupabaseServiceClient } from "@/lib/supabase/service";
+import { createServiceRoleClient } from "@/lib/supabase/service";
 import { PROFILE_SETUP_PATH } from "@/lib/nfc/constants";
 import {
   assertProfileIdExists,
@@ -47,12 +47,12 @@ export async function resolveProfileUserId(): Promise<string> {
   }
 }
 
-async function ensureProfileComplete(userId: string): Promise<void> {
-  const supabase = createSupabaseServiceClient();
-  const { data, error } = await supabase
+async function ensureProfileComplete(profileId: string): Promise<void> {
+  const supabaseAdmin = createServiceRoleClient();
+  const { data, error } = await supabaseAdmin
     .from(PROFILE_TABLE)
     .select("is_profile_complete")
-    .eq("id", userId)
+    .eq("id", profileId)
     .maybeSingle();
 
   if (error || data?.is_profile_complete !== true) {
@@ -60,10 +60,10 @@ async function ensureProfileComplete(userId: string): Promise<void> {
   }
 }
 
-async function logCosmicQuestion(userId: string, question: string): Promise<void> {
-  const supabase = createSupabaseServiceClient();
-  const { error } = await supabase.from(COSMIC_LOGS_TABLE).insert({
-    user_id: userId,
+async function logCosmicQuestion(profileId: string, question: string): Promise<void> {
+  const supabaseAdmin = createServiceRoleClient();
+  const { error } = await supabaseAdmin.from(COSMIC_LOGS_TABLE).insert({
+    user_id: profileId,
     question,
     star_points_delta: -STAR_POINTS_COST_PER_ACTION,
   });
@@ -82,21 +82,21 @@ export async function submitHoraryQuestion(
       throw new SupabaseActionError("Lütfen bir soru yazın.");
     }
 
-    const userId = await resolveProfileUserId();
-    console.log("Kayıt atılan User ID:", userId);
+    const profileId = await resolveProfileUserId();
+    console.log("Kayıt atılan Profile ID:", profileId);
 
-    await ensureProfileComplete(userId);
+    await ensureProfileComplete(profileId);
     await consumeStarPointsForQuestion();
-    await logCosmicQuestion(userId, trimmed);
+    await logCosmicQuestion(profileId, trimmed);
 
-    const supabase = createSupabaseServiceClient();
+    const supabaseAdmin = createServiceRoleClient();
     const payload: HoraryQuestionInsert = {
-      user_id: userId,
+      user_id: profileId,
       question: trimmed,
       ai_answer: null,
     };
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from(HORARY_QUESTIONS_TABLE)
       .insert(payload)
       .select("*")
@@ -104,7 +104,7 @@ export async function submitHoraryQuestion(
 
     if (error || !data) {
       console.error("[submitHoraryQuestion] insert failed", {
-        userId,
+        profileId,
         code: error?.code ?? null,
         message: error?.message ?? null,
         hint: error?.hint ?? null,

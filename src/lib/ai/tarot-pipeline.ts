@@ -99,9 +99,9 @@ export async function runTarotReadingPipeline(
 
     const presentation = toTarotPresentation(json);
 
-    if (input.logContext?.userId) {
+    if (input.logContext?.profileId) {
       await logCosmicReadingToArchive({
-        userId: input.logContext.userId,
+        profileId: input.logContext.profileId,
         type: "Tarot",
         question: parsedInput.data.question,
         readingResult: formatPresentationForArchive(presentation),

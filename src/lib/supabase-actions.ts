@@ -1,6 +1,6 @@
 "use server";
 
-import { createSupabaseServiceClient } from "@/lib/supabase/service";
+import { createServiceRoleClient } from "@/lib/supabase/service";
 import {
   getProtectedNfcAccess,
   ProtectedNfcAccessError,
@@ -80,7 +80,7 @@ export async function requireAuthUserId(): Promise<string> {
 }
 
 function getServiceClient() {
-  return createSupabaseServiceClient();
+  return createServiceRoleClient();
 }
 
 function mapSupabaseError(error: { message: string } | null, fallback: string): never {

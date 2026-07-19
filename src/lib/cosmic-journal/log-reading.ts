@@ -1,34 +1,36 @@
 import "server-only";
 
-import { createSupabaseServiceClient } from "@/lib/supabase/service";
+import { createServiceRoleClient } from "@/lib/supabase/service";
 import type { CosmicReadingType, SynastryReadingMeta } from "@/lib/cosmic-journal/types";
 
 const COSMIC_READINGS_TABLE = "cosmic_readings";
 
 export type { CosmicReadingType, SynastryReadingMeta };
 
+/** profiles.id — auth.users.id değil */
 export type PipelineLogContext = {
-  userId: string;
+  profileId: string;
 };
 
 export async function logCosmicReadingToArchive(input: {
-  userId: string;
+  profileId: string;
   type: CosmicReadingType;
   question: string;
   readingResult: string;
   cardsJson?: unknown | null;
 }): Promise<void> {
+  const profileId = input.profileId.trim();
   const question = input.question.trim();
   const readingResult = input.readingResult.trim();
 
-  if (!input.userId || !question || !readingResult) {
+  if (!profileId || !question || !readingResult) {
     return;
   }
 
   try {
-    const supabase = createSupabaseServiceClient();
-    const { error } = await supabase.from(COSMIC_READINGS_TABLE).insert({
-      user_id: input.userId,
+    const supabaseAdmin = createServiceRoleClient();
+    const { error } = await supabaseAdmin.from(COSMIC_READINGS_TABLE).insert({
+      user_id: profileId,
       type: input.type,
       question,
       reading_result: readingResult,
@@ -44,17 +46,18 @@ export async function logCosmicReadingToArchive(input: {
 }
 
 export async function logSynastryToArchive(input: {
-  userId: string;
+  profileId: string;
   question: string;
   analysis: string;
   partnerName: string;
   compatibilityScore: number;
 }): Promise<void> {
+  const profileId = input.profileId.trim();
   const question = input.question.trim();
   const analysis = input.analysis.trim();
   const partnerName = input.partnerName.trim();
 
-  if (!input.userId || !question || !analysis || !partnerName) {
+  if (!profileId || !question || !analysis || !partnerName) {
     return;
   }
 
@@ -67,7 +70,7 @@ export async function logSynastryToArchive(input: {
   };
 
   await logCosmicReadingToArchive({
-    userId: input.userId,
+    profileId,
     type: "Synastry",
     question,
     readingResult: analysis,

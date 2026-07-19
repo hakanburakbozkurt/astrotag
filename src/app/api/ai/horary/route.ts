@@ -19,7 +19,7 @@ export const POST = withNfcApiRoute("api/ai/horary", async (request, access) => 
   }
 
   const result = await requestHoraryReading(question, userData, {
-    logContext: { userId: access.profileId },
+    logContext: { profileId: access.profileId },
   });
 
   return NextResponse.json(result);

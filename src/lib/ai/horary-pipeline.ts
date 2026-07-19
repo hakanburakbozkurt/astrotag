@@ -94,9 +94,9 @@ export async function runHoraryReadingPipeline(
       synastry: emphPackage.synastry,
     };
 
-    if (logContext?.userId) {
+    if (logContext?.profileId) {
       await logCosmicReadingToArchive({
-        userId: logContext.userId,
+        profileId: logContext.profileId,
         type: "Horary",
         question: question.trim(),
         readingResult: answer,

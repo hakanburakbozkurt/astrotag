@@ -25,7 +25,7 @@ import {
   getServerUserProfile,
 } from "@/lib/tarot/tarot-profile-server";
 import { getNfcSessionProfileId } from "@/lib/nfc/session.server";
-import { createSupabaseServiceClient } from "@/lib/supabase/service";
+import { createServiceRoleClient } from "@/lib/supabase/service";
 import type { UserData } from "@/types/user";
 
 export type { TarotReadingCard } from "@/lib/ai/tarot-pipeline-schemas";
@@ -82,13 +82,13 @@ async function getCachedPresentation(
   userId: string,
   cardIds: string[]
 ): Promise<OracleAnalysisPresentation | null> {
-  const supabase = createSupabaseServiceClient();
+  const supabaseAdmin = createServiceRoleClient();
   const signature = buildCardSignature(cardIds);
   const since = new Date(
     Date.now() - TAROT_CACHE_HOURS * 60 * 60 * 1000
   ).toISOString();
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from(TAROT_HISTORY_TABLE)
     .select("reading")
     .eq("user_id", userId)
@@ -117,10 +117,10 @@ async function saveReadingHistory(input: {
   cardIds: string[];
   presentation: OracleAnalysisPresentation;
 }): Promise<void> {
-  const supabase = createSupabaseServiceClient();
+  const supabaseAdmin = createServiceRoleClient();
   const signature = buildCardSignature(input.cardIds);
 
-  const { error } = await supabase.from(TAROT_HISTORY_TABLE).insert({
+  const { error } = await supabaseAdmin.from(TAROT_HISTORY_TABLE).insert({
     user_id: input.userId,
     question: input.question.trim(),
     card_ids: input.cardIds,
@@ -210,7 +210,7 @@ export async function interpretTarotSpread(input: {
       cards,
       profile: profileContext,
       userProfile,
-      logContext: userId ? { userId } : undefined,
+      logContext: userId ? { profileId: userId } : undefined,
     });
 
     if (!presentation) {

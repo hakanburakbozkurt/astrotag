@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createSupabaseServiceClient } from "@/lib/supabase/service";
+import { createServiceRoleClient } from "@/lib/supabase/service";
 
 const STARS_LEDGER_TABLE = "stars_ledger";
 
@@ -11,17 +11,24 @@ export type StarsLedgerTransactionType =
   | "REFUND_ANALYSIS"
   | "BADGE_REWARD";
 
+/** @param input.profileId — profiles.id (auth.uid() değil) */
 export async function logStarsLedgerEntry(input: {
-  userId: string;
+  profileId: string;
   transactionType: StarsLedgerTransactionType;
   starPointsDelta: number;
   referenceId?: string;
   metadata?: Record<string, unknown>;
 }): Promise<void> {
+  const profileId = input.profileId.trim();
+  if (!profileId) {
+    console.error("STARS_LEDGER_LOG_ERROR: profileId boş");
+    return;
+  }
+
   try {
-    const supabase = createSupabaseServiceClient();
-    const { error } = await supabase.from(STARS_LEDGER_TABLE).insert({
-      user_id: input.userId,
+    const supabaseAdmin = createServiceRoleClient();
+    const { error } = await supabaseAdmin.from(STARS_LEDGER_TABLE).insert({
+      user_id: profileId,
       transaction_type: input.transactionType,
       star_points_delta: input.starPointsDelta,
       reference_id: input.referenceId ?? null,

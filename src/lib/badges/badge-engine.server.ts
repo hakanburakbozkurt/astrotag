@@ -7,7 +7,7 @@ import {
   type GrantedBadgePayload,
 } from "@/lib/badges/badge-definitions";
 import { logStarsLedgerEntry } from "@/lib/stars/stars-ledger.server";
-import { createSupabaseServiceClient } from "@/lib/supabase/service";
+import { createServiceRoleClient } from "@/lib/supabase/service";
 
 const PROFILES_TABLE = "profiles";
 const USER_BADGES_TABLE = "user_badges";
@@ -20,9 +20,9 @@ async function creditBadgeStarReward(
   userId: string,
   amount: number
 ): Promise<{ starPoints: number; starPointsBonus: number; totalStarPoints: number }> {
-  const supabase = createSupabaseServiceClient();
+  const supabaseAdmin = createServiceRoleClient();
 
-  const { data, error: readError } = await supabase
+  const { data, error: readError } = await supabaseAdmin
     .from(PROFILES_TABLE)
     .select("star_points, star_points_bonus")
     .eq("id", userId)
@@ -35,7 +35,7 @@ async function creditBadgeStarReward(
   const starPoints = data.star_points ?? 0;
   const starPointsBonus = (data.star_points_bonus ?? 0) + amount;
 
-  const { error: updateError } = await supabase
+  const { error: updateError } = await supabaseAdmin
     .from(PROFILES_TABLE)
     .update({ star_points_bonus: starPointsBonus })
     .eq("id", userId);
@@ -61,9 +61,9 @@ export async function grantBadge(
     return { granted: false, reason: "unknown_badge" };
   }
 
-  const supabase = createSupabaseServiceClient();
+  const supabaseAdmin = createServiceRoleClient();
 
-  const { data: existing } = await supabase
+  const { data: existing } = await supabaseAdmin
     .from(USER_BADGES_TABLE)
     .select("id")
     .eq("user_id", userId)
@@ -74,7 +74,7 @@ export async function grantBadge(
     return { granted: false, reason: "already_earned" };
   }
 
-  const { error: insertError } = await supabase.from(USER_BADGES_TABLE).insert({
+  const { error: insertError } = await supabaseAdmin.from(USER_BADGES_TABLE).insert({
     user_id: userId,
     badge_id: badgeId,
     star_reward: definition.starReward,
@@ -92,7 +92,7 @@ export async function grantBadge(
     const wallet = await creditBadgeStarReward(userId, definition.starReward);
 
     await logStarsLedgerEntry({
-      userId,
+      profileId: userId,
       transactionType: "BADGE_REWARD",
       starPointsDelta: definition.starReward,
       referenceId: badgeId,
@@ -140,11 +140,11 @@ export async function getUserBadgeState(userId: string): Promise<{
   earnedBadges: Array<GrantedBadgePayload & { earnedAt: string }>;
   nextBadge: { name: string; remaining: number; threshold: number } | null;
 }> {
-  const supabase = createSupabaseServiceClient();
+  const supabaseAdmin = createServiceRoleClient();
 
   const [{ data: profile }, { data: badgeRows }] = await Promise.all([
-    supabase.from(PROFILES_TABLE).select("feedback_count").eq("id", userId).maybeSingle(),
-    supabase
+    supabaseAdmin.from(PROFILES_TABLE).select("feedback_count").eq("id", userId).maybeSingle(),
+    supabaseAdmin
       .from(USER_BADGES_TABLE)
       .select("badge_id, earned_at, star_reward")
       .eq("user_id", userId)

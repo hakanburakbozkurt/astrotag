@@ -39,7 +39,7 @@ export const POST = withNfcApiRoute(
     const result = await requestSynastryAnalysis(question, userData, context);
 
     await logSynastryToArchive({
-      userId: access.profileId,
+      profileId: access.profileId,
       question: question.trim(),
       analysis: formatPresentationForArchive(result.presentation),
       partnerName: partnerName || context.synastry?.partnerName || "Partner",
