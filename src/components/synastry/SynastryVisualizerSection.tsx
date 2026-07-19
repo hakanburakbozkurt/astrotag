@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import useSWR from "swr";
+import { useQuery } from "@/hooks/useQuery";
 import { useAuth } from "@/lib/auth";
 import {
   fetchSynastryScoreCached,
@@ -98,14 +98,13 @@ export default function SynastryVisualizerSection({
       ? SWR_KEYS.synastryScore(userId, dateKey, partnerFingerprint)
       : null;
 
-  const { data: score, isLoading: isScoreLoading } = useSWR(
-    scoreKey,
-    () => loadSynastryScore(userData, dateKey),
-    {
-      fallbackData: readCachedScore(dateKey, userData) ?? undefined,
-      revalidateIfStale: true,
-    }
-  );
+  const {
+    data: score,
+    isPending: isScorePending,
+  } = useQuery(scoreKey, () => loadSynastryScore(userData, dateKey), {
+    fallbackData: readCachedScore(dateKey, userData) ?? undefined,
+    revalidateIfStale: true,
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -167,7 +166,7 @@ export default function SynastryVisualizerSection({
     });
   }, [score, synastryData, userData.name, partnerName, shareContext]);
 
-  const isLoading = calculationLoading || (isScoreLoading && !score);
+  const isLoading = calculationLoading || (isScorePending && !score);
 
   if (isLoading) {
     return <SectionSkeleton title="Synastry Visualizer" />;

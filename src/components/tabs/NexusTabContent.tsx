@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import useSWR from "swr";
+import { useQuery } from "@/hooks/useQuery";
 import TabPageScaffold from "@/components/navigation/TabPageScaffold";
-import { SectionSkeleton } from "@/components/navigation/TabPageSkeleton";
+import TabPageSkeleton, { SectionSkeleton } from "@/components/navigation/TabPageSkeleton";
 import { compactSectionClass } from "@/components/navigation/compact-ui";
 import NexusSignHeader from "@/components/nexus/NexusSignHeader";
 import NexusHorizonCard from "@/components/nexus/NexusHorizonCard";
@@ -63,7 +63,7 @@ async function loadNexusDaily(
 
 export default function NexusTabContent() {
   const { userId } = useAuth();
-  const { userData, error: profileError } = useUserProfile();
+  const { userData, isPending: isProfilePending, error: profileError } = useUserProfile();
   const dateKey = getDailyCompatibilityDateKey();
 
   const swrKey =
@@ -72,11 +72,16 @@ export default function NexusTabContent() {
   const {
     data: nexus,
     error: nexusError,
-    isLoading,
-  } = useSWR(swrKey, () => loadNexusDaily(userData!, dateKey), {
+    isPending: isNexusPending,
+    showError: showNexusError,
+  } = useQuery(swrKey, () => loadNexusDaily(userData!, dateKey), {
     fallbackData: readCachedNexus(dateKey) ?? undefined,
     revalidateIfStale: true,
   });
+
+  if (isProfilePending) {
+    return <TabPageSkeleton />;
+  }
 
   if (!userData) {
     return null;
@@ -117,14 +122,14 @@ export default function NexusTabContent() {
           </div>
         ) : null}
 
-        {isLoading && !nexus ? (
+        {isNexusPending && !nexus ? (
           <div className="space-y-4">
             <SectionSkeleton title="Senin Günün" />
             <SectionSkeleton title="Partnerinin Günün" />
           </div>
         ) : null}
 
-        {nexusError ? (
+        {showNexusError && nexusError ? (
           <div className={`${compactSectionClass} text-center`}>
             <p className="text-sm text-red-200/80">
               {nexusError instanceof Error

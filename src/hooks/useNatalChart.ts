@@ -6,7 +6,11 @@ import {
   computeNatalChart,
   resolveBirthContext,
 } from "@/lib/astrology/planet-positions";
-import { ORACLE_COSMIC_DATA_ERROR, logOracleModuleError } from "@/lib/oracle/oracle-errors";
+import {
+  ORACLE_COSMIC_DATA_ERROR,
+  logOracleModuleError,
+} from "@/lib/oracle/oracle-errors";
+import { fetchWithRetry } from "@/lib/query/fetch-with-retry";
 import type { BirthContext, NatalChartData } from "@/lib/astrology/types";
 
 export type NatalChartStatus = "idle" | "loading" | "ready" | "error";
@@ -37,11 +41,13 @@ export function useNatalChart(userData: UserData | null): UseNatalChartResult {
       setError(null);
 
       try {
-        const birthContext = await resolveBirthContext({
-          birthDate: userData!.birthDate,
-          birthTime: userData!.birthTime,
-          birthPlace: userData!.birthPlace,
-        });
+        const birthContext = await fetchWithRetry(() =>
+          resolveBirthContext({
+            birthDate: userData!.birthDate,
+            birthTime: userData!.birthTime,
+            birthPlace: userData!.birthPlace,
+          })
+        );
 
         if (cancelled) return;
         setContext(birthContext);

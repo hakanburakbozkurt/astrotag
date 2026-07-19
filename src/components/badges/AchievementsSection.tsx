@@ -1,15 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Award, Compass, Eye, Lock, Sparkles, Star } from "lucide-react";
+import DataLoadingState from "@/components/ui/DataLoadingState";
 import {
   getUserBadgeProgress,
   type BadgeIconId,
   type BadgeProgressItem,
   type UserBadgeProgress,
 } from "@/lib/actions/badges";
+import { SWR_KEYS } from "@/lib/auth/data-cache";
 import { FEEDBACK_UPDATED_EVENT } from "@/lib/energy-events";
+import { useQuery } from "@/hooks/useQuery";
 
 function BadgeIcon({ icon, className }: { icon: BadgeIconId; className?: string }) {
   switch (icon) {
@@ -140,33 +143,23 @@ function BadgeGridCard({
 }
 
 export default function AchievementsSection() {
-  const [progress, setProgress] = useState<UserBadgeProgress | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const loadProgress = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const data = await getUserBadgeProgress();
-      setProgress(data);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void loadProgress();
-  }, [loadProgress]);
+  const {
+    data: progress,
+    isPending,
+    showError,
+    mutate,
+  } = useQuery<UserBadgeProgress | null>(SWR_KEYS.badgeProgress, getUserBadgeProgress);
 
   useEffect(() => {
     const handleFeedbackUpdated = () => {
-      void loadProgress();
+      void mutate();
     };
 
     window.addEventListener(FEEDBACK_UPDATED_EVENT, handleFeedbackUpdated);
     return () => {
       window.removeEventListener(FEEDBACK_UPDATED_EVENT, handleFeedbackUpdated);
     };
-  }, [loadProgress]);
+  }, [mutate]);
 
   return (
     <motion.section
@@ -186,15 +179,8 @@ export default function AchievementsSection() {
         <Award className="h-5 w-5 shrink-0 text-amber-400/60" aria-hidden />
       </div>
 
-      {isLoading ? (
-        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, index) => (
-            <div
-              key={index}
-              className="h-52 animate-pulse rounded-2xl bg-white/[0.04]"
-            />
-          ))}
-        </div>
+      {isPending ? (
+        <DataLoadingState className="mt-5" />
       ) : progress ? (
         <>
           <div className="mt-5 rounded-xl border border-amber-400/15 bg-gradient-to-r from-amber-400/[0.06] to-transparent px-4 py-3">
@@ -223,7 +209,9 @@ export default function AchievementsSection() {
           </ul>
         </>
       ) : (
-        <p className="mt-5 text-sm text-white/45">Rozet bilgisi yüklenemedi.</p>
+        <p className="mt-5 text-sm text-white/45">
+          {showError ? "Rozet bilgisi yüklenemedi." : "Rozet bilgisi bulunamadı."}
+        </p>
       )}
     </motion.section>
   );

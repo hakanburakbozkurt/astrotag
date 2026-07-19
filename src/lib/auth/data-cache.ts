@@ -5,10 +5,16 @@ import { buildSynastryScoreFingerprint } from "@/lib/synastry/synastry-score-eng
 import type { NexusDailyResponse } from "@/lib/ai/nexus";
 import { fetchNexusDaily } from "@/lib/ai/nexus-client";
 import type { UserData } from "@/types/user";
+import {
+  QUERY_RETRY_COUNT,
+  QUERY_RETRY_DELAY_MS,
+} from "@/lib/query/fetch-with-retry";
 
 export const SWR_KEYS = {
   session: "nfc/session",
   profile: "user/profile",
+  starPoints: "user/star-points",
+  badgeProgress: "user/badge-progress",
   synastryScore: (profileId: string, dateKey: string, partnerFingerprint: string) =>
     ["synastry/score", profileId, dateKey, partnerFingerprint] as const,
   nexusDaily: (profileId: string, dateKey: string) =>
@@ -21,7 +27,8 @@ export const SWR_DEFAULT_OPTIONS: SWRConfiguration = {
   revalidateOnReconnect: true,
   dedupingInterval: 60_000,
   keepPreviousData: true,
-  errorRetryCount: 2,
+  errorRetryCount: QUERY_RETRY_COUNT,
+  errorRetryInterval: QUERY_RETRY_DELAY_MS,
 };
 
 export async function fetchSynastryScoreCached(

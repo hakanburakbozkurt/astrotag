@@ -6,7 +6,7 @@ import dynamic from "next/dynamic";
 import { Suspense } from "react";
 import AnalysisResults from "@/components/analysis/AnalysisResults";
 import TabPageScaffold from "@/components/navigation/TabPageScaffold";
-import { SectionSkeleton } from "@/components/navigation/TabPageSkeleton";
+import TabPageSkeleton, { SectionSkeleton } from "@/components/navigation/TabPageSkeleton";
 import { compactTapButtonClass } from "@/components/navigation/compact-ui";
 import { useAuth, useUserProfile } from "@/lib/auth";
 import { fetchSynastryAnalysis } from "@/lib/ai/synastry-client";
@@ -44,7 +44,7 @@ function readCachedScore(dateKey: string): SynastryScoreResponse | null {
 
 export default function BondsTabContent() {
   const { userId } = useAuth();
-  const { userData, error: profileError } = useUserProfile();
+  const { userData, isPending, error: profileError } = useUserProfile();
   const {
     totalStarPoints,
     detailsUnlocked,
@@ -111,6 +111,10 @@ export default function BondsTabContent() {
 
     void unlockDetails(presentation.cost);
   };
+
+  if (isPending) {
+    return <TabPageSkeleton />;
+  }
 
   if (!userData) {
     return (

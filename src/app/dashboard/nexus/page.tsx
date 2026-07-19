@@ -14,9 +14,9 @@ const NexusTabContent = dynamic(
 
 export default function NexusTabPage() {
   useRequireAuth();
-  const { userData, profileStatus, isLoading, error } = useUserProfile();
+  const { userData, profileStatus, isPending, error } = useUserProfile();
 
-  if (isLoading || profileStatus === "loading") {
+  if (isPending || profileStatus === "loading") {
     return <TabPageSkeleton />;
   }
 

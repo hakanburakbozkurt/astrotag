@@ -92,9 +92,9 @@ function UserInfoSection({ user }: { user: UserData }) {
 }
 
 export default function ProfileTabContent() {
-  const { userData, isLoading, error } = useUserProfile();
+  const { userData, isPending, error } = useUserProfile();
 
-  if (isLoading) {
+  if (isPending) {
     return <TabPageSkeleton />;
   }
 

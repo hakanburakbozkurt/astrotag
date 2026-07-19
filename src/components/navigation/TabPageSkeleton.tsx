@@ -8,7 +8,7 @@ export default function TabPageSkeleton() {
       <div className="mb-5 flex flex-col items-center gap-2 text-center">
         <div className="h-7 w-7 rounded-full border-2 border-amber-400/15 border-t-amber-400/70" />
         <p className="text-xs font-medium tracking-wide text-amber-200/80">
-          Kozmik Terminal yükleniyor...
+          Yükleniyor...
         </p>
       </div>
 
@@ -45,7 +45,7 @@ export function SectionSkeleton({ title }: { title?: string }) {
       <div className="mb-3 flex items-center gap-1.5">
         <div className="h-1.5 w-1.5 rounded-full bg-amber-400/50" />
         <p className="text-[9px] uppercase tracking-[0.2em] text-amber-200/60">
-          Kozmik Terminal yükleniyor...
+          Yükleniyor...
         </p>
       </div>
       <div className="h-2.5 w-24 rounded-full bg-white/10" />

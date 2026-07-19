@@ -14,9 +14,9 @@ const ProfileTabContent = dynamic(
 
 export default function ProfileTabPage() {
   useRequireAuth();
-  const { userData, profileStatus, isLoading } = useUserProfile();
+  const { userData, profileStatus, isPending } = useUserProfile();
 
-  if (isLoading || profileStatus === "loading") {
+  if (isPending || profileStatus === "loading") {
     return <TabPageSkeleton />;
   }
 

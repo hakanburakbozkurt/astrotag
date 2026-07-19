@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import TabPageSkeleton from "@/components/navigation/TabPageSkeleton";
 import SubPageNav from "@/components/navigation/SubPageNav";
 import ShareButton from "@/components/analysis/ShareButton";
 import { splitLegacyAnalysisText } from "@/lib/analysis/parse-oracle-response";
@@ -45,7 +46,7 @@ function HorarySpinner() {
 export default function HoraryPage() {
   useRequireAuth();
   const router = useRouter();
-  const { userData, profileStatus, isLoading: profileLoading, error: profileError } =
+  const { userData, profileStatus, isPending: profileLoading, error: profileError } =
     useUserProfile();
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<string | null>(null);
@@ -124,11 +125,7 @@ export default function HoraryPage() {
   };
 
   if (profileLoading) {
-    return (
-      <div className="relative flex flex-1 items-center justify-center px-4 py-16">
-        <p className="text-sm text-white/45">Kozmik bağlantı kuruluyor...</p>
-      </div>
-    );
+    return <TabPageSkeleton />;
   }
 
   if (profileStatus === "error" || profileStatus === "empty" || !userData) {

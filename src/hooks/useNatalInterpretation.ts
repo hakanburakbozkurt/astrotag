@@ -5,6 +5,7 @@ import type { UserData } from "@/types/user";
 import { fetchNatalInterpretation } from "@/lib/ai/natal-interpretation-client";
 import type { OracleAnalysisPresentation } from "@/lib/analysis/types";
 import { SupabaseActionError } from "@/lib/supabase-action-error";
+import { fetchWithRetry } from "@/lib/query/fetch-with-retry";
 
 type InterpretationStatus = "idle" | "loading" | "ready" | "error";
 
@@ -25,7 +26,7 @@ export function useNatalInterpretation(userData: UserData | null) {
     setPresentation(null);
 
     try {
-      const result = await fetchNatalInterpretation(userData);
+      const result = await fetchWithRetry(() => fetchNatalInterpretation(userData));
       setPresentation(result.presentation);
       setStatus("ready");
     } catch (err) {

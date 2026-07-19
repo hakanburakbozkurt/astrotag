@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   buildStarPointsChargeState,
   type StarPointsChargeState,
@@ -18,6 +18,8 @@ import {
 } from "@/lib/star-economy/storage";
 import { chargeStarPoints, getStarPointsChargeState } from "@/lib/supabase-actions";
 import { formatCountdown, SupabaseActionError } from "@/lib/supabase-action-error";
+import { SWR_KEYS } from "@/lib/auth/data-cache";
+import { useQuery } from "@/hooks/useQuery";
 
 const EMPTY_CHARGE_STATE: StarPointsChargeState = {
   starPoints: 0,
@@ -29,64 +31,63 @@ const EMPTY_CHARGE_STATE: StarPointsChargeState = {
   nextChargeAt: null,
 };
 
-function buildChargeStateFromLastClaimed(
-  starPoints: number,
-  starPointsBonus: number,
-  lastClaimed: string | null
+function buildChargeStateFromServer(
+  serverState: StarPointsChargeState
 ): StarPointsChargeState {
-  return buildStarPointsChargeState(starPoints, starPointsBonus, lastClaimed);
+  const mergedLastClaimed = mergeLastClaimed(
+    serverState.lastStarPointsCharge,
+    readLocalLastClaimed()
+  );
+
+  return buildStarPointsChargeState(
+    serverState.starPoints,
+    serverState.starPointsBonus,
+    mergedLastClaimed
+  );
 }
 
 export function useStarEconomy() {
-  const [chargeState, setChargeState] = useState<StarPointsChargeState>(() => {
-    const localLastClaimed = readLocalLastClaimed();
-    if (!localLastClaimed) {
-      return EMPTY_CHARGE_STATE;
-    }
+  const {
+    data: serverState,
+    isPending,
+    showError,
+    error,
+    mutate,
+  } = useQuery(SWR_KEYS.starPoints, getStarPointsChargeState);
 
-    return buildChargeStateFromLastClaimed(0, 0, localLastClaimed);
-  });
   const [countdown, setCountdown] = useState("00:00:00");
-  const [isLoading, setIsLoading] = useState(true);
   const [isClaiming, setIsClaiming] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [claimError, setClaimError] = useState<string | null>(null);
   const isClaimingRef = useRef(false);
 
-  const refresh = useCallback(async () => {
-    try {
-      setError(null);
-      const serverState = await getStarPointsChargeState();
+  const chargeState = useMemo(() => {
+    if (!serverState) {
+      const localLastClaimed = readLocalLastClaimed();
+      if (!localLastClaimed) {
+        return EMPTY_CHARGE_STATE;
+      }
+
+      return buildStarPointsChargeState(0, 0, localLastClaimed);
+    }
+
+    return buildChargeStateFromServer(serverState);
+  }, [serverState]);
+
+  useEffect(() => {
+    if (serverState?.lastStarPointsCharge) {
       const mergedLastClaimed = mergeLastClaimed(
         serverState.lastStarPointsCharge,
         readLocalLastClaimed()
       );
-
-      const nextState = buildChargeStateFromLastClaimed(
-        serverState.starPoints,
-        serverState.starPointsBonus,
-        mergedLastClaimed
-      );
-
-      setChargeState(nextState);
-
       if (mergedLastClaimed) {
         writeLocalLastClaimed(mergedLastClaimed);
       }
-    } catch (err) {
-      const message =
-        err instanceof SupabaseActionError
-          ? err.message
-          : "Yıldız puanı bilgisi alınamadı.";
-      setError(message);
-      setChargeState(EMPTY_CHARGE_STATE);
-    } finally {
-      setIsLoading(false);
     }
-  }, []);
+  }, [serverState]);
 
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
+  const refresh = useCallback(async () => {
+    await mutate();
+  }, [mutate]);
 
   useEffect(() => {
     const handleStarPointsUpdated = () => {
@@ -133,8 +134,7 @@ export function useStarEconomy() {
 
     setIsClaiming(true);
     isClaimingRef.current = true;
-    setError(null);
-    setChargeState(optimisticState);
+    setClaimError(null);
 
     if (optimisticLastClaimed) {
       writeLocalLastClaimed(optimisticLastClaimed);
@@ -142,7 +142,7 @@ export function useStarEconomy() {
 
     try {
       const result = await chargeStarPoints();
-      setChargeState(result.chargeState);
+      await mutate(result.chargeState, { revalidate: false });
 
       if (result.chargeState.lastStarPointsCharge) {
         writeLocalLastClaimed(result.chargeState.lastStarPointsCharge);
@@ -154,8 +154,6 @@ export function useStarEconomy() {
         })
       );
     } catch (err) {
-      setChargeState(previousState);
-
       if (previousState.lastStarPointsCharge) {
         writeLocalLastClaimed(previousState.lastStarPointsCharge);
       }
@@ -164,15 +162,23 @@ export function useStarEconomy() {
         err instanceof SupabaseActionError &&
         (err.message.includes("beklemelisiniz") || err.message.includes("dolu"))
       ) {
-        setError(err.message);
+        setClaimError(err.message);
       }
     } finally {
       isClaimingRef.current = false;
       setIsClaiming(false);
     }
-  }, [chargeState, isClaiming]);
+  }, [chargeState, isClaiming, mutate]);
 
   const isOnCooldown = Boolean(chargeState.nextChargeAt);
+  const queryError =
+    showError && error
+      ? error instanceof SupabaseActionError
+        ? error.message
+        : error instanceof Error
+          ? error.message
+          : "Yıldız puanı bilgisi alınamadı."
+      : null;
 
   return {
     starPoints: chargeState.starPoints,
@@ -185,9 +191,10 @@ export function useStarEconomy() {
     countdown,
     isOnCooldown,
     fillPercent: getStarFillPercent(chargeState.starPoints),
-    isLoading,
+    isLoading: isPending,
+    isPending,
     isClaiming,
-    error,
+    error: claimError ?? queryError,
     refresh,
     claimStars,
     buttonLabel: getStarClaimButtonLabel({

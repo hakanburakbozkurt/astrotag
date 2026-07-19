@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { motion } from "framer-motion";
+import DataLoadingState from "@/components/ui/DataLoadingState";
 import { EnergyRulesPopup } from "@/components/dashboard/EnergyRulesPopup";
 import { MAX_STAR_POINTS } from "@/lib/constants/cosmic";
 import { useStarEconomy } from "@/hooks/useStarEconomy";
@@ -61,7 +62,7 @@ export default function SessionCounter() {
       </div>
 
       {isLoading ? (
-        <p className="mt-3 text-sm text-white/45">Yıldızlar yükleniyor...</p>
+        <DataLoadingState compact className="mt-3 justify-start" />
       ) : (
         <div className="mt-3 space-y-3">
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">

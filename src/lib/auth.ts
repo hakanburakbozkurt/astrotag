@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import useSWR, { mutate as globalMutate } from "swr";
+import { mutate as globalMutate } from "swr";
 import { clientRedirect } from "@/lib/auth/client-redirect.client";
 import { checkNfcSessionAction } from "@/lib/actions/nfc-auth";
 import { getUserProfile } from "@/lib/supabase-actions";
 import { SWR_KEYS } from "@/lib/auth/data-cache";
 import { useSessionStore } from "@/lib/auth/session-store";
+import { useQuery } from "@/hooks/useQuery";
 import { DASHBOARD_PATH, HOME_PATH } from "@/lib/nfc/constants";
 import type { UserData } from "@/types/user";
 
@@ -21,20 +22,20 @@ export function useAuth() {
   const cachedExpiresAt = useSessionStore((state) => state.expiresAt);
   const setSession = useSessionStore((state) => state.setSession);
 
-  const { data, isLoading, isValidating } = useSWR(
-    SWR_KEYS.session,
-    checkNfcSessionAction,
-    {
-      fallbackData: sessionChecked
-        ? {
-            authenticated: cachedAuthenticated,
-            profileId: cachedProfileId,
-            expiresAt: cachedExpiresAt,
-          }
-        : undefined,
-      revalidateIfStale: true,
-    }
-  );
+  const {
+    data,
+    isPending,
+    isValidating,
+  } = useQuery(SWR_KEYS.session, checkNfcSessionAction, {
+    fallbackData: sessionChecked
+      ? {
+          authenticated: cachedAuthenticated,
+          profileId: cachedProfileId,
+          expiresAt: cachedExpiresAt,
+        }
+      : undefined,
+    revalidateIfStale: true,
+  });
 
   useEffect(() => {
     if (!data) {
@@ -51,15 +52,17 @@ export function useAuth() {
   const isAuthenticated = data?.authenticated ?? cachedAuthenticated;
   const profileId = data?.profileId ?? cachedProfileId;
   const expiresAt = data?.expiresAt ?? cachedExpiresAt;
-  const authLoading = !sessionChecked && (isLoading || isValidating);
+  const authLoading = !sessionChecked && isPending;
 
   return {
     user: isAuthenticated ? { id: profileId } : null,
     isLoading: authLoading,
+    isPending: authLoading,
     isAuthenticated,
     isDevBypass: false,
     userId: profileId,
     expiresAt,
+    isValidating,
   };
 }
 
@@ -87,19 +90,19 @@ export function useRequireAuth(redirectTo: string = HOME_PATH) {
 
 function resolveProfileStatus(
   isAuthenticated: boolean,
-  isLoading: boolean,
+  isPending: boolean,
   userData: UserData | null | undefined,
-  error: unknown
+  hasError: boolean
 ): ProfileStatus {
   if (!isAuthenticated) {
     return "empty";
   }
 
-  if (isLoading && userData === undefined) {
+  if (isPending && userData === undefined) {
     return "loading";
   }
 
-  if (error) {
+  if (hasError && !userData) {
     return "error";
   }
 
@@ -116,10 +119,12 @@ export function useUserProfile() {
   const {
     data: userData,
     error,
-    isLoading,
+    isPending,
     isValidating,
+    isRetrying,
+    showError,
     mutate: mutateProfile,
-  } = useSWR(profileKey, getUserProfile, {
+  } = useQuery(profileKey, getUserProfile, {
     fallbackData: cachedUserData ?? undefined,
     revalidateIfStale: true,
   });
@@ -131,28 +136,33 @@ export function useUserProfile() {
   }, [userData, setUserData]);
 
   const resolvedUserData = userData ?? cachedUserData;
+  const profilePending =
+    auth.isPending ||
+    (auth.isAuthenticated && isPending && !resolvedUserData);
+
   const profileStatus = resolveProfileStatus(
     auth.isAuthenticated,
-    auth.isLoading || (Boolean(profileKey) && isLoading && !resolvedUserData),
+    profilePending,
     resolvedUserData,
-    error
+    showError
   );
-
-  const isProfileLoading =
-    auth.isLoading ||
-    (auth.isAuthenticated &&
-      profileStatus === "loading" &&
-      !resolvedUserData);
 
   return {
     user: auth.user,
     userData: resolvedUserData,
     profileStatus,
-    isLoading: isProfileLoading,
+    isLoading: profilePending,
+    isPending: profilePending,
+    isRetrying,
     isValidating,
     isAuthenticated: auth.isAuthenticated,
     isDevBypass: false,
-    error: error instanceof Error ? error.message : error ? String(error) : null,
+    error:
+      showError && error
+        ? error instanceof Error
+          ? error.message
+          : String(error)
+        : null,
     refreshProfile: async () => {
       if (!auth.isAuthenticated) {
         setUserData(null);
