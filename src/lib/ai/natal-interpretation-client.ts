@@ -14,9 +14,16 @@ export async function fetchNatalInterpretation(
     error?: string;
   };
 
-  if (!response.ok || !data.interpretation?.trim()) {
+  if (
+    !response.ok ||
+    !data.presentation?.executiveSummary?.trim() ||
+    !data.presentation?.details?.trim()
+  ) {
     throw new Error(data.error ?? "Astroloji yorumu alınamadı.");
   }
 
-  return { interpretation: data.interpretation };
+  return {
+    presentation: data.presentation,
+    interpretation: data.interpretation?.trim() || data.presentation.details,
+  };
 }

@@ -3,6 +3,7 @@ import type {
   SynastryAnalyzeResponse,
   SynastryScoreResponse,
 } from "@/lib/ai/synastry";
+import { formatPresentationForArchive } from "@/lib/analysis/types";
 
 export async function fetchSynastryScore(
   userData: UserData
@@ -47,9 +48,16 @@ export async function fetchSynastryAnalysis(
     error?: string;
   };
 
-  if (!response.ok || !data.analysis?.trim()) {
+  if (
+    !response.ok ||
+    !data.presentation?.executiveSummary?.trim() ||
+    !data.presentation?.details?.trim()
+  ) {
     throw new Error(data.error ?? "Synastry analizi alınamadı.");
   }
 
-  return data;
+  return {
+    ...data,
+    analysis: data.analysis?.trim() || formatPresentationForArchive(data.presentation),
+  };
 }

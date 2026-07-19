@@ -1,5 +1,10 @@
 import "server-only";
 
+/**
+ * AnalysisResults geçişi: buildHoraryDualLayerSystemPrompt + ORACLE_DUAL_LAYER_USER_PROMPT_SUFFIX
+ * @see src/lib/ai/oracle-presentation-prompts.ts
+ * @see src/lib/ai/medium-kie-presentation.ts
+ */
 import type { EmphEnrichedPackage } from "@/lib/astrology/emph-processing-engine";
 import { processHoraryThroughEmph } from "@/lib/astrology/emph-processing-engine";
 import type { CosmicAnalysisContext } from "@/lib/astrology/cosmic-context";

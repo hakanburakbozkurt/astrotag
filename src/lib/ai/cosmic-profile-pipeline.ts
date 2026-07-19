@@ -1,5 +1,9 @@
 import "server-only";
 
+/**
+ * AnalysisResults geçişi: buildCosmicProfileDualLayerSystemPrompt + medium-kie-presentation
+ * @see src/lib/ai/oracle-presentation-prompts.ts
+ */
 import type { EmphEnrichedPackage } from "@/lib/astrology/emph-processing-engine";
 import { processCosmicProfileThroughEmph } from "@/lib/astrology/emph-processing-engine";
 import { ORACLE_JSON_GUARDRAIL } from "@/lib/ai/oracle-guardrails";

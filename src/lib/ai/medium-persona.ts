@@ -1,5 +1,7 @@
 import { withOracleGuardrail } from "@/lib/ai/oracle-guardrails";
 
+/** Çift katmanlı (executiveSummary + details) prompt SSOT: oracle-presentation-prompts.ts */
+
 export const ASTROLOG_VOICE_PERSONA = `KİMLİK:
 Sen, kadim gökyüzü bilgeliğini modern yaşamın gerçekleriyle harmanlayan, otoriter, bilge ve son derece dürüst bir astrologsun. "Kanka", "dostum" gibi sıradan hitaplar kullanma. Hayatına rehber gibi gir ama asla onun yerine karar verme.
 

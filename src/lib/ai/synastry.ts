@@ -1,5 +1,9 @@
 import { buildOracleSystemPrompt } from "@/lib/ai/medium-persona";
+import { buildSynastryAnalyzeSystemPrompt } from "@/lib/ai/oracle-presentation-prompts";
+import { parseOracleAnalysisFromJson } from "@/lib/analysis/parse-oracle-response";
+import type { OracleAnalysisPresentation } from "@/lib/analysis/types";
 import type { CosmicAnalysisContext } from "@/lib/astrology/cosmic-context";
+import { STAR_POINTS_COST_PER_ACTION } from "@/lib/constants/cosmic";
 import { SynastryCalculation } from "@/lib/synastry/synastry-calculation";
 import {
   calculateSynastryScore,
@@ -24,15 +28,7 @@ KURALLAR:
 - Markdown kullanma.
 - Yanıt yalnızca geçerli JSON: {"summary": "string"}`);
 
-const ANALYZE_SYSTEM_PROMPT = buildOracleSystemPrompt(`Sen AstroTag Oracle synastry yorumcususun.
-Görevin: ALGORİTMİK SKOR PAKETİ + natal/transit ephemeris verilerini kullanarak ilişki odaklı teknik synastry analizi yazmak.
-Skoru ve aspect facts listesini ASLA değiştirme; yalnızca yorumla.
-Mutlaka ephemeris motorundan gelen o anki gökyüzü konumlarını (transit gezegen dereceleri ve natal açıları) hesaba kat.
-Teknik terimleri günlük hayat diline çevir.
-Türkçe yaz, markdown kullanma, 3-4 paragraf.
-Venüs, Mars, Ay, Güneş ve Satürn-Uranüs eksenlerine teknik atıflar yap — yalnızca verilen JSON içindeki facts ile.
-Yapı: Gökyüzü Görünümü → Gerçekçi Yorum (fırsat veya strateji) → Kozmik Tavsiye.
-Son paragrafta net, uygulanabilir ilişki rehberliği ver; karar verme, rehberlik et.`);
+const ANALYZE_SYSTEM_PROMPT = buildSynastryAnalyzeSystemPrompt();
 
 export interface SynastryScoreResponse {
   score: number;
@@ -42,6 +38,8 @@ export interface SynastryScoreResponse {
 }
 
 export interface SynastryAnalyzeResponse {
+  presentation: OracleAnalysisPresentation;
+  /** @deprecated presentation.details kullanın — arşiv geriye uyumluluk */
   analysis: string;
   cosmicContext?: CosmicAnalysisContext;
   scoreAnalysis?: SynastryScoreAnalysis;
@@ -256,7 +254,7 @@ export async function requestSynastryAnalysis(
   const resolvedScoreAnalysis =
     scoreAnalysis ?? (await computeAlgorithmicSynastryScore(userData));
 
-  const analysis = await callKie([
+  const rawAnalysis = await callKie([
     { role: "system", content: ANALYZE_SYSTEM_PROMPT },
     {
       role: "user",
@@ -267,12 +265,21 @@ ${buildScoreAnalysisPayload(userData, resolvedScoreAnalysis, context.askedAt.sli
 İlişki sorusu:
 "${question.trim()}"
 
-Yukarıdaki algoritmik skor paketi + natal/synastry/transit verilerini harmanlayarak teknik synastry analizi yaz.`,
+Yukarıdaki algoritmik skor paketi + natal/synastry/transit verilerini harmanla.
+executiveSummary mutlaka tam 3 cümle olsun — ilişkide bugün en güçlü gerilim veya fırsat hissedilsin.
+details teknik derinlikte kalsın. JSON çıktı üret.`,
     },
   ]);
 
+  const presentation = parseOracleAnalysisFromJson(rawAnalysis, {
+    cost: STAR_POINTS_COST_PER_ACTION,
+    isPremium: true,
+    fallbackDetails: rawAnalysis,
+  });
+
   return {
-    analysis,
+    presentation,
+    analysis: presentation.details,
     cosmicContext: context,
     scoreAnalysis: resolvedScoreAnalysis,
   };

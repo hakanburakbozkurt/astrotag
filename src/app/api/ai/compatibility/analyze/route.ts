@@ -3,6 +3,7 @@ import {
   requestSynastryAnalysis,
   SYNASTRY_ERROR_MESSAGE,
 } from "@/lib/ai/synastry";
+import { formatPresentationForArchive } from "@/lib/analysis/types";
 import { buildCosmicAnalysisContext } from "@/lib/astrology/cosmic-context";
 import { GeocodeValidationError } from "@/lib/astrology/geocode";
 import { logSynastryToArchive } from "@/lib/cosmic-journal/log-reading";
@@ -40,7 +41,7 @@ export const POST = withNfcApiRoute(
     await logSynastryToArchive({
       userId: access.profileId,
       question: question.trim(),
-      analysis: result.analysis,
+      analysis: formatPresentationForArchive(result.presentation),
       partnerName: partnerName || context.synastry?.partnerName || "Partner",
       compatibilityScore: result.scoreAnalysis?.score ?? compatibilityScore ?? 0,
     });

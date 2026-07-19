@@ -1,5 +1,9 @@
 import "server-only";
 
+/**
+ * AnalysisResults geçişi: buildTarotDualLayerSystemPrompt + medium-kie-presentation
+ * @see src/lib/ai/oracle-presentation-prompts.ts
+ */
 import type { EmphEnrichedPackage } from "@/lib/astrology/emph-processing-engine";
 import { processTarotThroughEmph } from "@/lib/astrology/emph-processing-engine";
 import {

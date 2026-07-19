@@ -1,21 +1,22 @@
 import type { UserData } from "@/types/user";
 import type { NatalChartSummary } from "@/lib/astrology/types";
-import { buildOracleSystemPrompt } from "@/lib/ai/medium-persona";
+import { buildNatalInterpretationSystemPrompt } from "@/lib/ai/oracle-presentation-prompts";
 import { ORACLE_COSMIC_DATA_ERROR } from "@/lib/oracle/oracle-errors";
 import { TarotReadingError } from "@/lib/ai/tarot";
+import { parseOracleAnalysisFromJson } from "@/lib/analysis/parse-oracle-response";
+import type { OracleAnalysisPresentation } from "@/lib/analysis/types";
+import { STAR_POINTS_COST_PER_ACTION } from "@/lib/constants/cosmic";
 
-const ASTROLOGY_SYSTEM_PROMPT = buildOracleSystemPrompt(`Sen AstroTag Oracle natal yorumcususun.
-Kullanıcıya verilen doğum haritası JSON özetini hikayeleştir.
-Yalnızca JSON'daki gezegen yerleşimleri, evler ve aspect listesini kullan.
-Teknik terimleri günlük hayat diline çevir.
-Yapı: Gökyüzü Görünümü → Gerçekçi Yorum (fırsat veya strateji) → Kozmik Tavsiye.
-Maksimum 4-5 kısa paragraf, Türkçe, markdown yok.`);
+const ASTROLOGY_SYSTEM_PROMPT = buildNatalInterpretationSystemPrompt();
 
 const KIE_TAROT_MODEL = process.env.KIE_TAROT_MODEL ?? "gpt-5-2";
 const KIE_CHAT_COMPLETIONS_URL = `https://api.kie.ai/${KIE_TAROT_MODEL}/v1/chat/completions`;
 
 export interface AstrologyInterpretationResponse {
+  /** @deprecated presentation.details kullanın — AnalysisResults geçişi */
   interpretation: string;
+  /** AnalysisResults — Natal modül geçişine hazır */
+  presentation: OracleAnalysisPresentation;
 }
 
 type KieEnvelope = {
@@ -35,7 +36,9 @@ Doğum: ${userData.birthDate} ${userData.birthTime} — ${userData.birthPlace}
 Doğum haritası teknik verileri (JSON — TEK KAYNAK):
 ${JSON.stringify(natalChartSummary, null, 2)}
 
-JSON dışına çıkmadan Türkçe yorum üret. Markdown kullanma. Maksimum 4-5 kısa paragraf yaz.
+JSON dışına çıkmadan Türkçe yorum üret. Markdown kullanma.
+executiveSummary tam 3 cümle Kozmik Mesaj olsun; details derin teknik analiz (4-5 paragraf).
+Yanıt yalnızca geçerli JSON: {"executiveSummary":"...","details":"..."}
 `.trim();
 }
 
@@ -64,7 +67,7 @@ export async function requestAstrologyInterpretation(
       body: JSON.stringify({
         model: KIE_TAROT_MODEL,
         temperature: 0.75,
-        max_tokens: 550,
+        max_tokens: 750,
         messages: [
           { role: "system", content: ASTROLOGY_SYSTEM_PROMPT },
           {
@@ -86,12 +89,21 @@ export async function requestAstrologyInterpretation(
       throw new TarotReadingError(ORACLE_COSMIC_DATA_ERROR);
     }
 
-    const interpretation = extractInterpretation(data);
-    if (!interpretation) {
+    const raw = extractInterpretation(data);
+    if (!raw) {
       throw new TarotReadingError(ORACLE_COSMIC_DATA_ERROR);
     }
 
-    return { interpretation };
+    const presentation = parseOracleAnalysisFromJson(raw, {
+      cost: STAR_POINTS_COST_PER_ACTION,
+      isPremium: true,
+      fallbackDetails: raw,
+    });
+
+    return {
+      presentation,
+      interpretation: presentation.details,
+    };
   } catch (error) {
     if (error instanceof TarotReadingError) {
       throw error;
