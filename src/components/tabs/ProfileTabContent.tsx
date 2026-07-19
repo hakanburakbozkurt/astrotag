@@ -20,8 +20,8 @@ const CosmicJournal = dynamic(
   { loading: () => <SectionSkeleton title="Kozmik Günlüğüm" /> }
 );
 
-const BondPartnerSettingsSection = dynamic(
-  () => import("@/components/profile/BondPartnerSettingsSection"),
+const ProfileInfoSection = dynamic(
+  () => import("@/components/profile/ProfileInfoSection"),
   { loading: () => <SectionSkeleton title="Partner & Astro-Bağ" /> }
 );
 
@@ -115,7 +115,7 @@ export default function ProfileTabContent() {
         <UserInfoSection user={userData} />
 
         <Suspense fallback={<SectionSkeleton title="Partner & Astro-Bağ" />}>
-          <BondPartnerSettingsSection />
+          <ProfileInfoSection />
         </Suspense>
       </div>
 
