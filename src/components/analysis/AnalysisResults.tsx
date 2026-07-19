@@ -8,6 +8,14 @@ import KozmicShareButton, {
   type OracleShareModuleId,
   type ShareableCardModuleContent,
 } from "@/components/analysis/KozmicShareButton";
+import FeedbackButton from "@/components/feedback/FeedbackButton";
+
+export interface AnalysisFeedbackConfig {
+  module: string;
+  referenceId?: string;
+  tier?: string;
+  metadata?: Record<string, unknown>;
+}
 
 export interface AnalysisShareConfig {
   moduleId: OracleShareModuleId;
@@ -29,6 +37,7 @@ interface AnalysisResultsProps {
   question?: string;
   defaultDetailsOpen?: boolean;
   share?: AnalysisShareConfig;
+  feedback?: AnalysisFeedbackConfig;
 }
 
 function AnalysisLoadingState({ label }: { label: string }) {
@@ -58,6 +67,7 @@ export default function AnalysisResults({
   question,
   defaultDetailsOpen = false,
   share,
+  feedback,
 }: AnalysisResultsProps) {
   if (status === "idle") {
     return null;
@@ -116,6 +126,15 @@ export default function AnalysisResults({
             totalStarPoints={totalStarPoints}
             defaultOpen={defaultDetailsOpen}
           />
+
+          {feedback ? (
+            <FeedbackButton
+              module={feedback.module}
+              referenceId={feedback.referenceId}
+              tier={feedback.tier}
+              metadata={feedback.metadata}
+            />
+          ) : null}
         </motion.div>
       ) : null}
     </section>

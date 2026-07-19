@@ -5,9 +5,8 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ShareButton from "@/components/analysis/ShareButton";
-import BadgeEarnedModal from "@/components/badges/BadgeEarnedModal";
+import FeedbackButton from "@/components/feedback/FeedbackButton";
 import { splitLegacyAnalysisText } from "@/lib/analysis/parse-oracle-response";
-import type { GrantedBadgePayload } from "@/lib/badges/badge-definitions";
 import { citiesData } from "@/data/cities.js";
 import {
   runCosmicProfileAnalysis,
@@ -60,7 +59,6 @@ export default function CosmicProfilePanel({ user, onClose }: CosmicProfilePanel
   const [canSave, setCanSave] = useState(false);
   const [savedToJournal, setSavedToJournal] = useState(false);
   const [refundMessage, setRefundMessage] = useState<string | null>(null);
-  const [earnedBadges, setEarnedBadges] = useState<GrantedBadgePayload[]>([]);
 
   const districtOptions = useMemo(() => {
     if (!birthCity) return [];
@@ -120,45 +118,6 @@ export default function CosmicProfilePanel({ user, onClose }: CosmicProfilePanel
       subjectName: result.subjectName,
       birthPlace: result.birthPlace,
     });
-  }
-
-  async function handleFeedback(accurate: boolean) {
-    if (!analysis || feedbackDone) return;
-
-    const result = await submitCosmicProfileFeedback({
-      sessionId: analysis.sessionId,
-      accurate,
-      tier: analysis.tier,
-      subjectName: analysis.subjectName,
-      birthPlace: analysis.birthPlace,
-      readingPreview: analysis.reading,
-    });
-
-    setFeedbackDone(true);
-
-    if (!result.success) {
-      setError(result.error ?? "Geri bildirim kaydedilemedi.");
-      return;
-    }
-
-    if (result.earnedBadges?.length) {
-      setEarnedBadges(result.earnedBadges);
-    }
-
-    if (result.remainingStars !== undefined) {
-      notifyStarPointsUpdated(result.remainingStars);
-    }
-
-    if (result.refundedStars && result.remainingStars !== undefined) {
-      notifyStarPointsUpdated(result.remainingStars);
-      setRefundMessage(`${result.refundedStars} yıldız hesabınıza iade edildi.`);
-      setAnalysis(null);
-      return;
-    }
-
-    if (result.canSave) {
-      setCanSave(true);
-    }
   }
 
   async function handleSaveToJournal() {
@@ -411,25 +370,48 @@ export default function CosmicProfilePanel({ user, onClose }: CosmicProfilePanel
             </div>
 
             {!feedbackDone ? (
-              <div className="rounded-xl border border-white/10 p-4">
-                <p className="text-sm text-white/70">Bu analiz isabetli mi?</p>
-                <div className="mt-3 flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => void handleFeedback(true)}
-                    className="flex-1 rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-2.5 text-sm text-emerald-100 hover:bg-emerald-400/15"
-                  >
-                    Evet
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void handleFeedback(false)}
-                    className="flex-1 rounded-xl border border-red-400/25 bg-red-400/10 px-4 py-2.5 text-sm text-red-100 hover:bg-red-400/15"
-                  >
-                    Hayır
-                  </button>
-                </div>
-              </div>
+              <FeedbackButton
+                module="cosmic-profile"
+                referenceId={analysis.sessionId}
+                tier={analysis.tier}
+                metadata={{
+                  subjectName: analysis.subjectName,
+                  birthPlace: analysis.birthPlace,
+                }}
+                onSubmit={async (accurate) => {
+                  const result = await submitCosmicProfileFeedback({
+                    sessionId: analysis.sessionId,
+                    accurate,
+                    tier: analysis.tier,
+                    subjectName: analysis.subjectName,
+                    birthPlace: analysis.birthPlace,
+                    readingPreview: analysis.reading,
+                  });
+
+                  if (result.success) {
+                    setFeedbackDone(true);
+
+                    if (result.remainingStars !== undefined) {
+                      notifyStarPointsUpdated(result.remainingStars);
+                    }
+
+                    if (result.refundedStars && result.remainingStars !== undefined) {
+                      setRefundMessage(`${result.refundedStars} yıldız hesabınıza iade edildi.`);
+                      setAnalysis(null);
+                    } else if (result.canSave) {
+                      setCanSave(true);
+                    }
+                  }
+
+                  return {
+                    success: result.success,
+                    feedbackCount: result.feedbackCount,
+                    totalStarPoints: result.remainingStars,
+                    earnedBadges: result.earnedBadges,
+                    error: result.error,
+                  };
+                }}
+              />
             ) : null}
 
             {canSave && !savedToJournal ? (
@@ -468,8 +450,6 @@ export default function CosmicProfilePanel({ user, onClose }: CosmicProfilePanel
           </div>
         )}
       </motion.div>
-
-      <BadgeEarnedModal badges={earnedBadges} onClose={() => setEarnedBadges([])} />
     </motion.div>
   );
 }

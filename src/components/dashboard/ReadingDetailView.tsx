@@ -40,7 +40,7 @@ function moduleLabelForType(type: CosmicReadingType): string {
   }
 }
 
-function shareModuleIdForType(type: CosmicReadingType): AnalysisShareConfig["moduleId"] {
+function moduleIdForFeedback(type: CosmicReadingType): string {
   switch (type) {
     case "Synastry":
       return "synastry";
@@ -52,6 +52,10 @@ function shareModuleIdForType(type: CosmicReadingType): AnalysisShareConfig["mod
     default:
       return "tarot";
   }
+}
+
+function shareModuleIdForType(type: CosmicReadingType): AnalysisShareConfig["moduleId"] {
+  return moduleIdForFeedback(type) as AnalysisShareConfig["moduleId"];
 }
 
 function buildArchiveShareConfig(reading: CosmicReadingRecord): AnalysisShareConfig {
@@ -154,6 +158,11 @@ function ReadingDetailContent({ reading }: { reading: CosmicReadingRecord }) {
         moduleLabel={moduleLabelForType(reading.type)}
         question={reading.question}
         share={buildArchiveShareConfig(reading)}
+        feedback={{
+          module: moduleIdForFeedback(reading.type),
+          referenceId: reading.id,
+          metadata: { archived: true, type: reading.type },
+        }}
       />
     </>
   );

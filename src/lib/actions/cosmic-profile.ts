@@ -6,7 +6,7 @@ import {
   runCosmicProfilePipeline,
 } from "@/lib/ai/cosmic-profile-pipeline";
 import { resolveBirthPlace } from "@/lib/astrology/geocode";
-import { trackAnalysisFeedback } from "@/lib/badges/feedback-tracker.server";
+import { submitFeedback } from "@/lib/actions/feedback";
 import type { GrantedBadgePayload } from "@/lib/badges/badge-definitions";
 import {
   getCosmicProfileTier,
@@ -203,28 +203,25 @@ export async function submitCosmicProfileFeedback(input: {
   let feedbackCount = 0;
   let remainingStars: number | undefined;
 
-  try {
-    const tracker = await trackAnalysisFeedback({
-      userId: profileId,
-      module: "cosmic-profile",
-      accurate: input.accurate,
-      tier: input.tier,
-      referenceId: input.sessionId,
-      metadata: {
-        subjectName: input.subjectName,
-        birthPlace: input.birthPlace,
-        readingPreview: input.readingPreview?.slice(0, 240) ?? null,
-      },
-    });
-    earnedBadges = tracker.earnedBadges;
-    feedbackCount = tracker.feedbackCount;
+  const feedbackResult = await submitFeedback({
+    module: "cosmic-profile",
+    accurate: input.accurate,
+    referenceId: input.sessionId,
+    tier: input.tier,
+    metadata: {
+      subjectName: input.subjectName,
+      birthPlace: input.birthPlace,
+      readingPreview: input.readingPreview?.slice(0, 240) ?? null,
+    },
+  });
 
-    if (earnedBadges.length > 0) {
-      remainingStars = await getStarPoints();
-    }
-  } catch (error) {
-    console.error("COSMIC_PROFILE_FEEDBACK_TRACKER_ERROR:", error);
+  if (!feedbackResult.success) {
+    return { success: false, error: feedbackResult.error ?? "Geri bildirim kaydedilemedi." };
   }
+
+  earnedBadges = feedbackResult.earnedBadges ?? [];
+  feedbackCount = feedbackResult.feedbackCount ?? 0;
+  remainingStars = feedbackResult.totalStarPoints;
 
   if (input.accurate) {
     return {

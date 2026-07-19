@@ -42,6 +42,7 @@ export default function TarotPanel({ user, onClose }: TarotPanelProps) {
   const [isCached, setIsCached] = useState(false);
   const [validationHint, setValidationHint] = useState<string | null>(null);
   const ritualTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const feedbackReferenceId = useRef<string | null>(null);
   const {
     totalStarPoints,
     detailsUnlocked,
@@ -177,6 +178,7 @@ export default function TarotPanel({ user, onClose }: TarotPanelProps) {
 
       setIsCached(result.cached);
       setPresentation(result.presentation);
+      feedbackReferenceId.current = crypto.randomUUID();
       setAnalysisStatus("ready");
     } catch {
       setAnalysisStatus("error");
@@ -200,6 +202,7 @@ export default function TarotPanel({ user, onClose }: TarotPanelProps) {
     setRitualFocusIndex(0);
     setRitualComplete(false);
     setPresentation(null);
+    feedbackReferenceId.current = null;
     setAnalysisStatus("idle");
     setAnalysisError(null);
     setIsCached(false);
@@ -339,6 +342,11 @@ export default function TarotPanel({ user, onClose }: TarotPanelProps) {
                     question: question.trim() || undefined,
                     cards: tarotShareCards,
                   },
+                }}
+                feedback={{
+                  module: "tarot",
+                  referenceId: feedbackReferenceId.current ?? undefined,
+                  metadata: { question: question.trim() || undefined },
                 }}
               />
             </div>

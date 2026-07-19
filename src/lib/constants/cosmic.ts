@@ -14,6 +14,9 @@ export const TAROT_SPREAD_SIZE = 3;
 export const COSMIC_PROFILE_REFUND_STARS = 20;
 export const STAR_PACKAGES_PATH = "/dashboard/star-packages";
 
+/** Doğru geri bildirim başına bonus yıldız */
+export const FEEDBACK_ACCURATE_STAR_REWARD = 1;
+
 /** @deprecated Use STARTING_STAR_POINTS */
 export const STARTING_ENERGY = STARTING_STAR_POINTS;
 

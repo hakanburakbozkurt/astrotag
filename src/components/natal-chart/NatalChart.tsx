@@ -50,6 +50,16 @@ export default function NatalChart({ userData, viewMode }: NatalChartProps) {
     import("@/lib/astrology/types").PlanetId | null
   >(null);
   const tooltipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const feedbackReferenceId = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (interpretationStatus === "ready" && presentation && !feedbackReferenceId.current) {
+      feedbackReferenceId.current = crypto.randomUUID();
+    }
+    if (interpretationStatus === "idle") {
+      feedbackReferenceId.current = null;
+    }
+  }, [interpretationStatus, presentation]);
 
   const radiusOffsets = useMemo(
     () => (data ? resolvePlanetRadiusOffsets(data.planets) : new Map()),
@@ -226,6 +236,11 @@ export default function NatalChart({ userData, viewMode }: NatalChartProps) {
               moduleId: "natal",
               moduleLabel: "Natal Harita",
               content: { subtitle: userData.name },
+            }}
+            feedback={{
+              module: "natal",
+              referenceId: feedbackReferenceId.current ?? undefined,
+              metadata: { subjectName: userData.name },
             }}
           />
         )}

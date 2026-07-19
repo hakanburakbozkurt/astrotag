@@ -9,6 +9,7 @@ import {
   type BadgeProgressItem,
   type UserBadgeProgress,
 } from "@/lib/actions/badges";
+import { FEEDBACK_UPDATED_EVENT } from "@/lib/energy-events";
 
 function BadgeIcon({ icon, className }: { icon: BadgeIconId; className?: string }) {
   switch (icon) {
@@ -154,6 +155,17 @@ export default function AchievementsSection() {
 
   useEffect(() => {
     void loadProgress();
+  }, [loadProgress]);
+
+  useEffect(() => {
+    const handleFeedbackUpdated = () => {
+      void loadProgress();
+    };
+
+    window.addEventListener(FEEDBACK_UPDATED_EVENT, handleFeedbackUpdated);
+    return () => {
+      window.removeEventListener(FEEDBACK_UPDATED_EVENT, handleFeedbackUpdated);
+    };
   }, [loadProgress]);
 
   return (

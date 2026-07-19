@@ -9,7 +9,8 @@ export type StarsLedgerTransactionType =
   | "COSMIC_PROFILE_DEPTH"
   | "COSMIC_PROFILE_MASTER"
   | "REFUND_ANALYSIS"
-  | "BADGE_REWARD";
+  | "BADGE_REWARD"
+  | "FEEDBACK_REWARD";
 
 /** @param input.profileId — profiles.id (auth.uid() değil) */
 export async function logStarsLedgerEntry(input: {

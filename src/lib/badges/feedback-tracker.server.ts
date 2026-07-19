@@ -3,7 +3,7 @@ import "server-only";
 import { grantEligibleBadges } from "@/lib/badges/badge-engine.server";
 import type { GrantedBadgePayload } from "@/lib/badges/badge-definitions";
 import { logAnalysisFeedback } from "@/lib/cosmic-profile/feedback-log.server";
-import { createSupabaseServiceClient } from "@/lib/supabase/service";
+import { createServiceRoleClient } from "@/lib/supabase/service";
 
 const PROFILES_TABLE = "profiles";
 
@@ -30,9 +30,9 @@ export async function trackAnalysisFeedback(input: {
     metadata: input.metadata,
   });
 
-  const supabase = createSupabaseServiceClient();
+  const supabaseAdmin = createServiceRoleClient();
 
-  const { data: profile, error: readError } = await supabase
+  const { data: profile, error: readError } = await supabaseAdmin
     .from(PROFILES_TABLE)
     .select("feedback_count")
     .eq("id", input.userId)
@@ -44,7 +44,7 @@ export async function trackAnalysisFeedback(input: {
 
   const nextCount = (profile.feedback_count ?? 0) + 1;
 
-  const { error: updateError } = await supabase
+  const { error: updateError } = await supabaseAdmin
     .from(PROFILES_TABLE)
     .update({ feedback_count: nextCount })
     .eq("id", input.userId);

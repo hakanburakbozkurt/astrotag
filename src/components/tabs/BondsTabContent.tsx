@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { Suspense } from "react";
@@ -61,6 +61,7 @@ export default function BondsTabContent() {
   );
   const [analysisStatus, setAnalysisStatus] = useState<AnalysisUiStatus>("idle");
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const feedbackReferenceId = useRef<string | null>(null);
 
   const dateKey = getDailyCompatibilityDateKey();
   const partner = userData ? partnerFormFromUserData(userData) : null;
@@ -88,6 +89,7 @@ export default function BondsTabContent() {
         partnerName: partner?.partnerName,
       });
       setPresentation(result.presentation);
+      feedbackReferenceId.current = crypto.randomUUID();
       setAnalysisStatus("ready");
     } catch (err) {
       setAnalysisStatus("error");
@@ -235,6 +237,14 @@ export default function BondsTabContent() {
                 scoreLabel: "Uyum Skoru",
                 subtitle: partner?.partnerName,
                 question: selectedQuestion || undefined,
+              },
+            }}
+            feedback={{
+              module: "synastry",
+              referenceId: feedbackReferenceId.current ?? undefined,
+              metadata: {
+                question: selectedQuestion || undefined,
+                partnerName: partner?.partnerName,
               },
             }}
           />

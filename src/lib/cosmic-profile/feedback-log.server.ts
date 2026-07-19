@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createSupabaseServiceClient } from "@/lib/supabase/service";
+import { createServiceRoleClient } from "@/lib/supabase/service";
 
 const ANALYSIS_FEEDBACK_TABLE = "analysis_feedback_logs";
 
@@ -22,8 +22,8 @@ export async function logAnalysisFeedback(input: {
   }
 
   try {
-    const supabase = createSupabaseServiceClient();
-    const { error } = await supabase.from(ANALYSIS_FEEDBACK_TABLE).insert({
+    const supabaseAdmin = createServiceRoleClient();
+    const { error } = await supabaseAdmin.from(ANALYSIS_FEEDBACK_TABLE).insert({
       user_id: input.userId,
       module: input.module ?? "analysis",
       feedback: input.accurate ? "Doğru" : "Hatalı_AI_Çıktısı",
