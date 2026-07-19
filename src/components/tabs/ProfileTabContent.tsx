@@ -119,12 +119,12 @@ export default function ProfileTabContent() {
 
         <UserInfoSection user={userData} />
 
-        <Suspense fallback={<SectionSkeleton title="Partner & Astro-Bağ" />}>
-          <ProfileInfoSection />
-        </Suspense>
-
         <Suspense fallback={<SectionSkeleton title="Rozetlerim" />}>
           <AchievementsSection />
+        </Suspense>
+
+        <Suspense fallback={<SectionSkeleton title="Partner & Astro-Bağ" />}>
+          <ProfileInfoSection />
         </Suspense>
       </div>
 
