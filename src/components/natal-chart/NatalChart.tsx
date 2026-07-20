@@ -8,6 +8,7 @@ import { useNatalChart } from "@/hooks/useNatalChart";
 import { useNatalInterpretation } from "@/hooks/useNatalInterpretation";
 import { usePaidAnalysis } from "@/hooks/usePaidAnalysis";
 import AnalysisResults from "@/components/analysis/AnalysisResults";
+import CosmicAccuracyBadge from "@/components/social-proof/CosmicAccuracyBadge";
 import { resolvePlanetRadiusOffsets } from "@/lib/astrology/planet-offset";
 import {
   ASPECT_LEGEND,
@@ -212,6 +213,9 @@ export default function NatalChart({ userData, viewMode }: NatalChartProps) {
             <p className="mb-3 text-[10px] uppercase tracking-[0.25em] text-amber-400/55">
               Açıların Kozmik Mesajı
             </p>
+            <div className="mb-3 flex justify-center">
+              <CosmicAccuracyBadge variant="inline" />
+            </div>
             <button
               type="button"
               onClick={handleRequestInterpretation}

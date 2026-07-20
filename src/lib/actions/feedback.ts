@@ -2,8 +2,14 @@
 
 import { trackAnalysisFeedback } from "@/lib/badges/feedback-tracker.server";
 import type { GrantedBadgePayload } from "@/lib/badges/badge-definitions";
+import {
+  getGlobalFeedbackStats as fetchGlobalFeedbackStats,
+  type GlobalFeedbackStats,
+} from "@/lib/feedback/global-feedback-stats.server";
 import { getNfcSessionProfileId } from "@/lib/nfc/session.server";
 import { getStarPoints } from "@/lib/supabase-actions";
+
+export type { GlobalFeedbackStats };
 
 export type SubmitFeedbackResult = {
   success: boolean;
@@ -69,6 +75,20 @@ export async function submitFeedback(input: {
         error instanceof Error
           ? error.message
           : "Geri bildirim kaydedilemedi.",
+    };
+  }
+}
+
+/** Sosyal kanıt — toplam yorum, ortalama puan, isabet oranı */
+export async function getGlobalFeedbackStats(): Promise<GlobalFeedbackStats> {
+  try {
+    return await fetchGlobalFeedbackStats();
+  } catch (error) {
+    console.error("GET_GLOBAL_FEEDBACK_STATS_ERROR:", error);
+    return {
+      total_reviews: 0,
+      average_rating: 0,
+      accuracy_percentage: 0,
     };
   }
 }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { Suspense } from "react";
 import AnalysisResults from "@/components/analysis/AnalysisResults";
+import CosmicAccuracyBadge from "@/components/social-proof/CosmicAccuracyBadge";
 import TabPageScaffold from "@/components/navigation/TabPageScaffold";
 import TabPageSkeleton, { SectionSkeleton } from "@/components/navigation/TabPageSkeleton";
 import { compactTapButtonClass } from "@/components/navigation/compact-ui";
@@ -174,6 +175,10 @@ export default function BondsTabContent() {
               }
             />
           </Suspense>
+
+          <div className="flex justify-center">
+            <CosmicAccuracyBadge variant="inline" />
+          </div>
 
           <section className="rounded-[28px] border border-white/10 bg-[#0f172a]/80 p-5 backdrop-blur-2xl sm:p-6">
             <p className="text-[10px] uppercase tracking-[0.25em] text-amber-400/70">

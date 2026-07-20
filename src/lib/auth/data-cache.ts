@@ -15,6 +15,7 @@ export const SWR_KEYS = {
   profile: "user/profile",
   starPoints: "user/star-points",
   badgeProgress: "user/badge-progress",
+  globalFeedbackStats: "social/global-feedback-stats",
   synastryScore: (profileId: string, dateKey: string, partnerFingerprint: string) =>
     ["synastry/score", profileId, dateKey, partnerFingerprint] as const,
   nexusDaily: (profileId: string, dateKey: string) =>

@@ -16,6 +16,7 @@ import {
 import TarotFlipCard, { FLIP_DURATION } from "@/components/tarot/TarotFlipCard";
 import TarotDeck from "@/components/tarot/TarotDeck";
 import AnalysisResults from "@/components/analysis/AnalysisResults";
+import CosmicAccuracyBadge from "@/components/social-proof/CosmicAccuracyBadge";
 import { usePaidAnalysis } from "@/hooks/usePaidAnalysis";
 import type { AnalysisUiStatus, OracleAnalysisPresentation } from "@/lib/analysis/types";
 import { TAROT_SPREAD_POSITIONS } from "@/lib/tarot/share-content";
@@ -371,6 +372,10 @@ export default function TarotPanel({ user, onClose }: TarotPanelProps) {
                   {validationHint}
                 </motion.p>
               ) : null}
+
+              <div className="flex justify-center">
+                <CosmicAccuracyBadge variant="inline" />
+              </div>
 
               <button
                 type="button"
