@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { Star } from "lucide-react";
 import type { GlobalFeedbackStats } from "@/lib/actions/feedback";
+import { EMPTY_GLOBAL_FEEDBACK_STATS } from "@/lib/feedback/global-feedback-stats.shared";
 import { useGlobalFeedbackStats } from "@/hooks/useGlobalFeedbackStats";
 
 export type CosmicAccuracyBadgeProps = {
@@ -69,18 +70,10 @@ export default function CosmicAccuracyBadge({
   className = "",
   stats: statsProp,
 }: CosmicAccuracyBadgeProps) {
-  const { data, isPending } = useGlobalFeedbackStats();
-  const stats = statsProp ?? data;
+  const { data } = useGlobalFeedbackStats();
+  const stats = statsProp ?? data ?? EMPTY_GLOBAL_FEEDBACK_STATS;
 
-  if (!stats || stats.total_reviews <= 0) {
-    if (isPending && !statsProp) {
-      return (
-        <div
-          className={`h-8 animate-pulse rounded-full bg-amber-400/10 ${className}`}
-          aria-hidden
-        />
-      );
-    }
+  if (stats.total_reviews <= 0) {
     return null;
   }
 

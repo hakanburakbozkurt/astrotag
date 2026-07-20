@@ -6,6 +6,7 @@ import {
   getGlobalFeedbackStats as fetchGlobalFeedbackStats,
   type GlobalFeedbackStats,
 } from "@/lib/feedback/global-feedback-stats.server";
+import { EMPTY_GLOBAL_FEEDBACK_STATS } from "@/lib/feedback/global-feedback-stats.shared";
 import { getNfcSessionProfileId } from "@/lib/nfc/session.server";
 import { getStarPoints } from "@/lib/supabase-actions";
 
@@ -79,16 +80,12 @@ export async function submitFeedback(input: {
   }
 }
 
-/** Sosyal kanıt — toplam yorum, ortalama puan, isabet oranı */
+/** Sosyal kanıt — toplam yorum, ortalama puan, isabet oranı (hata → boş veri, redirect yok) */
 export async function getGlobalFeedbackStats(): Promise<GlobalFeedbackStats> {
   try {
     return await fetchGlobalFeedbackStats();
   } catch (error) {
-    console.error("GET_GLOBAL_FEEDBACK_STATS_ERROR:", error);
-    return {
-      total_reviews: 0,
-      average_rating: 0,
-      accuracy_percentage: 0,
-    };
+    console.error("[getGlobalFeedbackStats/action]", error);
+    return EMPTY_GLOBAL_FEEDBACK_STATS;
   }
 }
