@@ -19,6 +19,7 @@ import {
   sanitizeRequestHeaders,
 } from "@/lib/nfc/error-logger";
 import { runSecurityGate } from "@/lib/nfc/middleware-security";
+import { extractRootUniqueId } from "@/lib/nfc/card-paths";
 
 function getServiceClient(): SupabaseClient | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -101,6 +102,16 @@ export async function handleProxyRequest(
     });
   }
 
+  const rootNfcId = extractRootUniqueId(pathname);
+  if (rootNfcId) {
+    console.log("[proxy] NFC kök kart rotası alındı:", {
+      pathname,
+      nfc_id: rootNfcId,
+      search: request.nextUrl.search,
+      sessionCookie: Boolean(request.cookies.get(NFC_SESSION_COOKIE)?.value),
+    });
+  }
+
   if (isAuthCallbackPath(pathname)) {
     if (request.method !== "GET") {
       return new NextResponse("Method Not Allowed", { status: 405 });
@@ -123,9 +134,10 @@ export async function handleProxyRequest(
         gate.reason === "unauthorized_route" ||
         (gate.reason === "session_missing" && !pairingRedirect && !authFormRedirect);
 
-      if (pathname.startsWith("/c/") || pathname === "/c") {
-        console.warn("[proxy] /c/ isteği gate tarafından reddedildi:", {
+      if (pathname.startsWith("/c/") || pathname === "/c" || rootNfcId) {
+        console.warn("[proxy] NFC isteği gate tarafından reddedildi:", {
           pathname,
+          nfc_id: rootNfcId,
           reason: gate.reason,
           redirectTo: gate.redirectTo,
           clearSession,
@@ -140,9 +152,11 @@ export async function handleProxyRequest(
     const response = NextResponse.next();
     response.headers.set("x-astrotag-gate", "allow");
 
-    if (pathname.startsWith("/c/")) {
-      console.log("[proxy] /c/ isteği gate geçti, sayfa render edilecek:", pathname);
-      response.headers.set("Link", `<${pathname}>; rel=prefetch`);
+    if (pathname.startsWith("/c/") || rootNfcId) {
+      console.log("[proxy] NFC isteği gate geçti:", {
+        pathname,
+        nfc_id: rootNfcId,
+      });
     }
 
     return response;

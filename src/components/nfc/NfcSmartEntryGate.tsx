@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import { useSearchParams } from "next/navigation";
 import { confirmSmartNfcEntryAction } from "@/lib/actions/nfc-smart-entry";
 import { clientRedirect } from "@/lib/auth/client-redirect.client";
 import {
@@ -18,21 +19,41 @@ export default function NfcSmartEntryGate({
   children,
 }: NfcSmartEntryGateProps) {
   const [allowPinScreen, setAllowPinScreen] = useState(false);
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     let cancelled = false;
 
     void (async () => {
-      if (!isClientAuthPersistenceValid()) {
+      const persistenceValid = isClientAuthPersistenceValid();
+      const clientLastLoginMs = getClientLastLoginTimestamp();
+
+      console.log("[NFC_SMART_ENTRY/client]", {
+        uniqueId,
+        persistenceValid,
+        clientLastLoginMs,
+        module: searchParams.get("module"),
+        to: searchParams.get("to"),
+      });
+
+      if (!persistenceValid) {
+        console.log("[NFC_SMART_ENTRY/client] persistence geçersiz — PIN ekranı");
         if (!cancelled) {
           setAllowPinScreen(true);
         }
         return;
       }
 
+      const query: Record<string, string> = {};
+      const module = searchParams.get("module");
+      const to = searchParams.get("to");
+      if (module) query.module = module;
+      if (to) query.to = to;
+
       const result = await confirmSmartNfcEntryAction(
         uniqueId,
-        getClientLastLoginTimestamp()
+        clientLastLoginMs,
+        Object.keys(query).length > 0 ? query : undefined
       );
 
       if (cancelled) {
@@ -40,17 +61,19 @@ export default function NfcSmartEntryGate({
       }
 
       if (result?.redirectTo) {
+        console.log("[NFC_SMART_ENTRY/client] redirect →", result.redirectTo);
         clientRedirect(result.redirectTo);
         return;
       }
 
+      console.log("[NFC_SMART_ENTRY/client] smart entry başarısız — PIN ekranı");
       setAllowPinScreen(true);
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [uniqueId]);
+  }, [uniqueId, searchParams]);
 
   if (!allowPinScreen) {
     return (

@@ -9,13 +9,21 @@ import { getNfcCardForAuthEntry } from "@/lib/nfc/session.server";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 
 type PageProps = {
-  searchParams: Promise<{ uid?: string; idle?: string }>;
+  searchParams: Promise<{ uid?: string; idle?: string; module?: string; to?: string }>;
 };
 
 export default async function NfcLoginPage({ searchParams }: PageProps) {
-  const { uid: rawUid, idle } = await searchParams;
+  const { uid: rawUid, idle, module, to } = await searchParams;
   const uniqueId = rawUid ? normalizeNfcUniqueId(rawUid) : "";
   const idleExpired = idle === "1";
+
+  console.log("[NFC_ENTRY /nfc-login]", {
+    rawUid,
+    uniqueId,
+    idleExpired,
+    module,
+    to,
+  });
 
   if (!uniqueId) {
     return (
@@ -33,8 +41,11 @@ export default async function NfcLoginPage({ searchParams }: PageProps) {
     );
   }
 
-  const smartRedirect = await resolveSmartNfcEntryRedirect(uniqueId);
+  const smartRedirect = await resolveSmartNfcEntryRedirect(uniqueId, {
+    searchParams: { module, to },
+  });
   if (smartRedirect) {
+    console.log("[NFC_ENTRY /nfc-login] smart redirect →", smartRedirect);
     redirect(smartRedirect);
   }
 

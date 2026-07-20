@@ -58,6 +58,18 @@ export async function clearPostAuthReturnToCookie(): Promise<void> {
   cookieStore.set(POST_AUTH_RETURN_TO_COOKIE, "", getStrictClearCookieOptions());
 }
 
+/** Smart entry — tüketmeden okur (PIN akışı consume eder) */
+export async function readPostAuthReturnToCookie(): Promise<string | null> {
+  const cookieStore = await cookies();
+  const path = cookieStore.get(POST_AUTH_RETURN_TO_COOKIE)?.value?.trim() ?? "";
+
+  if (!path || !isSafePostAuthReturnPath(path)) {
+    return null;
+  }
+
+  return path;
+}
+
 /** PIN sonrası tek kural: kayıtlı hedef veya dashboard. Profil durumuna göre zorlama yok. */
 export async function resolvePostPinLoginRedirect(): Promise<string> {
   const returnTo = await consumePostAuthReturnToCookie();

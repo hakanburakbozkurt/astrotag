@@ -10,17 +10,32 @@ import { redirect } from "next/navigation";
 
 type PageProps = {
   params: Promise<{ unique_id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 /** astrotag.app/{unique_id} — kart doğrulama girişi */
-export default async function RootCardEntryPage({ params }: PageProps) {
+export default async function RootCardEntryPage({ params, searchParams }: PageProps) {
   const { unique_id: rawId } = await params;
+  const query = await searchParams;
   const uniqueId = normalizeNfcUniqueId(rawId);
 
-  const smartRedirect = await resolveSmartNfcEntryRedirect(uniqueId);
+  console.log("[NFC_ENTRY /[unique_id]]", {
+    rawId,
+    uniqueId,
+    search: query,
+  });
+
+  const smartRedirect = await resolveSmartNfcEntryRedirect(uniqueId, {
+    searchParams: query,
+  });
   if (smartRedirect) {
+    console.log("[NFC_ENTRY /[unique_id]] smart redirect →", smartRedirect);
     redirect(smartRedirect);
   }
+
+  console.log("[NFC_ENTRY /[unique_id]] smart entry atlandı — PIN ekranı", {
+    uniqueId,
+  });
 
   try {
     const admin = createServiceRoleClient();
