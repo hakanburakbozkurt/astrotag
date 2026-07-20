@@ -7,6 +7,7 @@ import ConfettiBurst from "@/components/badges/ConfettiBurst";
 
 type BadgeEarnedModalProps = {
   badges: GrantedBadgePayload[];
+  variant?: "badge" | "milestone";
   onClose: () => void;
 };
 
@@ -22,7 +23,11 @@ function BadgeIcon({ icon, className }: { icon: GrantedBadgePayload["icon"]; cla
   }
 }
 
-export default function BadgeEarnedModal({ badges, onClose }: BadgeEarnedModalProps) {
+export default function BadgeEarnedModal({
+  badges,
+  variant = "badge",
+  onClose,
+}: BadgeEarnedModalProps) {
   const badge = badges[0];
 
   return (
@@ -71,11 +76,14 @@ export default function BadgeEarnedModal({ badges, onClose }: BadgeEarnedModalPr
               </motion.div>
 
               <p className="mt-5 text-[10px] uppercase tracking-[0.32em] text-amber-400/75">
-                Yeni Rozet Kazandın!
+                {variant === "milestone" ? "Seviye Atladın!" : "Yeni Rozet Kazandın!"}
               </p>
               <h2 id="badge-earned-title" className="mt-2 text-2xl font-bold text-white">
                 {badge.name}
               </h2>
+              <p className="mt-1 text-xs uppercase tracking-[0.2em] text-amber-300/60">
+                Rozet Kazandın
+              </p>
               <p className="mt-3 text-sm leading-relaxed text-white/65">{badge.description}</p>
 
               <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-amber-400/25 bg-amber-400/10 px-4 py-2 text-sm text-amber-100">

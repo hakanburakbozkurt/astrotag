@@ -9,35 +9,44 @@ export interface BadgeDefinition {
   icon: BadgeIconId;
 }
 
+/** Milestone rozetleri — yalnızca tam eşikte (5, 10, 20) ve rating >= MIN_MILESTONE_RATING */
 export const BADGE_DEFINITIONS: BadgeDefinition[] = [
   {
-    id: "observer",
-    name: "Gözlemci",
-    description: "5 analiz geri bildirimi — gökyüzünü dinlemeye başladın.",
+    id: "observer_apprentice",
+    name: "Gözlemci Çırak",
+    description: "5 kaliteli geri bildirim — gökyüzünü dinlemeye başladın.",
     threshold: 5,
-    starReward: 3,
+    starReward: 2,
     icon: "eye",
   },
   {
-    id: "guide",
-    name: "Rehber",
-    description: "20 geri bildirim — kozmik yolculuğunda rehber oldun.",
+    id: "cosmic_oracle",
+    name: "Kozmik Kahin",
+    description: "10 geri bildirim — kozmik desenleri okumaya başladın.",
+    threshold: 10,
+    starReward: 5,
+    icon: "sparkles",
+  },
+  {
+    id: "star_architect",
+    name: "Yıldız Mimarı",
+    description: "20 geri bildirim — yıldızların dilini şekillendiriyorsun.",
     threshold: 20,
     starReward: 8,
     icon: "compass",
   },
-  {
-    id: "sage",
-    name: "Bilge",
-    description: "50 geri bildirim — yıldızların dilini bilen Bilge.",
-    threshold: 50,
-    starReward: 15,
-    icon: "sparkles",
-  },
 ];
+
+export const MILESTONE_THRESHOLDS = [5, 10, 20] as const;
 
 export function getBadgeDefinition(badgeId: string): BadgeDefinition | undefined {
   return BADGE_DEFINITIONS.find((badge) => badge.id === badgeId);
+}
+
+export function getMilestoneBadgeForCount(
+  feedbackCount: number
+): BadgeDefinition | undefined {
+  return BADGE_DEFINITIONS.find((badge) => badge.threshold === feedbackCount);
 }
 
 export function getNextBadgeDefinition(

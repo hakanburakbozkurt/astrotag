@@ -11,7 +11,7 @@ import {
   type UserBadgeProgress,
 } from "@/lib/actions/badges";
 import { SWR_KEYS } from "@/lib/auth/data-cache";
-import { FEEDBACK_UPDATED_EVENT } from "@/lib/energy-events";
+import { FEEDBACK_UPDATED_EVENT, BADGE_AWARDED_EVENT } from "@/lib/energy-events";
 import { useQuery } from "@/hooks/useQuery";
 
 function BadgeIcon({ icon, className }: { icon: BadgeIconId; className?: string }) {
@@ -48,13 +48,13 @@ function BadgeProgressBar({
         />
       </div>
       <p className="mt-2 text-center text-[10px] leading-snug text-white/45">
-        {badge.earned ? (
-          <span className="text-emerald-300/80">Kazanıldı · +{badge.starReward} yıldız</span>
-        ) : (
-          <>
-            <span className="text-amber-200/75">{badge.remaining} analiz</span> kaldı
-          </>
-        )}
+            {badge.earned ? (
+              <span className="text-emerald-300/80">Kazanıldı · +{badge.starReward} yıldız</span>
+            ) : (
+              <>
+                <span className="text-amber-200/75">{badge.remaining} geri bildirim</span> kaldı
+              </>
+            )}
       </p>
     </div>
   );
@@ -151,13 +151,15 @@ export default function AchievementsSection() {
   } = useQuery<UserBadgeProgress | null>(SWR_KEYS.badgeProgress, getUserBadgeProgress);
 
   useEffect(() => {
-    const handleFeedbackUpdated = () => {
+    const refresh = () => {
       void mutate();
     };
 
-    window.addEventListener(FEEDBACK_UPDATED_EVENT, handleFeedbackUpdated);
+    window.addEventListener(FEEDBACK_UPDATED_EVENT, refresh);
+    window.addEventListener(BADGE_AWARDED_EVENT, refresh);
     return () => {
-      window.removeEventListener(FEEDBACK_UPDATED_EVENT, handleFeedbackUpdated);
+      window.removeEventListener(FEEDBACK_UPDATED_EVENT, refresh);
+      window.removeEventListener(BADGE_AWARDED_EVENT, refresh);
     };
   }, [mutate]);
 
@@ -173,7 +175,7 @@ export default function AchievementsSection() {
             Rozetlerim
           </p>
           <p className="mt-2 text-xs leading-relaxed text-white/45">
-            Geri bildirimlerinle kozmik rozetleri aç, hediye yıldızlar kazan.
+            5, 10 ve 20. geri bildirimlerde rozet aç — milestone ödülleri yalnızca 4+ puanla.
           </p>
         </div>
         <Award className="h-5 w-5 shrink-0 text-amber-400/60" aria-hidden />
@@ -192,12 +194,12 @@ export default function AchievementsSection() {
             </p>
             {progress.nextBadge ? (
               <p className="mt-1.5 text-xs text-amber-200/75">
-                <span className="font-medium">{progress.nextBadge.name}</span> rozetine{" "}
-                {progress.nextBadge.remaining} analiz kaldı!
+                {progress.nextBadge.name} rozetine{" "}
+                {progress.nextBadge.remaining} geri bildirim kaldı!
               </p>
             ) : (
               <p className="mt-1.5 text-xs text-emerald-300/75">
-                Tüm rozetler açıldı — Bilge seviyesindesin.
+                Tüm rozetler açıldı — Yıldız Mimarı seviyesindesin.
               </p>
             )}
           </div>

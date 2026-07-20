@@ -14,8 +14,11 @@ export const TAROT_SPREAD_SIZE = 3;
 export const COSMIC_PROFILE_REFUND_STARS = 20;
 export const STAR_PACKAGES_PATH = "/dashboard/star-packages";
 
-/** Doğru geri bildirim başına bonus yıldız */
-export const FEEDBACK_ACCURATE_STAR_REWARD = 1;
+/** Milestone rozet için minimum kullanıcı puanı (1–5) */
+export const MIN_MILESTONE_RATING = 4;
+
+/** @deprecated Milestone dışı feedback ödülü kaldırıldı */
+export const FEEDBACK_ACCURATE_STAR_REWARD = 0;
 
 /** @deprecated Use STARTING_STAR_POINTS */
 export const STARTING_ENERGY = STARTING_STAR_POINTS;

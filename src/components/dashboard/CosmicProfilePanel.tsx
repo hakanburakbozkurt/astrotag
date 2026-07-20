@@ -378,10 +378,10 @@ export default function CosmicProfilePanel({ user, onClose }: CosmicProfilePanel
                   subjectName: analysis.subjectName,
                   birthPlace: analysis.birthPlace,
                 }}
-                onSubmit={async (accurate) => {
+                onSubmit={async (rating) => {
                   const result = await submitCosmicProfileFeedback({
                     sessionId: analysis.sessionId,
-                    accurate,
+                    rating,
                     tier: analysis.tier,
                     subjectName: analysis.subjectName,
                     birthPlace: analysis.birthPlace,
@@ -408,6 +408,11 @@ export default function CosmicProfilePanel({ user, onClose }: CosmicProfilePanel
                     feedbackCount: result.feedbackCount,
                     totalStarPoints: result.remainingStars,
                     earnedBadges: result.earnedBadges,
+                    milestoneReached: (result.earnedBadges?.length ?? 0) > 0,
+                    starsEarned: result.earnedBadges?.reduce(
+                      (sum, badge) => sum + badge.starReward,
+                      0
+                    ),
                     error: result.error,
                   };
                 }}

@@ -1,7 +1,6 @@
 "use server";
 
 import { trackAnalysisFeedback } from "@/lib/badges/feedback-tracker.server";
-import { creditFeedbackAccurateReward } from "@/lib/badges/feedback-reward.server";
 import type { GrantedBadgePayload } from "@/lib/badges/badge-definitions";
 import { getNfcSessionProfileId } from "@/lib/nfc/session.server";
 import { getStarPoints } from "@/lib/supabase-actions";
@@ -9,16 +8,18 @@ import { getStarPoints } from "@/lib/supabase-actions";
 export type SubmitFeedbackResult = {
   success: boolean;
   feedbackCount?: number;
+  rating?: number;
   starsEarned?: number;
   totalStarPoints?: number;
   earnedBadges?: GrantedBadgePayload[];
+  milestoneReached?: boolean;
   error?: string;
 };
 
-/** Analiz geri bildirimi — log + sayaç + (doğruysa) yıldız ödülü + rozet kontrolü */
+/** Analiz geri bildirimi — rating (1–5) + sayaç + milestone ödülü */
 export async function submitFeedback(input: {
   module: string;
-  accurate: boolean;
+  rating: number;
   referenceId?: string;
   tier?: string;
   metadata?: Record<string, unknown>;
@@ -28,39 +29,37 @@ export async function submitFeedback(input: {
     return { success: false, error: "Oturum bulunamadı." };
   }
 
+  const rating = Math.min(5, Math.max(1, Math.round(input.rating)));
   const moduleName = input.module.trim() || "analysis";
 
   try {
     const tracker = await trackAnalysisFeedback({
       userId: profileId,
       module: moduleName,
-      accurate: input.accurate,
+      rating,
       tier: input.tier,
       referenceId: input.referenceId,
       metadata: input.metadata,
     });
 
-    let starsEarned = 0;
-    let totalStarPoints: number | undefined;
+    const starsEarned = tracker.earnedBadges.reduce(
+      (sum, badge) => sum + badge.starReward,
+      0
+    );
 
-    if (input.accurate) {
-      const reward = await creditFeedbackAccurateReward({
-        profileId,
-        referenceId: input.referenceId,
-        module: moduleName,
-      });
-      starsEarned = reward.starsEarned;
-      totalStarPoints = reward.totalStarPoints;
-    } else if (tracker.earnedBadges.length > 0) {
+    let totalStarPoints = tracker.totalStarPoints;
+    if (totalStarPoints === undefined && tracker.earnedBadges.length > 0) {
       totalStarPoints = await getStarPoints();
     }
 
     return {
       success: true,
       feedbackCount: tracker.feedbackCount,
-      starsEarned,
+      rating,
+      starsEarned: starsEarned > 0 ? starsEarned : undefined,
       totalStarPoints,
       earnedBadges: tracker.earnedBadges,
+      milestoneReached: tracker.earnedBadges.length > 0,
     };
   } catch (error) {
     console.error("SUBMIT_FEEDBACK_ERROR:", error);

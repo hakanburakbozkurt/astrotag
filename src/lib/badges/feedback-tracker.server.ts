@@ -1,8 +1,9 @@
 import "server-only";
 
-import { grantEligibleBadges } from "@/lib/badges/badge-engine.server";
 import type { GrantedBadgePayload } from "@/lib/badges/badge-definitions";
+import { processFeedbackMilestones } from "@/lib/badges/reward-system.server";
 import { logAnalysisFeedback } from "@/lib/cosmic-profile/feedback-log.server";
+import { MIN_MILESTONE_RATING } from "@/lib/constants/cosmic";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 
 const PROFILES_TABLE = "profiles";
@@ -10,21 +11,28 @@ const PROFILES_TABLE = "profiles";
 export type FeedbackTrackerResult = {
   feedbackCount: number;
   earnedBadges: GrantedBadgePayload[];
+  totalStarPoints?: number;
 };
 
-/** Geri bildirim kaydı + sayaç + rozet motoru */
+function clampRating(rating: number): number {
+  return Math.min(5, Math.max(1, Math.round(rating)));
+}
+
+/** Geri bildirim kaydı + sayaç + milestone rozet motoru */
 export async function trackAnalysisFeedback(input: {
   userId: string;
   module: string;
-  accurate: boolean;
+  rating: number;
   tier?: string;
   referenceId?: string;
   metadata?: Record<string, unknown>;
 }): Promise<FeedbackTrackerResult> {
+  const rating = clampRating(input.rating);
+
   await logAnalysisFeedback({
     userId: input.userId,
     module: input.module,
-    accurate: input.accurate,
+    rating,
     tier: input.tier,
     referenceId: input.referenceId,
     metadata: input.metadata,
@@ -53,10 +61,36 @@ export async function trackAnalysisFeedback(input: {
     throw new Error("Geri bildirim sayacı güncellenemedi.");
   }
 
-  const earnedBadges = await grantEligibleBadges(input.userId, nextCount);
+  const earnedBadges = await processFeedbackMilestones({
+    profileId: input.userId,
+    feedbackCount: nextCount,
+    rating,
+  });
+
+  let totalStarPoints: number | undefined;
+  if (earnedBadges.length > 0) {
+    const { data: wallet } = await supabaseAdmin
+      .from(PROFILES_TABLE)
+      .select("star_points, star_points_bonus")
+      .eq("id", input.userId)
+      .maybeSingle();
+
+    if (wallet) {
+      totalStarPoints = (wallet.star_points ?? 0) + (wallet.star_points_bonus ?? 0);
+    }
+  }
 
   return {
     feedbackCount: nextCount,
     earnedBadges,
+    totalStarPoints,
   };
+}
+
+export function isPositiveFeedbackRating(rating: number): boolean {
+  return clampRating(rating) >= 3;
+}
+
+export function qualifiesForMilestone(rating: number): boolean {
+  return clampRating(rating) >= MIN_MILESTONE_RATING;
 }

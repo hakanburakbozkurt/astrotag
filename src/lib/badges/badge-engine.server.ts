@@ -8,6 +8,7 @@ import {
 } from "@/lib/badges/badge-definitions";
 import { logStarsLedgerEntry } from "@/lib/stars/stars-ledger.server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
+import { MIN_MILESTONE_RATING } from "@/lib/constants/cosmic";
 
 const PROFILES_TABLE = "profiles";
 const USER_BADGES_TABLE = "user_badges";
@@ -54,7 +55,24 @@ async function creditBadgeStarReward(
 /** Tek rozet ver — daha önce kazanıldıysa no-op */
 export async function grantBadge(
   userId: string,
+  badgeId: string,
+  options?: { ledgerType?: "BADGE_REWARD" | "MILESTONE_REWARD" }
+): Promise<GrantBadgeResult> {
+  return grantBadgeInternal(userId, badgeId, options?.ledgerType ?? "BADGE_REWARD");
+}
+
+/** Milestone geri bildirim ödülü — stars_ledger: MILESTONE_REWARD */
+export async function grantMilestoneBadge(
+  userId: string,
   badgeId: string
+): Promise<GrantBadgeResult> {
+  return grantBadgeInternal(userId, badgeId, "MILESTONE_REWARD");
+}
+
+async function grantBadgeInternal(
+  userId: string,
+  badgeId: string,
+  ledgerType: "BADGE_REWARD" | "MILESTONE_REWARD"
 ): Promise<GrantBadgeResult> {
   const definition = getBadgeDefinition(badgeId);
   if (!definition) {
@@ -93,13 +111,14 @@ export async function grantBadge(
 
     await logStarsLedgerEntry({
       profileId: userId,
-      transactionType: "BADGE_REWARD",
+      transactionType: ledgerType,
       starPointsDelta: definition.starReward,
       referenceId: badgeId,
       metadata: {
         badgeId,
         badgeName: definition.name,
         threshold: definition.threshold,
+        rewardType: ledgerType === "MILESTONE_REWARD" ? "milestone" : "badge",
       },
     });
 
@@ -114,25 +133,14 @@ export async function grantBadge(
   }
 }
 
-/** feedback_count eşiğine ulaşılan tüm rozetleri dene */
+/** @deprecated processFeedbackMilestones kullanın */
 export async function grantEligibleBadges(
   userId: string,
-  feedbackCount: number
+  feedbackCount: number,
+  rating = MIN_MILESTONE_RATING
 ): Promise<GrantedBadgePayload[]> {
-  const granted: GrantedBadgePayload[] = [];
-
-  for (const definition of BADGE_DEFINITIONS) {
-    if (feedbackCount < definition.threshold) {
-      continue;
-    }
-
-    const result = await grantBadge(userId, definition.id);
-    if (result.granted) {
-      granted.push(result.badge);
-    }
-  }
-
-  return granted;
+  const { processFeedbackMilestones } = await import("@/lib/badges/reward-system.server");
+  return processFeedbackMilestones({ profileId: userId, feedbackCount, rating });
 }
 
 export async function getUserBadgeState(userId: string): Promise<{

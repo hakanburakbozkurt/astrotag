@@ -180,7 +180,7 @@ export async function runCosmicProfileAnalysis(
 
 export async function submitCosmicProfileFeedback(input: {
   sessionId: string;
-  accurate: boolean;
+  rating: number;
   tier: CosmicProfileTierId;
   subjectName: string;
   birthPlace: string;
@@ -205,7 +205,7 @@ export async function submitCosmicProfileFeedback(input: {
 
   const feedbackResult = await submitFeedback({
     module: "cosmic-profile",
-    accurate: input.accurate,
+    rating: input.rating,
     referenceId: input.sessionId,
     tier: input.tier,
     metadata: {
@@ -223,7 +223,9 @@ export async function submitCosmicProfileFeedback(input: {
   feedbackCount = feedbackResult.feedbackCount ?? 0;
   remainingStars = feedbackResult.totalStarPoints;
 
-  if (input.accurate) {
+  const positiveFeedback = input.rating >= 3;
+
+  if (positiveFeedback) {
     return {
       success: true,
       canSave: true,
