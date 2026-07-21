@@ -24,7 +24,7 @@ export type NfcEntryResolveResult =
   | { status: "public_profile"; redirectTo: string }
   | { status: "error"; error: string };
 
-/** Herkese açık profil rotası (/p/id) — NFC girişi /c/id auth kullanır */
+/** @deprecated resolveGuestNfcScanRedirect kullanın — /c/{id} sunucu sayfası */
 export async function resolveNfcEntryAction(
   uniqueId: string
 ): Promise<NfcEntryResolveResult> {
