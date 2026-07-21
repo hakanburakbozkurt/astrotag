@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
+import { getGlobalFeedbackStats } from "@/lib/actions/feedback";
 import {
-  getGlobalFeedbackStats,
+  EMPTY_GLOBAL_FEEDBACK_STATS,
   type GlobalFeedbackStats,
-} from "@/lib/actions/feedback";
-import { EMPTY_GLOBAL_FEEDBACK_STATS } from "@/lib/feedback/global-feedback-stats.shared";
+} from "@/lib/feedback/global-feedback-stats.shared";
 import { SWR_KEYS } from "@/lib/auth/data-cache";
 import { FEEDBACK_UPDATED_EVENT } from "@/lib/energy-events";
 import { useQuery } from "@/hooks/useQuery";

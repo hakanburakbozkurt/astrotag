@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Star } from "lucide-react";
-import type { GlobalFeedbackStats } from "@/lib/actions/feedback";
+import type { GlobalFeedbackStats } from "@/lib/feedback/global-feedback-stats.shared";
 import { EMPTY_GLOBAL_FEEDBACK_STATS } from "@/lib/feedback/global-feedback-stats.shared";
 import { useGlobalFeedbackStats } from "@/hooks/useGlobalFeedbackStats";
 

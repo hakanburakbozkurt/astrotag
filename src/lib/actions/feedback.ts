@@ -4,13 +4,15 @@ import { trackAnalysisFeedback } from "@/lib/badges/feedback-tracker.server";
 import type { GrantedBadgePayload } from "@/lib/badges/badge-definitions";
 import {
   getGlobalFeedbackStats as fetchGlobalFeedbackStats,
-  type GlobalFeedbackStats,
 } from "@/lib/feedback/global-feedback-stats.server";
-import { EMPTY_GLOBAL_FEEDBACK_STATS } from "@/lib/feedback/global-feedback-stats.shared";
+import {
+  EMPTY_GLOBAL_FEEDBACK_STATS,
+  type GlobalFeedbackStats,
+} from "@/lib/feedback/global-feedback-stats.shared";
 import { getNfcSessionProfileId } from "@/lib/nfc/session.server";
 import { getStarPoints } from "@/lib/supabase-actions";
 
-export type { GlobalFeedbackStats };
+export type { GlobalFeedbackStats } from "@/lib/feedback/global-feedback-stats.shared";
 
 export type SubmitFeedbackResult = {
   success: boolean;
