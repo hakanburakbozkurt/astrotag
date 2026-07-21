@@ -66,6 +66,22 @@ export function publicProfilePathForUniqueId(uniqueId: string): string {
   return `${PUBLIC_PROFILE_PREFIX}/${encodeURIComponent(uniqueId.trim())}`;
 }
 
+/** NFC dokunuşu → oturum aç + dashboard */
+export function nfcEnterPathForUniqueId(
+  uniqueId: string,
+  options?: { returnTo?: string }
+): string {
+  const params = new URLSearchParams({
+    uid: normalizeNfcUniqueId(uniqueId),
+  });
+
+  if (options?.returnTo?.trim()) {
+    params.set("to", options.returnTo.trim());
+  }
+
+  return `/nfc/enter?${params.toString()}`;
+}
+
 export function nfcPairingPathForUniqueId(uniqueId: string): string {
   return `${cardEntryPathForUniqueId(uniqueId)}?${NFC_PAIRING_QUERY}=1`;
 }

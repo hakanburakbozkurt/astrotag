@@ -1,6 +1,7 @@
 import "server-only";
 
 import { publicProfilePathForUniqueId } from "@/lib/nfc/card-paths";
+import { establishNfcTapSession } from "@/lib/nfc/establish-tap-session.server";
 import { logNfcDebug } from "@/lib/nfc/nfc-debug.server";
 import { resolveNfcModuleDestination } from "@/lib/nfc/nfc-entry-destination.server";
 import { resolveSmartNfcEntryRedirect } from "@/lib/nfc/nfc-smart-entry.server";
@@ -15,38 +16,16 @@ export type GuestNfcScanFailureReason =
   | "db_error";
 
 export type GuestNfcScanRedirectResult =
-  | { ok: true; redirectTo: string; mode: "smart_session" | "guest_public" | "guest_module" }
+  | {
+      ok: true;
+      redirectTo: string;
+      mode: "smart_session" | "tap_session" | "guest_public" | "guest_module";
+    }
   | { ok: false; reason: GuestNfcScanFailureReason };
-
-/** Misafir NFC taraması — dashboard oturumu gerekmez */
-function mapGuestModuleDestination(
-  moduleDestination: string,
-  uniqueId: string
-): string {
-  if (
-    moduleDestination.startsWith("/dashboard/nexus") ||
-    moduleDestination.includes("module=nexus")
-  ) {
-    return `${publicProfilePathForUniqueId(uniqueId)}?cosmic=nexus`;
-  }
-
-  if (
-    moduleDestination.startsWith("/dashboard/profile") ||
-    moduleDestination.includes("module=cosmic-profile")
-  ) {
-    return publicProfilePathForUniqueId(uniqueId);
-  }
-
-  if (moduleDestination.startsWith("/dashboard")) {
-    return publicProfilePathForUniqueId(uniqueId);
-  }
-
-  return moduleDestination;
-}
 
 /**
  * /c/{at_xxx} — oturum zorunlu değil.
- * Kart DB'de eşleşirse herkese açık kozmik profile veya (oturum varsa) dashboard hedefi.
+ * Kart eşleşince tap oturumu aç → dashboard; profil yoksa /p/.
  */
 export async function resolveGuestNfcScanRedirect(
   rawUniqueId: string,
@@ -76,6 +55,8 @@ export async function resolveGuestNfcScanRedirect(
     return { ok: false, reason: card.reason };
   }
 
+  const moduleDestination = resolveNfcModuleDestination(options?.searchParams);
+
   const smartRedirect = await resolveSmartNfcEntryRedirect(uniqueId, options);
   if (smartRedirect) {
     logNfcDebug("resolveGuestNfcScanRedirect:smart-session", {
@@ -85,17 +66,30 @@ export async function resolveGuestNfcScanRedirect(
     return { ok: true, redirectTo: smartRedirect, mode: "smart_session" };
   }
 
-  const moduleDestination = resolveNfcModuleDestination(options?.searchParams);
-  if (moduleDestination) {
-    const guestDestination = mapGuestModuleDestination(moduleDestination, uniqueId);
-    logNfcDebug("resolveGuestNfcScanRedirect:guest-module", {
+  const tapSession = await establishNfcTapSession(uniqueId, {
+    returnTo: moduleDestination ?? undefined,
+  });
+
+  if (tapSession.ok) {
+    logNfcDebug("resolveGuestNfcScanRedirect:tap-session", {
       uniqueId,
-      moduleDestination,
-      guestDestination,
+      redirectTo: tapSession.redirectTo,
     });
     return {
       ok: true,
-      redirectTo: guestDestination,
+      redirectTo: tapSession.redirectTo,
+      mode: "tap_session",
+    };
+  }
+
+  if (moduleDestination) {
+    logNfcDebug("resolveGuestNfcScanRedirect:guest-module-fallback", {
+      uniqueId,
+      fallback: tapSession.fallbackTo,
+    });
+    return {
+      ok: true,
+      redirectTo: tapSession.fallbackTo,
       mode: "guest_module",
     };
   }
@@ -105,6 +99,7 @@ export async function resolveGuestNfcScanRedirect(
     uniqueId,
     redirectTo: publicProfilePath,
     profileId: card.profileId,
+    tapReason: tapSession.reason,
   });
 
   return {

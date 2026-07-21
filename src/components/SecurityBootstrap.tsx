@@ -7,6 +7,7 @@ import { confirmStorageAccessAction } from "@/lib/actions/nfc-auth";
 import {
   CARD_ENTRY_PREFIX,
   HOME_PATH,
+  NFC_ENTER_PATH,
   NFC_LOGIN_PATH,
   PROFILE_SETUP_PATH,
   REGISTRATION_COMPLETE_PATH,
@@ -40,6 +41,8 @@ function shouldRunStorageCheck(pathname: string): boolean {
     pathname.startsWith(CARD_ENTRY_PREFIX) ||
     pathname.startsWith(PUBLIC_PROFILE_PREFIX) ||
     pathname === NFC_LOGIN_PATH ||
+    pathname === NFC_ENTER_PATH ||
+    pathname.startsWith(`${NFC_ENTER_PATH}?`) ||
     isRootCardEntryPath(pathname) ||
     isAuthFormPath(pathname) ||
     pathname.startsWith(AUTH_CALLBACK_PATH)

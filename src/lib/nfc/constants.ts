@@ -72,6 +72,9 @@ export const AUTH_LOGIN_PATH = "/auth/login";
 /** auth/signup|login ?msg= — pasif kart acil giriş */
 export const AUTH_MSG_CARD_NOT_ACTIVE = "card_not_active";
 
+/** NFC dokunuşu ile PIN'siz oturum + dashboard */
+export const NFC_ENTER_PATH = "/nfc/enter";
+
 export const PUBLIC_PATHS = new Set([
   HOME_PATH,
   PRIVATE_MODE_PATH,
@@ -80,6 +83,7 @@ export const PUBLIC_PATHS = new Set([
   AUTH_SIGNUP_PATH,
   AUTH_LOGIN_PATH,
   NFC_LOGIN_PATH,
+  NFC_ENTER_PATH,
   KOZMIK_BASLANGIC_PATH,
   SALES_ORDERS_PATH,
   "/manifest.json",
