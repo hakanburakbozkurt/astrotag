@@ -1,7 +1,8 @@
 import "server-only";
 
 import { logNfcError, logNfcEvent } from "@/lib/nfc/error-logger";
-import { NFC_CARD_OWNED_BY_OTHER_MESSAGE } from "@/lib/nfc/constants";
+import { isAccountLoginAllowed } from "@/lib/nfc/account-status.server";
+import { ACCOUNT_SUSPENDED_MESSAGE, NFC_CARD_OWNED_BY_OTHER_MESSAGE } from "@/lib/nfc/constants";
 import { readServerCookieSessionAsync } from "@/lib/nfc/cookie-session.server";
 import {
   NFC_CARD_META_SELECT,
@@ -16,7 +17,8 @@ import { createSupabaseServiceClient } from "@/lib/supabase/service";
 export type ProtectedNfcAccessErrorCode =
   | "session_missing"
   | "session_invalid"
-  | "ownership_mismatch";
+  | "ownership_mismatch"
+  | "account_suspended";
 
 export class ProtectedNfcAccessError extends Error {
   readonly code: ProtectedNfcAccessErrorCode;
@@ -168,8 +170,21 @@ export async function requireProtectedNfcAccess(): Promise<ProtectedNfcContext> 
   const card = await loadCardMeta(session.nfcId);
   if (!card) {
     throw new ProtectedNfcAccessError(
-      "Oturum Sona Erdi veya Geçersiz Erişim",
-      "session_invalid"
+      ACCOUNT_SUSPENDED_MESSAGE,
+      "account_suspended"
+    );
+  }
+
+  const loginAllowed = await isAccountLoginAllowed({
+    profileId: session.profileId,
+    nfcCardUuid: session.nfcId,
+    uniqueId: card.nfc_id,
+  });
+
+  if (!loginAllowed) {
+    throw new ProtectedNfcAccessError(
+      ACCOUNT_SUSPENDED_MESSAGE,
+      "account_suspended"
     );
   }
 

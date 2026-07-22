@@ -75,6 +75,9 @@ export const AUTH_MSG_CARD_NOT_ACTIVE = "card_not_active";
 /** NFC dokunuşu ile PIN'siz oturum + dashboard */
 export const NFC_ENTER_PATH = "/nfc/enter";
 
+/** Askıya alınmış hesap bilgi sayfası */
+export const NFC_SUSPENDED_PATH = "/nfc/suspended";
+
 export const PUBLIC_PATHS = new Set([
   HOME_PATH,
   PRIVATE_MODE_PATH,
@@ -84,6 +87,7 @@ export const PUBLIC_PATHS = new Set([
   AUTH_LOGIN_PATH,
   NFC_LOGIN_PATH,
   NFC_ENTER_PATH,
+  NFC_SUSPENDED_PATH,
   KOZMIK_BASLANGIC_PATH,
   SALES_ORDERS_PATH,
   "/manifest.json",
@@ -109,6 +113,9 @@ export const INVALID_NFC_CARD_MESSAGE = "Geçersiz Kart";
 
 /** pin_code eşleşmedi */
 export const INVALID_PIN_MESSAGE = "Hatalı şifre";
+
+/** Hesap veya kart askıya alındı */
+export const ACCOUNT_SUSPENDED_MESSAGE = "Hesabınız askıya alınmıştır";
 
 /** @deprecated use NFC_FINGERPRINT_COOKIE */
 export const NFC_DEVICE_COOKIE = NFC_FINGERPRINT_COOKIE;

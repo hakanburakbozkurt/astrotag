@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { isAccountLoginAllowed } from "@/lib/nfc/account-status.server";
 import { DASHBOARD_PATH } from "@/lib/nfc/constants";
 import { logNfcDebug } from "@/lib/nfc/nfc-debug.server";
 import { readLastLoginAtCookie } from "@/lib/nfc/auth-persistence.server";
@@ -90,6 +91,16 @@ export async function trySmartNfcSessionEntry(
 
   if (!sessionSlug || sessionSlug !== normalizedScan) {
     return { ok: false, reason: "card_slug_mismatch" };
+  }
+
+  const loginAllowed = await isAccountLoginAllowed({
+    profileId: session.profile_id,
+    uniqueId: normalizedScan,
+    nfcCardUuid: session.nfc_id,
+  });
+
+  if (!loginAllowed) {
+    return { ok: false, reason: "account_suspended" };
   }
 
   await touchNfcSessionActivity(supabase, session.id);

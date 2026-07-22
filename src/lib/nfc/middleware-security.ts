@@ -256,9 +256,14 @@ export function isProtectedPath(pathname: string): boolean {
   );
 }
 
-/** /c/, /p/, /nfc/enter, /{at_xxx} — oturum gerekmez; redirect döngüsünü önlemek için bypass */
+/** /c/, /p/, /nfc/enter, /nfc/suspended, /{at_xxx} — oturum gerekmez; redirect döngüsünü önlemek için bypass */
 function isNfcCardRouteBypass(pathname: string): boolean {
-  if (pathname === "/nfc/enter" || pathname.startsWith("/nfc/enter")) {
+  if (
+    pathname === "/nfc/enter" ||
+    pathname.startsWith("/nfc/enter") ||
+    pathname === "/nfc/suspended" ||
+    pathname.startsWith("/nfc/suspended")
+  ) {
     return true;
   }
 

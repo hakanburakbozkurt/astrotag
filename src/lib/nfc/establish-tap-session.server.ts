@@ -5,7 +5,8 @@ import {
   cardEntryPathForUniqueId,
   publicProfilePathForUniqueId,
 } from "@/lib/nfc/card-paths";
-import { DASHBOARD_PATH, STORAGE_VERIFIED_COOKIE } from "@/lib/nfc/constants";
+import { assertAccountLoginAllowed } from "@/lib/nfc/account-status.server";
+import { DASHBOARD_PATH, NFC_SUSPENDED_PATH, STORAGE_VERIFIED_COOKIE } from "@/lib/nfc/constants";
 import { clearPendingNfcCardCookie, getStrictCookieOptions } from "@/lib/nfc/device-cookies.server";
 import { logNfcDebug } from "@/lib/nfc/nfc-debug.server";
 import { assertNfcUserDataCardForSession } from "@/lib/nfc/nfc-user-data-card.server";
@@ -83,6 +84,20 @@ export async function establishNfcTapSession(
       ok: false,
       reason: "invalid_card",
       fallbackTo: publicProfilePathForUniqueId(uniqueId),
+    };
+  }
+
+  try {
+    await assertAccountLoginAllowed({
+      profileId: card.profileId,
+      uniqueId,
+      nfcCardUuid: card.nfcId,
+    });
+  } catch {
+    return {
+      ok: false,
+      reason: "account_suspended",
+      fallbackTo: `${NFC_SUSPENDED_PATH}?uid=${encodeURIComponent(uniqueId)}`,
     };
   }
 

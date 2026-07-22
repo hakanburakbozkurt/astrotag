@@ -82,6 +82,18 @@ export async function resolveGuestNfcScanRedirect(
     };
   }
 
+  if (tapSession.reason === "account_suspended") {
+    logNfcDebug("resolveGuestNfcScanRedirect:account-suspended", {
+      uniqueId,
+      redirectTo: tapSession.fallbackTo,
+    });
+    return {
+      ok: true,
+      redirectTo: tapSession.fallbackTo,
+      mode: "guest_public",
+    };
+  }
+
   if (moduleDestination) {
     logNfcDebug("resolveGuestNfcScanRedirect:guest-module-fallback", {
       uniqueId,

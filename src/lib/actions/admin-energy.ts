@@ -1,11 +1,10 @@
 "use server";
 
+import { requireAdminUser } from "@/lib/admin/admin-auth.server";
 import { MAX_STAR_POINTS } from "@/lib/constants/cosmic";
-import { getNfcSessionProfileId } from "@/lib/nfc/session.server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 
 const PROFILE_TABLE = "profiles";
-const ADMIN_ROLE = "admin";
 
 export type ResetAllUsersEnergyErrorCode =
   | "UNAUTHORIZED"
@@ -28,48 +27,23 @@ export type ResetAllUsersEnergyResult =
       code: ResetAllUsersEnergyErrorCode;
     };
 
-async function requireAdminUser(): Promise<
+async function requireAdminUserForEnergy(): Promise<
   | { ok: true; userId: string }
   | { ok: false; error: string; code: ResetAllUsersEnergyErrorCode }
 > {
-  const profileId = await getNfcSessionProfileId();
-
-  if (!profileId) {
+  const admin = await requireAdminUser();
+  if (!admin.ok) {
     return {
       ok: false,
-      code: "UNAUTHORIZED",
-      error: "Oturum doğrulanamadı. Lütfen tekrar giriş yapın.",
+      code: admin.code === "FORBIDDEN" ? "FORBIDDEN" : "UNAUTHORIZED",
+      error: admin.error,
     };
   }
-
-  const supabase = createSupabaseServiceClient();
-  const { data: profile, error: profileError } = await supabase
-    .from(PROFILE_TABLE)
-    .select("role")
-    .eq("id", profileId)
-    .maybeSingle();
-
-  if (profileError || !profile) {
-    return {
-      ok: false,
-      code: "UNAUTHORIZED",
-      error: "Profil doğrulanamadı.",
-    };
-  }
-
-  if (profile.role !== ADMIN_ROLE) {
-    return {
-      ok: false,
-      code: "FORBIDDEN",
-      error: "Bu işlem yalnızca admin kullanıcılar içindir.",
-    };
-  }
-
-  return { ok: true, userId: profileId };
+  return { ok: true, userId: admin.profileId };
 }
 
 export async function resetAllUsersCosmicEnergy(): Promise<ResetAllUsersEnergyResult> {
-  const admin = await requireAdminUser();
+  const admin = await requireAdminUserForEnergy();
   if (!admin.ok) {
     return { success: false, error: admin.error, code: admin.code };
   }

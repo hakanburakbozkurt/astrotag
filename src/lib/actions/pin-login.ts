@@ -4,7 +4,9 @@ import { confirmStorageAccessAction } from "@/lib/actions/nfc-auth";
 import { nfcAuthSuccessAction } from "@/lib/actions/nfc-auth-success";
 import { checkCardPin } from "@/lib/nfc/check-card-pin.server";
 import { clearPendingNfcCardCookie } from "@/lib/nfc/device-cookies.server";
+import { assertAccountLoginAllowed } from "@/lib/nfc/account-status.server";
 import {
+  ACCOUNT_SUSPENDED_MESSAGE,
   INVALID_NFC_CARD_MESSAGE,
 } from "@/lib/nfc/constants";
 import { assertNfcUserDataCardForSession } from "@/lib/nfc/nfc-user-data-card.server";
@@ -51,6 +53,20 @@ export async function handlePinLogin(params: {
 
     if (!cardAssert.ok) {
       return { ok: false, error: cardAssert.error };
+    }
+
+    try {
+      await assertAccountLoginAllowed({
+        profileId: pinResult.profileId,
+        uniqueId,
+        nfcCardUuid: pinResult.nfcCardUuid,
+      });
+    } catch (error) {
+      return {
+        ok: false,
+        error:
+          error instanceof Error ? error.message : ACCOUNT_SUSPENDED_MESSAGE,
+      };
     }
 
     const nfcCardUuid = cardAssert.card.id;

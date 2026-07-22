@@ -1,7 +1,7 @@
 import "server-only";
 
 import { cookies } from "next/headers";
-import { NFC_SESSION_COOKIE } from "@/lib/nfc/constants";
+import { NFC_SESSION_COOKIE, NFC_SUSPENDED_PATH } from "@/lib/nfc/constants";
 import { logNfcDebug } from "@/lib/nfc/nfc-debug.server";
 import { resolveNfcModuleDestination } from "@/lib/nfc/nfc-entry-destination.server";
 import { trySmartNfcSessionEntry } from "@/lib/nfc/smart-session.server";
@@ -56,6 +56,11 @@ export async function resolveSmartNfcEntryRedirect(
       reason: result.reason,
       normalizedId,
     });
+
+    if (result.reason === "account_suspended") {
+      return `${NFC_SUSPENDED_PATH}?uid=${encodeURIComponent(normalizedId)}`;
+    }
+
     return null;
   }
 

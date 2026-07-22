@@ -1,6 +1,6 @@
 import "server-only";
 
-import { INVALID_PIN_MESSAGE } from "@/lib/nfc/constants";
+import { ACCOUNT_SUSPENDED_MESSAGE, INVALID_PIN_MESSAGE } from "@/lib/nfc/constants";
 import { logNfcEvent } from "@/lib/nfc/error-logger";
 import {
   NFC_CARD_AUTH_SELECT,
@@ -31,6 +31,7 @@ type NfcCardRow = {
 type ProfileAuthRow = {
   id: string;
   pin_code: string | null;
+  is_active: boolean;
 };
 
 /**
@@ -54,7 +55,7 @@ export async function checkCardPin(
 
   const { data: profile, error: profileError } = await admin
     .from("profiles")
-    .select("id, pin_code")
+    .select("id, pin_code, is_active")
     .eq("nfc_uid", slug)
     .maybeSingle();
 
@@ -75,6 +76,10 @@ export async function checkCardPin(
   const profileRow = profile as ProfileAuthRow;
   const profileId = profileRow.id.trim();
   const storedPin = profileRow.pin_code?.trim() ?? "";
+
+  if (profileRow.is_active === false) {
+    return { ok: false, error: ACCOUNT_SUSPENDED_MESSAGE };
+  }
 
   if (!storedPin || storedPin !== normalizedPin) {
     return { ok: false, error: INVALID_PIN_MESSAGE };
@@ -100,7 +105,7 @@ export async function checkCardPin(
   const cardRow = card as NfcCardRow;
 
   if (!cardRow.is_active) {
-    return { ok: false, error: INVALID_PIN_MESSAGE };
+    return { ok: false, error: ACCOUNT_SUSPENDED_MESSAGE };
   }
 
   return {
