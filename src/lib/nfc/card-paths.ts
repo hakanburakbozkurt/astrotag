@@ -18,6 +18,8 @@ export const RESERVED_ROOT_SEGMENTS = new Set([
   "login",
   "session-expired",
   "private-mode-warning",
+  "nfc-login",
+  "uzman",
   "api",
   "manifest.json",
   "sw.js",

@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useMemo, useState, type ReactNode } from "react";
+import WhatsAppRecoveryLink from "@/components/support/WhatsAppRecoveryLink";
 import { handlePinLogin as handlePinLoginAction } from "@/lib/actions/pin-login";
 import { isPinInputReady, normalizePinInput } from "@/lib/nfc/pin-input";
 import { navigateAfterNfcAuth } from "@/lib/nfc/post-auth-nav.client";
@@ -136,6 +137,12 @@ export default function CardVerificationForm({
       >
         {loading ? "Doğrulanıyor..." : "Giriş Yap"}
       </button>
+
+      <WhatsAppRecoveryLink context={{ kind: "nfc", uniqueId: cardId }} />
+
+      <p className="text-center text-[11px] leading-relaxed text-white/40">
+        PIN sıfırlama yalnızca WhatsApp destek hattı üzerinden yapılır.
+      </p>
 
       <p className="text-center text-[11px] leading-relaxed text-white/40">
         Kartınıza kayıtlı PIN kodunuz ile giriş yapın.

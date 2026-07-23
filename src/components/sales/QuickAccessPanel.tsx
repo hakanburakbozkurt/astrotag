@@ -17,14 +17,10 @@ import SalesMotion from "@/components/sales/SalesMotion";
 import {
   finalizeGuestAccessAction,
   redeemDigitalAccessCodeAction,
-  redeemExpertAccessCodeAction,
 } from "@/lib/actions/quick-access";
 import { QUICK_ACCESS_ITEMS } from "@/lib/sales/landing-nav";
-import {
-  formatExpertAccessCodeInput,
-  normalizeDigitalAccessCode,
-} from "@/lib/sales/quick-access-codes";
-import { SALES_EXPERT_APPLY_PATH } from "@/lib/sales/star-packages-catalog";
+import { normalizeDigitalAccessCode } from "@/lib/sales/quick-access-codes";
+import { SALES_EXPERT_LOGIN_PATH, SALES_EXPERT_REGISTER_PATH } from "@/lib/sales/star-packages-catalog";
 import { SALES_IN_VIEW_TRANSITION, SALES_SECTION_CLASS } from "@/lib/sales/sales-motion";
 
 const ICONS = {
@@ -34,7 +30,7 @@ const ICONS = {
   expert: UserCog,
 } as const;
 
-type PanelFlow = "digital" | "expert" | "expert-code" | null;
+type PanelFlow = "digital" | "expert" | null;
 
 const INPUT_CLASS =
   "w-full rounded-xl border border-white/10 bg-[#070b14]/80 px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-amber-400/35 focus:ring-1 focus:ring-amber-400/20";
@@ -131,7 +127,6 @@ export default function QuickAccessPanel() {
   const [error, setError] = useState<string | null>(null);
   const [guestCode, setGuestCode] = useState<string | null>(null);
   const [digitalCode, setDigitalCode] = useState("");
-  const [expertCode, setExpertCode] = useState("");
 
   const closeModal = useCallback(() => {
     if (loading) {
@@ -140,7 +135,6 @@ export default function QuickAccessPanel() {
     setActiveFlow(null);
     setError(null);
     setDigitalCode("");
-    setExpertCode("");
   }, [loading]);
 
   const handleGuestExplore = useCallback(async () => {
@@ -187,26 +181,6 @@ export default function QuickAccessPanel() {
       setLoading(false);
     }
   }, [digitalCode, router]);
-
-  const handleExpertSubmit = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const result = await redeemExpertAccessCodeAction(expertCode);
-      if (!result.success) {
-        setError(result.error);
-        return;
-      }
-
-      setActiveFlow(null);
-      router.push(result.redirectTo);
-    } catch {
-      setError("Uzman kodu doğrulanamadı. Lütfen tekrar deneyin.");
-    } finally {
-      setLoading(false);
-    }
-  }, [expertCode, router]);
 
   const handleCardClick = useCallback(
     (itemId: (typeof QUICK_ACCESS_ITEMS)[number]["id"]) => {
@@ -386,77 +360,24 @@ export default function QuickAccessPanel() {
       <QuickAccessModal
         open={activeFlow === "expert"}
         title="AstroTag Uzmanıyım"
-        subtitle="Platforma katılmak veya mevcut uzman kodunla giriş yap."
+        subtitle="Davet kodunuzla kayıt olun veya uzman kodunuzla giriş yapın."
         onClose={closeModal}
       >
         <div className="space-y-3">
           <Link
-            href={SALES_EXPERT_APPLY_PATH}
+            href={SALES_EXPERT_REGISTER_PATH}
             onClick={closeModal}
             className={`${PRIMARY_BUTTON_CLASS} text-center`}
           >
-            Kayıt Ol
+            Davet Kodu ile Kayıt Ol
           </Link>
-          <button
-            type="button"
-            onClick={() => {
-              setError(null);
-              setActiveFlow("expert-code");
-            }}
+          <Link
+            href={SALES_EXPERT_LOGIN_PATH}
+            onClick={closeModal}
             className={GHOST_BUTTON_CLASS}
           >
-            Kodum Var
-          </button>
-        </div>
-      </QuickAccessModal>
-
-      <QuickAccessModal
-        open={activeFlow === "expert-code"}
-        title="Uzman Kodu"
-        subtitle="EXP-XXXX-XXXX formatındaki davet kodunu gir."
-        onClose={closeModal}
-      >
-        <label className="flex flex-col gap-1.5">
-          <span className="text-xs font-medium text-white/55">Uzman Kodu</span>
-          <input
-            type="text"
-            autoComplete="off"
-            value={expertCode}
-            onChange={(event) =>
-              setExpertCode(formatExpertAccessCodeInput(event.target.value))
-            }
-            placeholder="EXP-1234-5678"
-            className={`${INPUT_CLASS} font-mono uppercase tracking-wider`}
-          />
-        </label>
-
-        {error ? (
-          <p className="mt-3 text-sm text-rose-300/90" role="alert">
-            {error}
-          </p>
-        ) : null}
-
-        <div className="mt-5 space-y-3">
-          <button
-            type="button"
-            onClick={handleExpertSubmit}
-            disabled={loading || expertCode.length < 13}
-            className={PRIMARY_BUTTON_CLASS}
-          >
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
-            Uzman Olarak Giriş Yap
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setError(null);
-              setActiveFlow("expert");
-            }}
-            className={GHOST_BUTTON_CLASS}
-            disabled={loading}
-          >
-            Geri
-          </button>
+            Uzman Kodum ile Giriş Yap
+          </Link>
         </div>
       </QuickAccessModal>
     </>

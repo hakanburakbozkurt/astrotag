@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { useSafeRouter } from "@/lib/auth/safe-router-nav.client";
 import { authQueryMessageText } from "@/lib/auth/auth-query-messages";
 import { logNfcAuthTrace } from "@/lib/auth/nfc-auth-debug";
+import WhatsAppRecoveryLink from "@/components/support/WhatsAppRecoveryLink";
 import { startNfcLoginAction } from "@/lib/actions/nfc-email-auth";
 import { authLoginPathClean, nfcAuthSignupPath } from "@/lib/nfc/auth-paths";
 import { persistNfcIdClient, readNfcIdClient } from "@/lib/nfc/nfc-id-persist.client";
@@ -226,6 +227,12 @@ export default function NfcLoginForm({ initialNfcId = "" }: NfcLoginFormProps) {
           {isPending ? "İşleniyor..." : "Giriş Yap"}
         </button>
       </form>
+
+      <WhatsAppRecoveryLink context={{ kind: "nfc", uniqueId }} label="Şifremi Unuttum" />
+
+      <p className="mt-2 text-center text-[11px] text-white/40">
+        Şifre sıfırlama yalnızca WhatsApp destek hattı üzerinden yapılır.
+      </p>
 
       <p className="mt-4 text-center text-[11px] text-white/40">
         Giriş yaptığınızda kartınız otomatik eşleştirilir.

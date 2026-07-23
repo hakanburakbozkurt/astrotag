@@ -246,8 +246,9 @@ export const STAR_PACKAGE_CATALOG: StarPackageProduct[] =
   STAR_PACKAGE_TIERS.map(buildStarPackage);
 
 export const SALES_ORDERS_PATH = "/siparislerim";
-export const SALES_EXPERT_LOGIN_PATH = "/nfc-login";
-/** Uzman başvuru formu — landing #uzman-katilim bölümü */
+export const SALES_EXPERT_LOGIN_PATH = "/uzman/giris";
+export const SALES_EXPERT_REGISTER_PATH = "/uzman/kayit";
+/** Uzman başvuru — landing #uzman-katilim bölümü */
 export const SALES_EXPERT_APPLY_PATH = "#uzman-katilim";
 export const KOZMIK_BASLANGIC_PATH = "/kozmik-baslangic";
 

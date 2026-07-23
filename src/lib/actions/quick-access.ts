@@ -209,7 +209,9 @@ export async function redeemDigitalAccessCodeAction(
   }
 }
 
-/** EXP-XXXX-XXXX — user_role = expert */
+/** EXP-XXXX-XXXX — user_role = expert
+ * @deprecated Uzman kaydı için /uzman/kayit — registerExpertAction kullanın
+ */
 export async function redeemExpertAccessCodeAction(
   rawCode: string
 ): Promise<QuickAccessResult> {
@@ -218,7 +220,7 @@ export async function redeemExpertAccessCodeAction(
   if (!isValidExpertAccessCode(code)) {
     return {
       success: false,
-      error: "Kod EXP-XXXX-XXXX formatında olmalıdır.",
+      error: "8 haneli geçerli bir davet kodu girin.",
     };
   }
 
