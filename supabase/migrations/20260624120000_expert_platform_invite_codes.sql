@@ -35,8 +35,8 @@ begin
       exit when attempts > 50;
     end loop;
 
-    insert into public.access_codes (code, type, active)
-    values (new_code, 'EXP', true)
+    insert into public.access_codes (code, type)
+    values (new_code, 'EXP')
     on conflict (code) do nothing;
   end loop;
 end $$;

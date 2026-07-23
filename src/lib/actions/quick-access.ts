@@ -62,7 +62,7 @@ async function redeemAccessCode(
 
   const { data: accessCode, error: lookupError } = await admin
     .from("access_codes")
-    .select("id, active, type")
+    .select("id, type")
     .eq("code", code)
     .eq("type", type)
     .maybeSingle();
@@ -71,19 +71,15 @@ async function redeemAccessCode(
     return { ok: false, error: "Kod doğrulanamadı. Lütfen tekrar deneyin." };
   }
 
-  if (!accessCode?.id || !accessCode.active) {
+  if (!accessCode?.id) {
     return { ok: false, error: "Geçersiz veya süresi dolmuş kod." };
   }
 
   const { error: redeemError } = await admin
     .from("access_codes")
-    .update({
-      active: false,
-      redeemed_by: userId,
-      redeemed_at: new Date().toISOString(),
-    })
+    .delete()
     .eq("id", accessCode.id)
-    .eq("active", true);
+    .eq("type", type);
 
   if (redeemError) {
     return { ok: false, error: "Kod kullanılamadı. Lütfen tekrar deneyin." };

@@ -54,7 +54,7 @@ async function redeemExpertInviteCode(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const { data: accessCode, error: lookupError } = await admin
     .from(ACCESS_CODES_TABLE)
-    .select("id, active, type")
+    .select("id, type")
     .eq("code", inviteCode)
     .eq("type", "EXP")
     .maybeSingle();
@@ -63,18 +63,15 @@ async function redeemExpertInviteCode(
     return { ok: false, error: "Davet kodu doğrulanamadı. Lütfen tekrar deneyin." };
   }
 
-  if (!accessCode?.id || !accessCode.active) {
+  if (!accessCode?.id) {
     return { ok: false, error: "Geçersiz veya kullanılmış davet kodu." };
   }
 
   const { error: redeemError } = await admin
     .from(ACCESS_CODES_TABLE)
-    .update({
-      active: false,
-      redeemed_at: new Date().toISOString(),
-    })
+    .delete()
     .eq("id", accessCode.id)
-    .eq("active", true);
+    .eq("type", "EXP");
 
   if (redeemError) {
     return { ok: false, error: "Davet kodu kullanılamadı. Lütfen tekrar deneyin." };
