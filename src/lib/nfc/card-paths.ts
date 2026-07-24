@@ -1,5 +1,6 @@
 import {
   CARD_ENTRY_PREFIX,
+  NFC_LOGIN_PATH,
   NFC_PAIRING_QUERY,
   PUBLIC_PROFILE_PREFIX,
 } from "@/lib/nfc/constants";
@@ -68,7 +69,13 @@ export function publicProfilePathForUniqueId(uniqueId: string): string {
   return `${PUBLIC_PROFILE_PREFIX}/${encodeURIComponent(uniqueId.trim())}`;
 }
 
-/** NFC dokunuşu → oturum aç + dashboard */
+/** PIN giriş ekranı — kart sahibi doğrulaması */
+export function nfcLoginPathForUniqueId(uniqueId: string): string {
+  const slug = normalizeNfcUniqueId(uniqueId);
+  return `${NFC_LOGIN_PATH}?uid=${encodeURIComponent(slug)}`;
+}
+
+/** NFC dokunuşu → PIN / sahip doğrulaması (PIN'siz oturum yok) */
 export function nfcEnterPathForUniqueId(
   uniqueId: string,
   options?: { returnTo?: string }

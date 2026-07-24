@@ -123,5 +123,9 @@ export const INVALID_PIN_MESSAGE = "Hatalı şifre";
 /** Hesap veya kart askıya alındı */
 export const ACCOUNT_SUSPENDED_MESSAGE = "Hesabınız askıya alınmıştır";
 
+/** NFC taramasında sahibi doğrulanmadan veri gösterilmez */
+export const NFC_CARD_PIN_REQUIRED_MESSAGE =
+  "Bu kartın verilerini görmek için kart sahibinin şifresi gerekiyor";
+
 /** @deprecated use NFC_FINGERPRINT_COOKIE */
 export const NFC_DEVICE_COOKIE = NFC_FINGERPRINT_COOKIE;

@@ -1,11 +1,9 @@
 import "server-only";
 
-import { publicProfilePathForUniqueId } from "@/lib/nfc/card-paths";
-import { establishNfcTapSession } from "@/lib/nfc/establish-tap-session.server";
+import { nfcLoginPathForUniqueId } from "@/lib/nfc/card-paths";
 import { logNfcDebug } from "@/lib/nfc/nfc-debug.server";
 import { resolveNfcModuleDestination } from "@/lib/nfc/nfc-entry-destination.server";
-import { resolveSmartNfcEntryRedirect } from "@/lib/nfc/nfc-smart-entry.server";
-import { validateNfcCardActive } from "@/lib/nfc/session.server";
+import { resolveNfcScanAccess } from "@/lib/nfc/nfc-scan-access.server";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 
 export type GuestNfcScanFailureReason =
@@ -19,13 +17,12 @@ export type GuestNfcScanRedirectResult =
   | {
       ok: true;
       redirectTo: string;
-      mode: "smart_session" | "tap_session" | "guest_public" | "guest_module";
+      mode: "owner_session" | "pin_required";
     }
   | { ok: false; reason: GuestNfcScanFailureReason };
 
 /**
- * /c/{at_xxx} — oturum zorunlu değil.
- * Kart eşleşince tap oturumu aç → dashboard; profil yoksa /p/.
+ * /c/{at_xxx} — kart sahibi oturumu yoksa PIN ekranına yönlendir; veri sızdırma yok.
  */
 export async function resolveGuestNfcScanRedirect(
   rawUniqueId: string,
@@ -46,77 +43,60 @@ export async function resolveGuestNfcScanRedirect(
     return { ok: false, reason: "invalid_format" };
   }
 
-  const card = await validateNfcCardActive(uniqueId);
-  if (!card.ok) {
-    logNfcDebug("resolveGuestNfcScanRedirect:card-invalid", {
-      uniqueId,
-      reason: card.reason,
-    });
-    return { ok: false, reason: card.reason };
-  }
-
   const moduleDestination = resolveNfcModuleDestination(options?.searchParams);
-
-  const smartRedirect = await resolveSmartNfcEntryRedirect(uniqueId, options);
-  if (smartRedirect) {
-    logNfcDebug("resolveGuestNfcScanRedirect:smart-session", {
-      uniqueId,
-      redirectTo: smartRedirect,
-    });
-    return { ok: true, redirectTo: smartRedirect, mode: "smart_session" };
-  }
-
-  const tapSession = await establishNfcTapSession(uniqueId, {
-    returnTo: moduleDestination ?? undefined,
-  });
-
-  if (tapSession.ok) {
-    logNfcDebug("resolveGuestNfcScanRedirect:tap-session", {
-      uniqueId,
-      redirectTo: tapSession.redirectTo,
-    });
-    return {
-      ok: true,
-      redirectTo: tapSession.redirectTo,
-      mode: "tap_session",
-    };
-  }
-
-  if (tapSession.reason === "account_suspended") {
-    logNfcDebug("resolveGuestNfcScanRedirect:account-suspended", {
-      uniqueId,
-      redirectTo: tapSession.fallbackTo,
-    });
-    return {
-      ok: true,
-      redirectTo: tapSession.fallbackTo,
-      mode: "guest_public",
-    };
-  }
-
   if (moduleDestination) {
-    logNfcDebug("resolveGuestNfcScanRedirect:guest-module-fallback", {
+    const { setPostAuthReturnToCookie } = await import(
+      "@/lib/nfc/post-pin-redirect.server"
+    );
+    await setPostAuthReturnToCookie(moduleDestination);
+  }
+
+  const access = await resolveNfcScanAccess(uniqueId, options);
+
+  if (access.ok) {
+    logNfcDebug("resolveGuestNfcScanRedirect:owner-session", {
       uniqueId,
-      fallback: tapSession.fallbackTo,
+      redirectTo: access.redirectTo,
     });
     return {
       ok: true,
-      redirectTo: tapSession.fallbackTo,
-      mode: "guest_module",
+      redirectTo: access.redirectTo,
+      mode: "owner_session",
     };
   }
 
-  const publicProfilePath = publicProfilePathForUniqueId(uniqueId);
-  logNfcDebug("resolveGuestNfcScanRedirect:guest-public", {
+  if (access.reason === "account_suspended") {
+    return {
+      ok: true,
+      redirectTo: access.pinEntryPath,
+      mode: "pin_required",
+    };
+  }
+
+  if (
+    access.reason === "inactive" ||
+    access.reason === "card_not_found" ||
+    access.reason === "db_error" ||
+    access.reason === "invalid_format"
+  ) {
+    const reasonMap: Record<string, GuestNfcScanFailureReason> = {
+      inactive: "inactive",
+      card_not_found: "not_found",
+      db_error: "db_error",
+      invalid_format: "invalid_format",
+    };
+    return { ok: false, reason: reasonMap[access.reason] ?? "db_error" };
+  }
+
+  logNfcDebug("resolveGuestNfcScanRedirect:pin-required", {
     uniqueId,
-    redirectTo: publicProfilePath,
-    profileId: card.profileId,
-    tapReason: tapSession.reason,
+    reason: access.reason,
+    pinEntryPath: access.pinEntryPath,
   });
 
   return {
     ok: true,
-    redirectTo: publicProfilePath,
-    mode: "guest_public",
+    redirectTo: access.pinEntryPath || nfcLoginPathForUniqueId(uniqueId),
+    mode: "pin_required",
   };
 }

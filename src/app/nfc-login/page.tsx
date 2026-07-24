@@ -4,7 +4,7 @@ import AuthMobileShell from "@/components/auth/AuthMobileShell";
 import CardVerificationEntry from "@/components/nfc/CardVerificationEntry";
 import NfcSmartEntryGate from "@/components/nfc/NfcSmartEntryGate";
 import { HOME_PATH } from "@/lib/nfc/constants";
-import { resolveSmartNfcEntryRedirect } from "@/lib/nfc/nfc-smart-entry.server";
+import { resolveNfcScanAccess } from "@/lib/nfc/nfc-scan-access.server";
 import { getNfcCardForAuthEntry } from "@/lib/nfc/session.server";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 
@@ -41,12 +41,17 @@ export default async function NfcLoginPage({ searchParams }: PageProps) {
     );
   }
 
-  const smartRedirect = await resolveSmartNfcEntryRedirect(uniqueId, {
+  const access = await resolveNfcScanAccess(uniqueId, {
     searchParams: { module, to },
   });
-  if (smartRedirect) {
-    console.log("[NFC_ENTRY /nfc-login] smart redirect →", smartRedirect);
-    redirect(smartRedirect);
+
+  if (access.ok) {
+    console.log("[NFC_ENTRY /nfc-login] owner session →", access.redirectTo);
+    redirect(access.redirectTo);
+  }
+
+  if (access.reason === "account_suspended") {
+    redirect(access.pinEntryPath);
   }
 
   let cardLookup: Awaited<ReturnType<typeof getNfcCardForAuthEntry>> | "fetch_error";

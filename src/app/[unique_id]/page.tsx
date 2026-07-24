@@ -2,7 +2,7 @@ import CardVerificationEntry from "@/components/nfc/CardVerificationEntry";
 import NfcSmartEntryGate from "@/components/nfc/NfcSmartEntryGate";
 import { logNfcEvent } from "@/lib/nfc/error-logger";
 import { ensureNfcCardForProfile } from "@/lib/nfc/nfc-provision.server";
-import { resolveSmartNfcEntryRedirect } from "@/lib/nfc/nfc-smart-entry.server";
+import { resolveNfcScanAccess } from "@/lib/nfc/nfc-scan-access.server";
 import { getNfcCardForAuthEntry } from "@/lib/nfc/session.server";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 import { createServiceRoleClient } from "@/lib/supabase/service";
@@ -25,16 +25,22 @@ export default async function RootCardEntryPage({ params, searchParams }: PagePr
     search: query,
   });
 
-  const smartRedirect = await resolveSmartNfcEntryRedirect(uniqueId, {
+  const access = await resolveNfcScanAccess(uniqueId, {
     searchParams: query,
   });
-  if (smartRedirect) {
-    console.log("[NFC_ENTRY /[unique_id]] smart redirect →", smartRedirect);
-    redirect(smartRedirect);
+
+  if (access.ok) {
+    console.log("[NFC_ENTRY /[unique_id]] owner session →", access.redirectTo);
+    redirect(access.redirectTo);
   }
 
-  console.log("[NFC_ENTRY /[unique_id]] smart entry atlandı — PIN ekranı", {
+  if (access.reason === "account_suspended") {
+    redirect(access.pinEntryPath);
+  }
+
+  console.log("[NFC_ENTRY /[unique_id]] PIN gerekli —", {
     uniqueId,
+    reason: access.reason,
   });
 
   try {

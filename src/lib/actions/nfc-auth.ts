@@ -13,8 +13,6 @@ import { clearNfcSessionCookies } from "@/lib/nfc/session.server";
 import { STORAGE_VERIFIED_COOKIE } from "@/lib/nfc/constants";
 import { withNfcAction } from "@/lib/nfc/with-nfc-action.server";
 
-export type { SignOutResult };
-
 export async function confirmStorageAccessAction(): Promise<void> {
   return withNfcAction("confirmStorageAccessAction", async () => {
     const cookieStore = await cookies();
