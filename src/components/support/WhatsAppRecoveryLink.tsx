@@ -17,7 +17,7 @@ export default function WhatsAppRecoveryLink({
   return (
     <button
       type="button"
-      onClick={() => openWhatsAppRecovery(context)}
+      onClick={() => void openWhatsAppRecovery(context)}
       className={className}
     >
       {label}

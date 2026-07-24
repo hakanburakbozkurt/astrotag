@@ -2,8 +2,9 @@ import { SITE_URL } from "@/lib/nfc/constants";
 import { cardEntryPathForUniqueId } from "@/lib/nfc/card-paths";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 import {
-  WHATSAPP_ADMIN_NUMBER,
   WHATSAPP_RECOVERY_MESSAGE_PREFIX,
+  getWhatsAppAdminNumberFromEnv,
+  normalizeWhatsAppAdminNumber,
 } from "@/lib/support/whatsapp-recovery.config";
 
 export type WhatsAppRecoveryKind = "nfc" | "expert";
@@ -34,8 +35,13 @@ export function buildWhatsAppRecoveryMessage(context: WhatsAppRecoveryContext): 
   return `${WHATSAPP_RECOVERY_MESSAGE_PREFIX} ${reference}`;
 }
 
-export function buildWhatsAppRecoveryUrl(context: WhatsAppRecoveryContext): string {
-  const adminNumber = WHATSAPP_ADMIN_NUMBER.replace(/\D/g, "");
+export function buildWhatsAppRecoveryUrl(
+  context: WhatsAppRecoveryContext,
+  adminNumber?: string
+): string {
+  const digits = normalizeWhatsAppAdminNumber(
+    adminNumber ?? getWhatsAppAdminNumberFromEnv()
+  );
   const text = encodeURIComponent(buildWhatsAppRecoveryMessage(context));
-  return `https://wa.me/${adminNumber}?text=${text}`;
+  return `https://wa.me/${digits}?text=${text}`;
 }
