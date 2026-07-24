@@ -1,17 +1,16 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { LogOut } from "lucide-react";
 import { signOutNfcAction } from "@/lib/actions/nfc-auth-signout";
 import { invalidateAuthCache } from "@/lib/auth";
 import { clearClientLastLogin } from "@/lib/nfc/last-login-persist.client";
 import { HOME_PATH } from "@/lib/nfc/constants";
+import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 
 type SignOutButtonProps = {
   className?: string;
   compact?: boolean;
-  /** Manuel yönlendirme — belirtilmezse sunucu profil tipine göre seçer */
   redirectTo?: string;
 };
 
@@ -20,7 +19,6 @@ export default function SignOutButton({
   compact = false,
   redirectTo,
 }: SignOutButtonProps) {
-  const router = useRouter();
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const handleSignOut = async () => {
@@ -29,22 +27,31 @@ export default function SignOutButton({
     }
 
     setIsSigningOut(true);
+    let target = redirectTo?.trim() || HOME_PATH;
 
     try {
       const result = await signOutNfcAction();
-      clearClientLastLogin();
-      await invalidateAuthCache();
-
-      const target =
-        redirectTo?.trim() ||
-        result.redirectTo ||
-        HOME_PATH;
-
-      router.refresh();
-      router.push(target);
-    } catch {
-      setIsSigningOut(false);
+      target = redirectTo?.trim() || result.redirectTo || HOME_PATH;
+    } catch (error) {
+      console.error("[SignOutButton] server signOut failed:", error);
     }
+
+    clearClientLastLogin();
+
+    try {
+      await invalidateAuthCache();
+    } catch (error) {
+      console.error("[SignOutButton] cache invalidate failed:", error);
+    }
+
+    try {
+      const supabase = createBrowserSupabaseClient();
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error("[SignOutButton] client signOut failed:", error);
+    }
+
+    window.location.assign(target);
   };
 
   return (

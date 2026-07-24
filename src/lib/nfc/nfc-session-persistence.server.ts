@@ -22,12 +22,10 @@ export function isClientLastLoginWithinWindow(
 
 export function isPersistenceAnchorValid(
   cookieLastLoginAt: string | null | undefined,
-  clientLastLoginMs?: number | null
+  _clientLastLoginMs?: number | null
 ): boolean {
-  return (
-    isWithinAuthPersistenceWindow(cookieLastLoginAt) ||
-    isClientLastLoginWithinWindow(clientLastLoginMs ?? null)
-  );
+  // PIN bypass yalnızca sunucu çerezi (HttpOnly) ile — localStorage tek başına yetmez
+  return isWithinAuthPersistenceWindow(cookieLastLoginAt);
 }
 
 /** nfc_sessions — expires_at + last_active_at 24 saat kuralına uygun mu? */

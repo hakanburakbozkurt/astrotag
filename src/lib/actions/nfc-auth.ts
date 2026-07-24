@@ -2,15 +2,11 @@
 
 import { cookies } from "next/headers";
 import { signOutNfcAction, type SignOutResult } from "@/lib/actions/nfc-auth-signout";
-import {
-  clearPendingNfcCardCookie,
-  getStrictCookieOptions,
-  getStrictClearCookieOptions,
-} from "@/lib/nfc/device-cookies.server";
 import { readServerCookieSessionAsync } from "@/lib/nfc/cookie-session.server";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { clearNfcSessionCookies } from "@/lib/nfc/session.server";
+import { clearAllAuthState } from "@/lib/nfc/clear-all-auth-cookies.server";
+import { getStrictCookieOptions } from "@/lib/nfc/device-cookies.server";
 import { STORAGE_VERIFIED_COOKIE } from "@/lib/nfc/constants";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { withNfcAction } from "@/lib/nfc/with-nfc-action.server";
 
 export async function confirmStorageAccessAction(): Promise<void> {
@@ -66,10 +62,6 @@ export async function signOutNfcSessionAction(): Promise<SignOutResult> {
 
 export async function endNfcSessionAction(): Promise<void> {
   return withNfcAction("endNfcSessionAction", async () => {
-    await clearNfcSessionCookies();
-    await clearPendingNfcCardCookie();
-
-    const cookieStore = await cookies();
-    cookieStore.set(STORAGE_VERIFIED_COOKIE, "", getStrictClearCookieOptions());
+    await clearAllAuthState();
   });
 }

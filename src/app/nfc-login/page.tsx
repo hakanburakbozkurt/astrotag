@@ -63,7 +63,7 @@ export default async function NfcLoginPage({ searchParams }: PageProps) {
   }
 
   return (
-    <NfcSmartEntryGate uniqueId={uniqueId}>
+    <NfcSmartEntryGate uniqueId={uniqueId} pinRequired>
       <CardVerificationEntry
         uniqueId={uniqueId}
         cardLookup={cardLookup}

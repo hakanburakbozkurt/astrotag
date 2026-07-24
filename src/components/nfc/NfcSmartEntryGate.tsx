@@ -12,16 +12,23 @@ import {
 type NfcSmartEntryGateProps = {
   uniqueId: string;
   children: ReactNode;
+  /** Sunucu PIN zorunlu dediyse client smart-entry atlanır */
+  pinRequired?: boolean;
 };
 
 export default function NfcSmartEntryGate({
   uniqueId,
   children,
+  pinRequired = false,
 }: NfcSmartEntryGateProps) {
-  const [allowPinScreen, setAllowPinScreen] = useState(false);
+  const [allowPinScreen, setAllowPinScreen] = useState(pinRequired);
   const searchParams = useSearchParams();
 
   useEffect(() => {
+    if (pinRequired) {
+      return;
+    }
+
     let cancelled = false;
 
     void (async () => {
@@ -73,7 +80,7 @@ export default function NfcSmartEntryGate({
     return () => {
       cancelled = true;
     };
-  }, [uniqueId, searchParams]);
+  }, [uniqueId, searchParams, pinRequired]);
 
   if (!allowPinScreen) {
     return (
@@ -81,7 +88,7 @@ export default function NfcSmartEntryGate({
         <div className="flex flex-col items-center gap-3 text-center">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-amber-400/20 border-t-amber-400/80" />
           <p className="text-xs tracking-wide text-amber-200/75">
-            Kozmik oturum doğrulanıyor...
+            Kimlik doğrulanıyor...
           </p>
         </div>
       </div>

@@ -97,7 +97,7 @@ export default async function RootCardEntryPage({ params, searchParams }: PagePr
   }
 
   return (
-    <NfcSmartEntryGate uniqueId={uniqueId}>
+    <NfcSmartEntryGate uniqueId={uniqueId} pinRequired>
       <CardVerificationEntry uniqueId={uniqueId} cardLookup={cardLookup} />
     </NfcSmartEntryGate>
   );
