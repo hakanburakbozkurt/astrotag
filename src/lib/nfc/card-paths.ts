@@ -70,9 +70,26 @@ export function publicProfilePathForUniqueId(uniqueId: string): string {
 }
 
 /** PIN giriş ekranı — kart sahibi doğrulaması */
-export function nfcLoginPathForUniqueId(uniqueId: string): string {
+export function nfcLoginPathForUniqueId(
+  uniqueId: string,
+  options?: { idle?: boolean; module?: string; to?: string }
+): string {
   const slug = normalizeNfcUniqueId(uniqueId);
-  return `${NFC_LOGIN_PATH}?uid=${encodeURIComponent(slug)}`;
+  const params = new URLSearchParams({ uid: slug });
+
+  if (options?.idle) {
+    params.set("idle", "1");
+  }
+
+  if (options?.module?.trim()) {
+    params.set("module", options.module.trim());
+  }
+
+  if (options?.to?.trim()) {
+    params.set("to", options.to.trim());
+  }
+
+  return `${NFC_LOGIN_PATH}?${params.toString()}`;
 }
 
 /** NFC dokunuşu → PIN / sahip doğrulaması (PIN'siz oturum yok) */

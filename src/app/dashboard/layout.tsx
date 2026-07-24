@@ -2,8 +2,9 @@ import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import DashboardTabShell from "@/components/navigation/DashboardTabShell";
 import { isAccountLoginAllowed } from "@/lib/nfc/account-status.server";
-import { NFC_LOGIN_PATH, NFC_SUSPENDED_PATH } from "@/lib/nfc/constants";
+import { NFC_SUSPENDED_PATH } from "@/lib/nfc/constants";
 import { readServerCookieSessionAsync } from "@/lib/nfc/cookie-session.server";
+import { resolveNfcPinRedirectFromCookies } from "@/lib/nfc/resolve-nfc-pin-redirect.server";
 
 /** Dashboard — NFC oturumu + aktif hesap zorunlu */
 export default async function DashboardLayout({
@@ -14,7 +15,7 @@ export default async function DashboardLayout({
   const snapshot = await readServerCookieSessionAsync();
 
   if (!snapshot) {
-    redirect(NFC_LOGIN_PATH);
+    redirect(await resolveNfcPinRedirectFromCookies());
   }
 
   const loginAllowed = await isAccountLoginAllowed({

@@ -1,10 +1,11 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 import { isAuthFormPath } from "@/lib/nfc/auth-paths";
+import { extractRootUniqueId, nfcLoginPathForUniqueId } from "@/lib/nfc/card-paths";
 import {
   AUTH_CALLBACK_PATH,
-  HOME_PATH,
   NFC_FINGERPRINT_COOKIE,
+  NFC_LOGIN_PATH,
   NFC_PROFILE_COOKIE,
   NFC_SESSION_COOKIE,
   PENDING_NFC_COOKIE,
@@ -19,7 +20,6 @@ import {
   sanitizeRequestHeaders,
 } from "@/lib/nfc/error-logger";
 import { runSecurityGate } from "@/lib/nfc/middleware-security";
-import { extractRootUniqueId } from "@/lib/nfc/card-paths";
 
 function getServiceClient(): SupabaseClient | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -172,6 +172,12 @@ export async function handleProxyRequest(
       throw error;
     }
 
-    return buildDeniedResponse(request, HOME_PATH, true);
+    const fallbackNfcId = extractRootUniqueId(pathname);
+    const redirectTo =
+      fallbackNfcId && fallbackNfcId.startsWith("at_")
+        ? nfcLoginPathForUniqueId(fallbackNfcId)
+        : NFC_LOGIN_PATH;
+
+    return buildDeniedResponse(request, redirectTo, true);
   }
 }

@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { NextRequest } from "next/server";
-import { authSignupPathClean, isAuthFormPath } from "@/lib/nfc/auth-paths";
+import { isAuthFormPath } from "@/lib/nfc/auth-paths";
 import {
   extractRootUniqueId,
   isRootCardEntryPath,
@@ -11,7 +11,6 @@ import {
   DASHBOARD_PATH,
   HOME_PATH,
   NFC_CARD_COOKIE,
-  NFC_LOGIN_PATH,
   NFC_PROFILE_COOKIE,
   NFC_PROFILE_READY_COOKIE,
   NFC_SESSION_COOKIE,
@@ -27,6 +26,7 @@ import {
   STORAGE_VERIFIED_COOKIE,
 } from "@/lib/nfc/constants";
 import { readCookieSessionSnapshot } from "@/lib/nfc/cookie-session.shared";
+import { resolveNfcPinRedirectFromRequest } from "@/lib/nfc/resolve-nfc-pin-redirect.server";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 import {
   isNfcSessionExpired,
@@ -343,18 +343,17 @@ function isStorageCheckRequired(pathname: string): boolean {
   return isProtectedPath(pathname);
 }
 
-function sessionMissingRedirect(request: NextRequest): string {
+function sessionMissingRedirect(
+  request: NextRequest,
+  supabase: SupabaseClient | null
+): Promise<string> {
   const { pathname, search } = request.nextUrl;
 
   if (isAuthFormPath(pathname)) {
-    return `${pathname}${search}`;
+    return Promise.resolve(`${pathname}${search}`);
   }
 
-  const pending = request.cookies.get(PENDING_NFC_COOKIE)?.value?.trim();
-  if (pending) {
-    return authSignupPathClean();
-  }
-  return HOME_PATH;
+  return resolveNfcPinRedirectFromRequest(request, supabase);
 }
 
 const COOKIE_SESSION_NAMES = {
@@ -467,10 +466,11 @@ export async function runSecurityGate(
     /** /kayit-tamamla — yalnızca PIN oturumu (pending NFC çerezi yetmez) */
     if (pathname === REGISTRATION_COMPLETE_PATH) {
       if (!sessionId) {
+        const redirectTo = await resolveNfcPinRedirectFromRequest(request, supabase);
         const deny = {
           allowed: false as const,
           reason: "session_missing" as const,
-          redirectTo: HOME_PATH,
+          redirectTo,
         };
         logGateDeny(
           request,
@@ -491,7 +491,7 @@ export async function runSecurityGate(
     }
 
     if (!sessionId) {
-      const redirectTo = sessionMissingRedirect(request);
+      const redirectTo = await sessionMissingRedirect(request, supabase);
       const deny = {
         allowed: false as const,
         reason: "session_missing" as const,
@@ -512,10 +512,11 @@ export async function runSecurityGate(
     }
 
     if (!supabase) {
+      const redirectTo = await resolveNfcPinRedirectFromRequest(request, null);
       const deny = {
         allowed: false as const,
         reason: "session_missing" as const,
-        redirectTo: HOME_PATH,
+        redirectTo,
       };
       logGateDeny(
         request,
@@ -537,8 +538,8 @@ export async function runSecurityGate(
     if (!sessionCheck.ok) {
       const redirectTo =
         sessionCheck.reason === "session_expired"
-          ? NFC_LOGIN_PATH
-          : sessionMissingRedirect(request);
+          ? await resolveNfcPinRedirectFromRequest(request, supabase)
+          : await sessionMissingRedirect(request, supabase);
       const deny = {
         allowed: false as const,
         reason: sessionCheck.reason,

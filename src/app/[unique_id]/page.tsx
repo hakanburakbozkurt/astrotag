@@ -1,9 +1,7 @@
-import CardVerificationEntry from "@/components/nfc/CardVerificationEntry";
-import NfcSmartEntryGate from "@/components/nfc/NfcSmartEntryGate";
+import { nfcLoginPathForUniqueId } from "@/lib/nfc/card-paths";
 import { logNfcEvent } from "@/lib/nfc/error-logger";
 import { ensureNfcCardForProfile } from "@/lib/nfc/nfc-provision.server";
 import { resolveNfcScanAccess } from "@/lib/nfc/nfc-scan-access.server";
-import { getNfcCardForAuthEntry } from "@/lib/nfc/session.server";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import { redirect } from "next/navigation";
@@ -12,6 +10,24 @@ type PageProps = {
   params: Promise<{ unique_id: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
+
+function pickQueryValue(value: string | string[] | undefined): string | undefined {
+  if (Array.isArray(value)) {
+    return value[0]?.trim() || undefined;
+  }
+
+  return value?.trim() || undefined;
+}
+
+function pinRedirectFor(
+  uniqueId: string,
+  query?: Record<string, string | string[] | undefined>
+): string {
+  return nfcLoginPathForUniqueId(uniqueId, {
+    module: pickQueryValue(query?.module),
+    to: pickQueryValue(query?.to),
+  });
+}
 
 /** astrotag.app/{unique_id} — kart doğrulama girişi */
 export default async function RootCardEntryPage({ params, searchParams }: PageProps) {
@@ -34,13 +50,10 @@ export default async function RootCardEntryPage({ params, searchParams }: PagePr
     redirect(access.redirectTo);
   }
 
-  if (access.reason === "account_suspended") {
-    redirect(access.pinEntryPath);
-  }
-
   console.log("[NFC_ENTRY /[unique_id]] PIN gerekli —", {
     uniqueId,
     reason: access.reason,
+    pinEntryPath: access.pinEntryPath,
   });
 
   try {
@@ -79,26 +92,9 @@ export default async function RootCardEntryPage({ params, searchParams }: PagePr
     );
   }
 
-  let cardLookup: Awaited<ReturnType<typeof getNfcCardForAuthEntry>> | "fetch_error";
-
-  try {
-    cardLookup = await getNfcCardForAuthEntry(uniqueId);
-  } catch (error) {
-    logNfcEvent(
-      "error",
-      { layer: "action", handler: "RootCardEntryPage" },
-      "resolveNfcCardForAuth başarısız",
-      {
-        uniqueId,
-        message: error instanceof Error ? error.message : String(error),
-      }
-    );
-    cardLookup = "fetch_error";
-  }
-
-  return (
-    <NfcSmartEntryGate uniqueId={uniqueId} pinRequired>
-      <CardVerificationEntry uniqueId={uniqueId} cardLookup={cardLookup} />
-    </NfcSmartEntryGate>
+  redirect(
+    access.reason === "account_suspended"
+      ? access.pinEntryPath
+      : pinRedirectFor(uniqueId, query)
   );
 }

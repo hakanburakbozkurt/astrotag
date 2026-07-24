@@ -1,10 +1,7 @@
 import "server-only";
 
 import { endNfcSessionAction } from "@/lib/actions/nfc-auth";
-import {
-  cardEntryPathForUniqueId,
-  nfcLoginPathForUniqueId,
-} from "@/lib/nfc/card-paths";
+import { nfcLoginPathForUniqueId } from "@/lib/nfc/card-paths";
 import { nfcCardValidationErrorMessage } from "@/lib/nfc/card-validation-messages";
 import {
   ACCOUNT_SUSPENDED_MESSAGE,
@@ -13,6 +10,7 @@ import {
   NFC_SESSION_COOKIE,
   NFC_SUSPENDED_PATH,
 } from "@/lib/nfc/constants";
+import { readServerCookieSessionAsync } from "@/lib/nfc/cookie-session.server";
 import { logNfcDebug } from "@/lib/nfc/nfc-debug.server";
 import { resolveSmartNfcEntryRedirect } from "@/lib/nfc/nfc-smart-entry.server";
 import {
@@ -96,7 +94,7 @@ export async function resolveNfcScanAccess(
   if (!uniqueId.startsWith("at_")) {
     return {
       ok: false,
-      pinEntryPath: cardEntryPathForUniqueId(uniqueId || rawUniqueId),
+      pinEntryPath: nfcLoginPathForUniqueId(uniqueId || rawUniqueId),
       reason: "invalid_format",
       message: "Geçersiz NFC kart kodu.",
     };
@@ -144,6 +142,20 @@ export async function resolveNfcScanAccess(
         pinEntryPath: smartRedirect,
         reason: "account_suspended",
         message: ACCOUNT_SUSPENDED_MESSAGE,
+      };
+    }
+
+    const cookieSnapshot = await readServerCookieSessionAsync();
+    if (!cookieSnapshot) {
+      logNfcDebug("resolveNfcScanAccess:smart-blocked-incomplete-cookies", {
+        uniqueId,
+        smartRedirect,
+      });
+      return {
+        ok: false,
+        pinEntryPath: pinEntryFor(uniqueId),
+        reason: "no_session",
+        message: NFC_CARD_PIN_REQUIRED_MESSAGE,
       };
     }
 

@@ -2,7 +2,15 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isAccountLoginAllowed } from "@/lib/nfc/account-status.server";
-import { DASHBOARD_PATH } from "@/lib/nfc/constants";
+import {
+  DASHBOARD_PATH,
+  NFC_CARD_COOKIE,
+  NFC_PROFILE_COOKIE,
+  NFC_PROFILE_READY_COOKIE,
+  NFC_SESSION_COOKIE,
+  NFC_SESSION_EXPIRES_COOKIE,
+} from "@/lib/nfc/constants";
+import { readCookieSessionSnapshot } from "@/lib/nfc/cookie-session.shared";
 import { logNfcDebug } from "@/lib/nfc/nfc-debug.server";
 import { readLastLoginAtCookie } from "@/lib/nfc/auth-persistence.server";
 import {
@@ -16,6 +24,7 @@ import {
 } from "@/lib/nfc/nfc-session-activity.server";
 import { readPostAuthReturnToCookie } from "@/lib/nfc/post-pin-redirect.server";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
+import { cookies } from "next/headers";
 
 export type SmartNfcSessionEntryResult =
   | { ok: true; redirectTo: string }
@@ -91,6 +100,27 @@ export async function trySmartNfcSessionEntry(
 
   if (!sessionSlug || sessionSlug !== normalizedScan) {
     return { ok: false, reason: "card_slug_mismatch" };
+  }
+
+  const cookieStore = await cookies();
+  const cookieSnapshot = readCookieSessionSnapshot(cookieStore, {
+    session: NFC_SESSION_COOKIE,
+    profile: NFC_PROFILE_COOKIE,
+    card: NFC_CARD_COOKIE,
+    expires: NFC_SESSION_EXPIRES_COOKIE,
+    profileReady: NFC_PROFILE_READY_COOKIE,
+  });
+
+  if (
+    !cookieSnapshot ||
+    cookieSnapshot.sessionId !== trimmedSessionId ||
+    cookieSnapshot.profileId !== session.profile_id
+  ) {
+    logNfcDebug("trySmartNfcSessionEntry:cookie-bundle-invalid", {
+      hasSnapshot: Boolean(cookieSnapshot),
+      sessionIdMatch: cookieSnapshot?.sessionId === trimmedSessionId,
+    });
+    return { ok: false, reason: "cookie_bundle_invalid" };
   }
 
   const loginAllowed = await isAccountLoginAllowed({
