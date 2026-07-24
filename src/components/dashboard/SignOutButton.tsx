@@ -1,20 +1,26 @@
 "use client";
 
-import { clientRedirect } from "@/lib/auth/client-redirect.client";
-import { invalidateAuthCache } from "@/lib/auth";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { LogOut } from "lucide-react";
-import { signOutNfcSessionAction } from "@/lib/actions/nfc-auth";
+import { signOutNfcAction } from "@/lib/actions/nfc-auth-signout";
+import { invalidateAuthCache } from "@/lib/auth";
+import { clearClientLastLogin } from "@/lib/nfc/last-login-persist.client";
+import { HOME_PATH } from "@/lib/nfc/constants";
 
 type SignOutButtonProps = {
   className?: string;
   compact?: boolean;
+  /** Manuel yönlendirme — belirtilmezse sunucu profil tipine göre seçer */
+  redirectTo?: string;
 };
 
 export default function SignOutButton({
   className = "",
   compact = false,
+  redirectTo,
 }: SignOutButtonProps) {
+  const router = useRouter();
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const handleSignOut = async () => {
@@ -23,10 +29,19 @@ export default function SignOutButton({
     }
 
     setIsSigningOut(true);
+
     try {
-      await signOutNfcSessionAction();
+      const result = await signOutNfcAction();
+      clearClientLastLogin();
       await invalidateAuthCache();
-      clientRedirect("/");
+
+      const target =
+        redirectTo?.trim() ||
+        result.redirectTo ||
+        HOME_PATH;
+
+      router.refresh();
+      router.push(target);
     } catch {
       setIsSigningOut(false);
     }
