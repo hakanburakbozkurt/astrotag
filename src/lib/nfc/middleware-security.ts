@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { NextRequest } from "next/server";
-import { isAuthFormPath } from "@/lib/nfc/auth-paths";
+import { isAuthFormPath, isPublicAppPath, normalizeAuthPathname } from "@/lib/nfc/auth-paths";
 import {
   extractRootUniqueId,
   isRootCardEntryPath,
@@ -11,6 +11,7 @@ import {
   DASHBOARD_PATH,
   HOME_PATH,
   NFC_CARD_COOKIE,
+  NFC_LOGIN_PATH,
   NFC_PROFILE_COOKIE,
   NFC_PROFILE_READY_COOKIE,
   NFC_SESSION_COOKIE,
@@ -256,8 +257,14 @@ export function isProtectedPath(pathname: string): boolean {
   );
 }
 
-/** /c/, /p/, /nfc/enter, /nfc/suspended, /{at_xxx} — oturum gerekmez; redirect döngüsünü önlemek için bypass */
+/** /c/, /p/, /nfc/enter, /nfc/suspended, /nfc-login, /{at_xxx} — oturum gerekmez */
 function isNfcCardRouteBypass(pathname: string): boolean {
+  const normalized = normalizeAuthPathname(pathname);
+
+  if (normalized === NFC_LOGIN_PATH) {
+    return true;
+  }
+
   if (
     pathname === "/nfc/enter" ||
     pathname.startsWith("/nfc/enter") ||
@@ -319,6 +326,10 @@ export function shouldRedirectUnknownToHome(pathname: string): boolean {
   }
 
   if (isNfcCardRoutePath(pathname) || isAuthFormPath(pathname) || isWarningPath(pathname)) {
+    return false;
+  }
+
+  if (isPublicAppPath(pathname)) {
     return false;
   }
 
@@ -415,7 +426,7 @@ export async function runSecurityGate(
       return { allowed: true };
     }
 
-    if (isAuthFormPath(pathname)) {
+    if (isAuthFormPath(pathname) || isPublicAppPath(pathname)) {
       return { allowed: true };
     }
 

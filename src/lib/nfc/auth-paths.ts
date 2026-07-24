@@ -1,6 +1,8 @@
 import {
   AUTH_LOGIN_PATH,
   AUTH_SIGNUP_PATH,
+  NFC_LOGIN_PATH,
+  PUBLIC_PATHS,
   VERIFY_OTP_PATH,
 } from "@/lib/nfc/constants";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
@@ -12,13 +14,19 @@ export function normalizeAuthPathname(pathname: string): string {
   return pathname;
 }
 
-/** Kayıt / giriş / OTP — middleware ve client guard'lar için serbest geçiş */
+/** Tanınmış herkese açık uygulama rotası (query string middleware'de pathname dışında kalır) */
+export function isPublicAppPath(pathname: string): boolean {
+  return PUBLIC_PATHS.has(normalizeAuthPathname(pathname));
+}
+
+/** Kayıt / giriş / OTP / NFC PIN — middleware ve client guard'lar için serbest geçiş */
 export function isAuthFormPath(pathname: string): boolean {
   const normalized = normalizeAuthPathname(pathname);
   return (
     normalized === AUTH_SIGNUP_PATH ||
     normalized === AUTH_LOGIN_PATH ||
-    normalized === VERIFY_OTP_PATH
+    normalized === VERIFY_OTP_PATH ||
+    normalized === NFC_LOGIN_PATH
   );
 }
 
