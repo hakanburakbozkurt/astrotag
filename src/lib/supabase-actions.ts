@@ -230,6 +230,11 @@ export async function getStarPointsChargeState(): Promise<StarPointsChargeState>
       .maybeSingle();
 
     if (error) {
+      console.error("[getStarPointsChargeState] profiles okuma hatası", {
+        profileId: userId,
+        code: error.code,
+        message: error.message,
+      });
       mapSupabaseError(error, "Yıldız puanı bilgisi alınamadı.");
     }
 
@@ -429,7 +434,6 @@ export async function applyReferralCode(rawCode: string): Promise<ReferralInfo> 
 
 export async function chargeStarPoints(): Promise<{
   starPoints: number;
-  session: Session;
   chargeState: StarPointsChargeState;
 }> {
   try {
@@ -462,22 +466,29 @@ export async function chargeStarPoints(): Promise<{
       .eq("id", userId);
 
     if (updateError) {
+      console.error("[chargeStarPoints] profiles güncelleme hatası", {
+        profileId: userId,
+        code: updateError.code,
+        message: updateError.message,
+        details: updateError.details,
+        hint: updateError.hint,
+      });
       mapSupabaseError(updateError, "Yıldız puanı güncellenemedi.");
     }
 
-    const session = await createSession(SESSION_DURATION_HOURS);
     const chargeState = buildStarPointsChargeState(
       nextStarPoints,
       currentState.starPointsBonus,
       nowIso
     );
 
-    return { starPoints: nextStarPoints, session, chargeState };
+    return { starPoints: nextStarPoints, chargeState };
   } catch (error) {
     if (error instanceof SupabaseActionError) {
       throw error;
     }
 
+    console.error("[chargeStarPoints] beklenmeyen hata", error);
     throw new SupabaseActionError("Yıldız puanı yüklenirken bir hata oluştu.");
   }
 }

@@ -158,12 +158,15 @@ export function useStarEconomy() {
         writeLocalLastClaimed(previousState.lastStarPointsCharge);
       }
 
-      if (
-        err instanceof SupabaseActionError &&
-        (err.message.includes("beklemelisiniz") || err.message.includes("dolu"))
-      ) {
-        setClaimError(err.message);
-      }
+      const message =
+        err instanceof SupabaseActionError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : "Yıldız toplanamadı. Lütfen tekrar deneyin.";
+
+      console.error("[useStarEconomy] claimStars failed:", err);
+      setClaimError(message);
     } finally {
       isClaimingRef.current = false;
       setIsClaiming(false);
