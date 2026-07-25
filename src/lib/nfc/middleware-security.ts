@@ -6,6 +6,9 @@ import {
   isRootCardEntryPath,
 } from "@/lib/nfc/card-paths";
 import {
+  EXPERT_AUTH_CALLBACK_PATH,
+} from "@/lib/expert/expert-paths";
+import {
   AUTH_CALLBACK_PATH,
   CARD_ENTRY_PREFIX,
   DASHBOARD_PATH,
@@ -214,7 +217,9 @@ function isWarningPath(pathname: string): boolean {
 function isAuthCallbackPath(pathname: string): boolean {
   return (
     pathname === AUTH_CALLBACK_PATH ||
-    pathname.startsWith(`${AUTH_CALLBACK_PATH}/`)
+    pathname.startsWith(`${AUTH_CALLBACK_PATH}/`) ||
+    pathname === EXPERT_AUTH_CALLBACK_PATH ||
+    pathname.startsWith(`${EXPERT_AUTH_CALLBACK_PATH}/`)
   );
 }
 

@@ -7,26 +7,33 @@ import {
   isValidExpertCode,
   normalizeExpertCode,
 } from "@/lib/expert/expert-codes.shared";
-import { INVALID_PIN_MESSAGE } from "@/lib/nfc/constants";
+import {
+  findAuthUserIdByEmail,
+  getAuthUserEmail,
+  isValidExpertEmail,
+  normalizeExpertEmail,
+} from "@/lib/expert/expert-auth-email.server";
+import {
+  clearExpertPendingCookie,
+  getExpertPendingCookie,
+  setExpertPendingCookie,
+  type ExpertPendingPayload,
+} from "@/lib/expert/expert-pending-cookie.server";
+import { EXPERT_AUTH_CALLBACK_PATH, EXPERT_LOGIN_PATH } from "@/lib/expert/expert-paths";
 import { NFC_CARD_TABLE } from "@/lib/nfc/nfc-card-table";
-import { normalizePinInput, isPinInputReady } from "@/lib/nfc/pin-input";
 import { setNfcSession } from "@/lib/nfc/session.server";
+import { SITE_URL } from "@/lib/nfc/constants";
 import { STARTING_STAR_POINTS } from "@/lib/constants/cosmic";
 import { generateReferralCode } from "@/lib/referral";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
+import { authEmailExists } from "@/lib/auth/auth-email-exists.server";
 
 const PROFILES_TABLE = "profiles";
 const ACCESS_CODES_TABLE = "access_codes";
 const PLACEHOLDER_BIRTH_DATE = "1970-01-01";
 
 export type ExpertAuthError = { ok: false; error: string };
-export type ExpertLoginSuccess = { ok: true; profileId: string; redirectTo: string };
-export type ExpertRegisterSuccess = {
-  ok: true;
-  profileId: string;
-  expertCode: string;
-  redirectTo: string;
-};
 
 async function generateUniqueExpertCode(
   admin: ReturnType<typeof createServiceRoleClient>
@@ -120,32 +127,173 @@ async function ensureExpertVirtualCard(
   return created.id;
 }
 
-export async function registerExpertAccount(input: {
+async function findExpertProfileByAuthUserId(authUserId: string) {
+  const admin = createServiceRoleClient();
+  const { data } = await admin
+    .from(PROFILES_TABLE)
+    .select("id, expert_code, user_role, is_active, name")
+    .eq("user_id", authUserId)
+    .maybeSingle();
+
+  if (!data?.id || data.user_role !== "expert") {
+    return null;
+  }
+
+  return data;
+}
+
+async function establishExpertNfcSession(
+  profileId: string,
+  expertCode: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const admin = createServiceRoleClient();
+  const slug = expertNfcSlugForCode(expertCode);
+  const nfcCardUuid = await ensureExpertVirtualCard(admin, profileId, expertCode);
+
+  if (!nfcCardUuid) {
+    return { ok: false, error: "Uzman oturumu başlatılamadı." };
+  }
+
+  try {
+    await assertAccountLoginAllowed({
+      profileId,
+      nfcCardUuid,
+      uniqueId: slug,
+    });
+    await setNfcSession({ profileId, nfcCardUuid });
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Oturum açılamadı.",
+    };
+  }
+}
+
+export async function sendExpertLoginMagicLink(
+  rawEmail: string
+): Promise<{ ok: true } | ExpertAuthError> {
+  const email = normalizeExpertEmail(rawEmail);
+
+  if (!isValidExpertEmail(email)) {
+    return { ok: false, error: "Geçerli bir e-posta adresi girin." };
+  }
+
+  const authUserId = await findAuthUserIdByEmail(email);
+  if (!authUserId) {
+    return {
+      ok: false,
+      error: "Bu e-posta ile kayıtlı uzman bulunamadı. Önce kayıt olun.",
+    };
+  }
+
+  const expertProfile = await findExpertProfileByAuthUserId(authUserId);
+  if (!expertProfile) {
+    return {
+      ok: false,
+      error: "Bu e-posta uzman platformuna bağlı değil.",
+    };
+  }
+
+  if (expertProfile.is_active === false) {
+    return { ok: false, error: "Hesabınız askıya alınmıştır." };
+  }
+
+  const supabase = await createServerSupabaseClient();
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      shouldCreateUser: false,
+      emailRedirectTo: `${SITE_URL}${EXPERT_AUTH_CALLBACK_PATH}`,
+    },
+  });
+
+  if (error) {
+    console.error("[sendExpertLoginMagicLink]", error.message);
+    return { ok: false, error: "Giriş bağlantısı gönderilemedi." };
+  }
+
+  await setExpertPendingCookie({ mode: "login", email });
+  return { ok: true };
+}
+
+export async function sendExpertRegisterMagicLink(input: {
+  email: string;
   inviteCode: string;
   name: string;
-  pin: string;
-}): Promise<ExpertRegisterSuccess | ExpertAuthError> {
+}): Promise<{ ok: true } | ExpertAuthError> {
+  const email = normalizeExpertEmail(input.email);
   const inviteCode = normalizeExpertCode(input.inviteCode);
   const name = input.name.trim();
-  const pin = normalizePinInput(input.pin);
+
+  if (!isValidExpertEmail(email)) {
+    return { ok: false, error: "Geçerli bir e-posta adresi girin." };
+  }
 
   if (!isValidExpertCode(inviteCode)) {
     return { ok: false, error: "8 haneli geçerli bir davet kodu girin." };
   }
 
-  if (!name || name.length < 2) {
+  if (name.length < 2) {
     return { ok: false, error: "Adınız en az 2 karakter olmalıdır." };
   }
 
-  if (!isPinInputReady(pin)) {
-    return { ok: false, error: "PIN en az 4, en fazla 8 haneli olmalıdır." };
+  const admin = createServiceRoleClient();
+  const { data: inviteRow } = await admin
+    .from(ACCESS_CODES_TABLE)
+    .select("id")
+    .eq("code", inviteCode)
+    .eq("type", "EXP")
+    .maybeSingle();
+
+  if (!inviteRow?.id) {
+    return { ok: false, error: "Geçersiz veya kullanılmış davet kodu." };
   }
 
+  if (await authEmailExists(email)) {
+    return {
+      ok: false,
+      error: "Bu e-posta zaten kayıtlı. Giriş sayfasını kullanın.",
+    };
+  }
+
+  const supabase = await createServerSupabaseClient();
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      shouldCreateUser: true,
+      emailRedirectTo: `${SITE_URL}${EXPERT_AUTH_CALLBACK_PATH}`,
+    },
+  });
+
+  if (error) {
+    console.error("[sendExpertRegisterMagicLink]", error.message);
+    return { ok: false, error: "Kayıt bağlantısı gönderilemedi." };
+  }
+
+  await setExpertPendingCookie({
+    mode: "register",
+    email,
+    inviteCode,
+    name,
+  });
+
+  return { ok: true };
+}
+
+async function createExpertProfileFromPending(
+  authUserId: string,
+  pending: Extract<ExpertPendingPayload, { mode: "register" }>
+): Promise<
+  | { ok: true; profileId: string; expertCode: string }
+  | { ok: false; error: string }
+> {
   const admin = createServiceRoleClient();
+  const inviteCode = normalizeExpertCode(pending.inviteCode);
   const expertCode = await generateUniqueExpertCode(admin);
 
   if (!expertCode) {
-    return { ok: false, error: "Uzman kodu oluşturulamadı. Lütfen tekrar deneyin." };
+    return { ok: false, error: "Uzman kodu oluşturulamadı." };
   }
 
   const redeemed = await redeemExpertInviteCode(admin, inviteCode);
@@ -158,7 +306,8 @@ export async function registerExpertAccount(input: {
 
   const { error: profileError } = await admin.from(PROFILES_TABLE).insert({
     id: profileId,
-    name,
+    user_id: authUserId,
+    name: pending.name.trim(),
     birth_date: PLACEHOLDER_BIRTH_DATE,
     birth_time: "00:00:00",
     birth_place: "",
@@ -167,116 +316,123 @@ export async function registerExpertAccount(input: {
     relationship_status: "İlişki Yok",
     star_points: STARTING_STAR_POINTS,
     star_points_bonus: 0,
+    crystal_balance: 0,
     referral_code: generateReferralCode(),
     nfc_uid: slug,
     expert_code: expertCode,
-    pin_code: pin,
     user_role: "expert",
     is_active: true,
   });
 
   if (profileError) {
-    return {
-      ok: false,
-      error: "Uzman hesabı oluşturulamadı. Lütfen tekrar deneyin.",
-    };
+    return { ok: false, error: "Uzman hesabı oluşturulamadı." };
   }
 
   const nfcCardUuid = await ensureExpertVirtualCard(admin, profileId, expertCode);
   if (!nfcCardUuid) {
-    return {
-      ok: false,
-      error: "Uzman oturum kartı oluşturulamadı. Lütfen tekrar deneyin.",
-    };
+    return { ok: false, error: "Uzman oturum kartı oluşturulamadı." };
   }
 
-  try {
-    await assertAccountLoginAllowed({ profileId, nfcCardUuid, uniqueId: slug });
-    await setNfcSession({ profileId, nfcCardUuid });
-  } catch (error) {
-    return {
-      ok: false,
-      error: error instanceof Error ? error.message : "Oturum açılamadı.",
-    };
-  }
-
-  return {
-    ok: true,
-    profileId,
-    expertCode,
-    redirectTo: "/dashboard",
-  };
+  return { ok: true, profileId, expertCode };
 }
 
-export async function loginExpertAccount(input: {
-  expertCode: string;
-  pin: string;
-}): Promise<ExpertLoginSuccess | ExpertAuthError> {
-  const expertCode = normalizeExpertCode(input.expertCode);
-  const pin = normalizePinInput(input.pin);
-
-  if (!isValidExpertCode(expertCode)) {
-    return { ok: false, error: "8 haneli uzman kodunuzu girin." };
+function pendingEmailMatchesAuthUser(
+  pendingEmail: string,
+  authEmail: string | null
+): boolean {
+  if (!authEmail) {
+    return false;
   }
 
-  if (!isPinInputReady(pin)) {
-    return { ok: false, error: "PIN en az 4, en fazla 8 haneli olmalıdır." };
+  return normalizeExpertEmail(pendingEmail) === normalizeExpertEmail(authEmail);
+}
+
+export async function finalizeExpertEmailAuth(authUserId: string): Promise<
+  | { ok: true; redirectTo: string }
+  | { ok: false; error: string; redirectTo: string }
+> {
+  const pending = await getExpertPendingCookie();
+  const failRedirect = EXPERT_LOGIN_PATH;
+  const authEmail = await getAuthUserEmail(authUserId);
+
+  if (pending?.mode === "register") {
+    if (!pendingEmailMatchesAuthUser(pending.email, authEmail)) {
+      await clearExpertPendingCookie();
+      return {
+        ok: false,
+        error: "E-posta doğrulaması eşleşmedi. Lütfen tekrar deneyin.",
+        redirectTo: failRedirect,
+      };
+    }
+
+    const existingExpert = await findExpertProfileByAuthUserId(authUserId);
+    if (existingExpert?.expert_code) {
+      await clearExpertPendingCookie();
+      const session = await establishExpertNfcSession(
+        existingExpert.id,
+        existingExpert.expert_code
+      );
+
+      if (!session.ok) {
+        return { ok: false, error: session.error, redirectTo: failRedirect };
+      }
+
+      return { ok: true, redirectTo: "/dashboard" };
+    }
+
+    const created = await createExpertProfileFromPending(authUserId, pending);
+    await clearExpertPendingCookie();
+
+    if (!created.ok) {
+      return { ok: false, error: created.error, redirectTo: failRedirect };
+    }
+
+    const session = await establishExpertNfcSession(
+      created.profileId,
+      created.expertCode
+    );
+
+    if (!session.ok) {
+      return { ok: false, error: session.error, redirectTo: failRedirect };
+    }
+
+    return { ok: true, redirectTo: "/dashboard" };
   }
 
-  const admin = createServiceRoleClient();
-
-  const { data: profile, error: profileError } = await admin
-    .from(PROFILES_TABLE)
-    .select("id, pin_code, is_active, user_role")
-    .eq("expert_code", expertCode)
-    .maybeSingle();
-
-  if (profileError || !profile?.id) {
-    return { ok: false, error: INVALID_PIN_MESSAGE };
+  if (pending?.mode === "login") {
+    if (!pendingEmailMatchesAuthUser(pending.email, authEmail)) {
+      await clearExpertPendingCookie();
+      return {
+        ok: false,
+        error: "E-posta doğrulaması eşleşmedi. Lütfen tekrar deneyin.",
+        redirectTo: failRedirect,
+      };
+    }
   }
 
-  if (profile.user_role !== "expert") {
-    return { ok: false, error: INVALID_PIN_MESSAGE };
-  }
+  await clearExpertPendingCookie();
 
-  if (profile.is_active === false) {
-    return { ok: false, error: "Hesabınız askıya alınmıştır." };
-  }
-
-  const storedPin = profile.pin_code?.trim() ?? "";
-  if (!storedPin || storedPin !== pin) {
-    return { ok: false, error: INVALID_PIN_MESSAGE };
-  }
-
-  const nfcCardUuid = await ensureExpertVirtualCard(
-    admin,
-    profile.id,
-    expertCode
-  );
-
-  if (!nfcCardUuid) {
-    return { ok: false, error: "Uzman oturumu başlatılamadı." };
-  }
-
-  const slug = expertNfcSlugForCode(expertCode);
-
-  try {
-    await assertAccountLoginAllowed({
-      profileId: profile.id,
-      nfcCardUuid,
-      uniqueId: slug,
-    });
-    await setNfcSession({ profileId: profile.id, nfcCardUuid });
-  } catch (error) {
+  const expert = await findExpertProfileByAuthUserId(authUserId);
+  if (!expert?.expert_code) {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : "Oturum açılamadı.",
+      error: "Uzman hesabı bulunamadı veya yetkiniz yok.",
+      redirectTo: failRedirect,
     };
   }
 
-  return {
-    ok: true,
-    profileId: profile.id,
-    redirectTo: "/dashboard",
-  };
+  if (expert.is_active === false) {
+    return {
+      ok: false,
+      error: "Hesabınız askıya alınmıştır.",
+      redirectTo: failRedirect,
+    };
+  }
+
+  const session = await establishExpertNfcSession(expert.id, expert.expert_code);
+  if (!session.ok) {
+    return { ok: false, error: session.error, redirectTo: failRedirect };
+  }
+
+  return { ok: true, redirectTo: "/dashboard" };
 }

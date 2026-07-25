@@ -206,7 +206,7 @@ export async function redeemDigitalAccessCodeAction(
 }
 
 /** EXP-XXXX-XXXX — user_role = expert
- * @deprecated Uzman kaydı için /uzman/kayit — registerExpertAction kullanın
+ * @deprecated Uzman kaydı için /uzman/kayit — sendExpertRegisterLinkAction kullanın
  */
 export async function redeemExpertAccessCodeAction(
   rawCode: string

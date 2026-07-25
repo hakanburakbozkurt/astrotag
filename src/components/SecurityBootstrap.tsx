@@ -14,7 +14,9 @@ import {
   PRIVATE_MODE_PATH,
   PUBLIC_PROFILE_PREFIX,
   AUTH_CALLBACK_PATH,
+  EXPERT_AUTH_CALLBACK_PATH,
 } from "@/lib/nfc/constants";
+import { EXPERT_LOGIN_PATH, EXPERT_REGISTER_PATH } from "@/lib/expert/expert-paths";
 import { SALES_ONLY_PATHS } from "@/lib/sales/star-packages-catalog";
 import { isAuthFormPath } from "@/lib/nfc/auth-paths";
 import { isRootCardEntryPath } from "@/lib/nfc/card-paths";
@@ -45,7 +47,10 @@ function shouldRunStorageCheck(pathname: string): boolean {
     pathname.startsWith(`${NFC_ENTER_PATH}?`) ||
     isRootCardEntryPath(pathname) ||
     isAuthFormPath(pathname) ||
-    pathname.startsWith(AUTH_CALLBACK_PATH)
+    pathname.startsWith(AUTH_CALLBACK_PATH) ||
+    pathname.startsWith(EXPERT_AUTH_CALLBACK_PATH) ||
+    pathname === EXPERT_LOGIN_PATH ||
+    pathname === EXPERT_REGISTER_PATH
   ) {
     return false;
   }

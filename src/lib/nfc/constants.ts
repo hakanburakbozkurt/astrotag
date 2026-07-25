@@ -3,9 +3,16 @@ import {
   SALES_ORDERS_PATH,
 } from "@/lib/sales/star-packages-catalog";
 import {
+  EXPERT_AUTH_CALLBACK_PATH,
   EXPERT_LOGIN_PATH,
   EXPERT_REGISTER_PATH,
 } from "@/lib/expert/expert-paths";
+
+export {
+  EXPERT_AUTH_CALLBACK_PATH,
+  EXPERT_LOGIN_PATH,
+  EXPERT_REGISTER_PATH,
+};
 
 export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://astrotag.app";
@@ -87,6 +94,7 @@ export const PUBLIC_PATHS = new Set([
   PRIVATE_MODE_PATH,
   VERIFY_OTP_PATH,
   AUTH_CALLBACK_PATH,
+  EXPERT_AUTH_CALLBACK_PATH,
   AUTH_SIGNUP_PATH,
   AUTH_LOGIN_PATH,
   NFC_LOGIN_PATH,

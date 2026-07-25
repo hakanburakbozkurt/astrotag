@@ -1,4 +1,8 @@
 import {
+  EXPERT_LOGIN_PATH,
+  EXPERT_REGISTER_PATH,
+} from "@/lib/expert/expert-paths";
+import {
   AUTH_LOGIN_PATH,
   AUTH_SIGNUP_PATH,
   NFC_LOGIN_PATH,
@@ -26,7 +30,9 @@ export function isAuthFormPath(pathname: string): boolean {
     normalized === AUTH_SIGNUP_PATH ||
     normalized === AUTH_LOGIN_PATH ||
     normalized === VERIFY_OTP_PATH ||
-    normalized === NFC_LOGIN_PATH
+    normalized === NFC_LOGIN_PATH ||
+    normalized === EXPERT_LOGIN_PATH ||
+    normalized === EXPERT_REGISTER_PATH
   );
 }
 

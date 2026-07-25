@@ -1,32 +1,35 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useMemo, useState } from "react";
-import { loginExpertAction } from "@/lib/actions/expert-auth";
-import {
-  formatExpertCodeInput,
-  isValidExpertCode,
-} from "@/lib/expert/expert-codes.shared";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { sendExpertLoginLinkAction } from "@/lib/actions/expert-auth";
 import { EXPERT_REGISTER_PATH } from "@/lib/expert/expert-paths";
-import { isPinInputReady, normalizePinInput } from "@/lib/nfc/pin-input";
-import { navigateAfterNfcAuth } from "@/lib/nfc/post-auth-nav.client";
-import { recordClientLastLogin } from "@/lib/nfc/last-login-persist.client";
-import WhatsAppRecoveryLink from "@/components/support/WhatsAppRecoveryLink";
 import {
   authInputClassName,
   authPrimaryButtonClassName,
 } from "@/components/auth/auth-field-styles";
 
+function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+}
+
 export default function ExpertLoginForm() {
-  const [expertCode, setExpertCode] = useState("");
-  const [pin, setPin] = useState("");
+  const searchParams = useSearchParams();
+  const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
 
-  const normalizedCode = useMemo(() => formatExpertCodeInput(expertCode), [expertCode]);
-  const pinDigits = useMemo(() => normalizePinInput(pin), [pin]);
-  const canSubmit =
-    isValidExpertCode(normalizedCode) && isPinInputReady(pinDigits) && !loading;
+  const normalizedEmail = useMemo(() => email.trim().toLowerCase(), [email]);
+  const canSubmit = isValidEmail(normalizedEmail) && !loading;
+
+  useEffect(() => {
+    const authError = searchParams.get("auth_error");
+    if (authError) {
+      setError(authError);
+    }
+  }, [searchParams]);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -37,60 +40,61 @@ export default function ExpertLoginForm() {
 
     setLoading(true);
     setError(null);
+    setSent(false);
 
     try {
-      const result = await loginExpertAction({
-        expertCode: normalizedCode,
-        pin: pinDigits,
-      });
+      const result = await sendExpertLoginLinkAction({ email: normalizedEmail });
 
       if (!result.ok) {
         setError(result.error);
         return;
       }
 
-      recordClientLastLogin();
-      navigateAfterNfcAuth(result.redirectTo);
+      setSent(true);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Giriş yapılamadı.");
+      setError(cause instanceof Error ? cause.message : "Giriş bağlantısı gönderilemedi.");
     } finally {
       setLoading(false);
     }
   }
 
+  if (sent) {
+    return (
+      <div className="flex flex-col gap-4 text-center">
+        <p className="rounded-xl border border-emerald-400/30 bg-emerald-950/30 px-4 py-4 text-sm text-emerald-100">
+          Giriş bağlantısı{" "}
+          <span className="font-medium text-white">{normalizedEmail}</span>{" "}
+          adresine gönderildi. E-postanızdaki bağlantıya tıklayarak Uzman Panelinize
+          erişebilirsiniz.
+        </p>
+        <p className="text-[11px] text-white/40">
+          Bağlantıyı göremiyorsanız spam klasörünü kontrol edin.
+        </p>
+        <button
+          type="button"
+          onClick={() => setSent(false)}
+          className="text-[11px] font-medium text-amber-200/90 underline-offset-2 hover:underline"
+        >
+          Farklı e-posta dene
+        </button>
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={(event) => void handleSubmit(event)} className="flex flex-col gap-4" noValidate>
       <label className="text-[11px] uppercase tracking-widest text-white/45">
-        Uzman Kodu
+        E-posta Adresi
       </label>
       <input
-        type="text"
-        inputMode="numeric"
-        autoComplete="username"
+        type="email"
+        inputMode="email"
+        autoComplete="email"
         required
-        maxLength={8}
-        value={expertCode}
-        onChange={(event) => setExpertCode(formatExpertCodeInput(event.target.value))}
-        placeholder="12345678"
-        className={`${authInputClassName} text-center font-mono tracking-[0.35em]`}
-      />
-
-      <label className="text-[11px] uppercase tracking-widest text-white/45">
-        PIN
-      </label>
-      <input
-        type="password"
-        inputMode="numeric"
-        autoComplete="current-password"
-        required
-        minLength={4}
-        maxLength={8}
-        value={pin}
-        onChange={(event) =>
-          setPin(normalizePinInput(event.target.value).slice(0, 8))
-        }
-        placeholder="••••"
-        className={`${authInputClassName} text-center text-xl tracking-[0.45em]`}
+        value={email}
+        onChange={(event) => setEmail(event.target.value)}
+        placeholder="uzman@ornek.com"
+        className={authInputClassName}
       />
 
       {error ? (
@@ -107,16 +111,11 @@ export default function ExpertLoginForm() {
         disabled={!canSubmit}
         className={`${authPrimaryButtonClassName} mt-2`}
       >
-        {loading ? "Doğrulanıyor..." : "Giriş Yap"}
+        {loading ? "Gönderiliyor..." : "Giriş Bağlantısı Gönder"}
       </button>
 
-      <WhatsAppRecoveryLink
-        context={{ kind: "expert", expertCode: normalizedCode || "00000000" }}
-        label="Şifremi Unuttum"
-      />
-
       <p className="text-center text-[11px] text-white/40">
-        PIN sıfırlama yalnızca WhatsApp destek hattı üzerinden yapılır.
+        Şifre gerekmez. E-postanıza tek tıkla giriş bağlantısı gönderilir.
       </p>
 
       <p className="mt-2 text-center text-[11px]">

@@ -2,6 +2,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 import { isAuthFormPath } from "@/lib/nfc/auth-paths";
 import { extractRootUniqueId, nfcLoginPathForUniqueId } from "@/lib/nfc/card-paths";
+import { EXPERT_AUTH_CALLBACK_PATH } from "@/lib/expert/expert-paths";
 import {
   AUTH_CALLBACK_PATH,
   NFC_FINGERPRINT_COOKIE,
@@ -78,7 +79,9 @@ function buildDeniedResponse(
 function isAuthCallbackPath(pathname: string): boolean {
   return (
     pathname === AUTH_CALLBACK_PATH ||
-    pathname.startsWith(`${AUTH_CALLBACK_PATH}/`)
+    pathname.startsWith(`${AUTH_CALLBACK_PATH}/`) ||
+    pathname === EXPERT_AUTH_CALLBACK_PATH ||
+    pathname.startsWith(`${EXPERT_AUTH_CALLBACK_PATH}/`)
   );
 }
 

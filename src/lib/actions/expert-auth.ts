@@ -1,60 +1,59 @@
 "use server";
 
 import {
-  loginExpertAccount,
-  registerExpertAccount,
+  finalizeExpertEmailAuth,
+  sendExpertLoginMagicLink,
+  sendExpertRegisterMagicLink,
 } from "@/lib/expert/expert-auth.server";
-import { nfcAuthSuccessAction } from "@/lib/actions/nfc-auth-success";
-import { confirmStorageAccessAction } from "@/lib/actions/nfc-auth";
-import { expertNfcSlugForCode } from "@/lib/expert/expert-codes.shared";
 import { withNfcAction } from "@/lib/nfc/with-nfc-action.server";
 
 export type ExpertAuthActionResult =
-  | { ok: true; redirectTo: string; expertCode?: string }
+  | { ok: true; message: string }
   | { ok: false; error: string };
 
-export async function registerExpertAction(input: {
-  inviteCode: string;
-  name: string;
-  pin: string;
+export async function sendExpertLoginLinkAction(input: {
+  email: string;
 }): Promise<ExpertAuthActionResult> {
-  return withNfcAction("registerExpertAction", async () => {
-    const result = await registerExpertAccount(input);
+  return withNfcAction("sendExpertLoginLinkAction", async () => {
+    const result = await sendExpertLoginMagicLink(input.email);
 
     if (!result.ok) {
-      return result;
+      return { ok: false, error: result.error };
     }
-
-    await confirmStorageAccessAction();
-    await nfcAuthSuccessAction(expertNfcSlugForCode(result.expertCode));
 
     return {
       ok: true,
-      redirectTo: result.redirectTo,
-      expertCode: result.expertCode,
+      message: "Giriş bağlantısı e-posta adresinize gönderildi.",
     };
   });
 }
 
-export async function loginExpertAction(input: {
-  expertCode: string;
-  pin: string;
+export async function sendExpertRegisterLinkAction(input: {
+  email: string;
+  inviteCode: string;
+  name: string;
 }): Promise<ExpertAuthActionResult> {
-  return withNfcAction("loginExpertAction", async () => {
-    const result = await loginExpertAccount(input);
+  return withNfcAction("sendExpertRegisterLinkAction", async () => {
+    const result = await sendExpertRegisterMagicLink(input);
 
     if (!result.ok) {
-      return result;
+      return { ok: false, error: result.error };
     }
-
-    const expertCode = input.expertCode.replace(/\D/g, "").slice(0, 8);
-    await confirmStorageAccessAction();
-    await nfcAuthSuccessAction(expertNfcSlugForCode(expertCode));
 
     return {
       ok: true,
-      redirectTo: result.redirectTo,
-      expertCode,
+      message: "Kayıt bağlantısı e-posta adresinize gönderildi.",
     };
+  });
+}
+
+export async function completeExpertEmailAuthAction(
+  authUserId: string
+): Promise<
+  | { ok: true; redirectTo: string }
+  | { ok: false; error: string; redirectTo: string }
+> {
+  return withNfcAction("completeExpertEmailAuthAction", async () => {
+    return finalizeExpertEmailAuth(authUserId);
   });
 }
