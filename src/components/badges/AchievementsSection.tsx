@@ -6,10 +6,10 @@ import { Award, Compass, Eye, Lock, Sparkles, Star } from "lucide-react";
 import DataLoadingState from "@/components/ui/DataLoadingState";
 import {
   getUserBadgeProgress,
-  type BadgeIconId,
   type BadgeProgressItem,
   type UserBadgeProgress,
 } from "@/lib/actions/badges";
+import type { BadgeIconId } from "@/lib/badges/badge-definitions";
 import { SWR_KEYS } from "@/lib/auth/data-cache";
 import { FEEDBACK_UPDATED_EVENT, BADGE_AWARDED_EVENT } from "@/lib/energy-events";
 import { useQuery } from "@/hooks/useQuery";

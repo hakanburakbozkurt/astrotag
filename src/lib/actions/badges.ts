@@ -4,7 +4,6 @@ import { getUserBadgeState } from "@/lib/badges/badge-engine.server";
 import { BadgeManager } from "@/lib/badges/badge-manager";
 import {
   BADGE_DEFINITIONS,
-  type BadgeIconId,
   type GrantedBadgePayload,
 } from "@/lib/badges/badge-definitions";
 import { getNfcSessionProfileId } from "@/lib/nfc/session.server";
@@ -57,5 +56,3 @@ export async function getUserBadgeProgress(): Promise<UserBadgeProgress | null> 
     nextBadge: state.nextBadge,
   };
 }
-
-export type { BadgeIconId, GrantedBadgePayload };
