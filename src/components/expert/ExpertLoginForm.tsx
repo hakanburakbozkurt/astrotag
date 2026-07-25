@@ -123,7 +123,7 @@ export default function ExpertLoginForm() {
           href={EXPERT_REGISTER_PATH}
           className="font-medium text-amber-200/90 underline-offset-2 hover:underline"
         >
-          Davet kodunuz var mı? Kayıt Ol
+          Uzman başvurusu yapın
         </Link>
       </p>
     </form>

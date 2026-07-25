@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { motion } from "framer-motion";
 import type { UserData } from "@/types/user";
 import DashboardHeader from "./DashboardHeader";
+import ExpertPendingDashboardBanner from "@/components/expert/ExpertPendingDashboardBanner";
 import HomeSkyStatusCard from "./HomeSkyStatusCard";
 import OracleToolsSection from "./OracleToolsSection";
 import RelationshipCard from "./RelationshipCard";
@@ -26,6 +27,8 @@ export default function CosmicDashboard({ user }: CosmicDashboardProps) {
 
       <div className="relative mx-auto max-w-2xl">
         <DashboardHeader userName={user.name} />
+
+        <ExpertPendingDashboardBanner />
 
         <HomeSkyStatusCard user={user} />
 

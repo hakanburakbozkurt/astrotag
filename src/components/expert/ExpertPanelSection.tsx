@@ -8,6 +8,8 @@ import {
   upsertExpertServiceAction,
   type ExpertPanelData,
 } from "@/lib/actions/expert-panel";
+import { EXPERT_APPROVAL_PENDING } from "@/lib/expert/expert-approval.shared";
+import ExpertPendingApprovalScreen from "@/components/expert/ExpertPendingApprovalScreen";
 
 const inputClass =
   "mt-1 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-white/90 outline-none focus:border-amber-400/30";
@@ -39,6 +41,10 @@ export default function ExpertPanelSection() {
 
   if (!data?.isExpert) {
     return null;
+  }
+
+  if (data.approvalStatus === EXPERT_APPROVAL_PENDING) {
+    return <ExpertPendingApprovalScreen displayName={data.displayName} />;
   }
 
   const saveProfile = async () => {

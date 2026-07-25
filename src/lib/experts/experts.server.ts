@@ -5,6 +5,7 @@ import {
   computeCommissionSplit,
   DEFAULT_CRYSTAL_UNIT_TRY,
 } from "@/lib/payments/commission.shared";
+import { EXPERT_APPROVAL_APPROVED } from "@/lib/expert/expert-approval.shared";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 
 export type WalletBalances = {
@@ -81,6 +82,7 @@ export async function listPublishedExperts(): Promise<
     .from("expert_profiles")
     .select("id, display_name, title, tradition, experience_years, avatar_url")
     .eq("is_published", true)
+    .eq("approval_status", EXPERT_APPROVAL_APPROVED)
     .order("vitrine_sort", { ascending: true });
 
   if (error || !data) {
@@ -110,6 +112,7 @@ export async function getExpertPublicProfile(
     )
     .eq("id", expertProfileId)
     .eq("is_published", true)
+    .eq("approval_status", EXPERT_APPROVAL_APPROVED)
     .maybeSingle();
 
   if (error || !expert) {
@@ -170,12 +173,23 @@ export async function recordExpertServicePurchase(input: {
 
   const { data: service } = await admin
     .from("expert_services")
-    .select("id, crystal_price, expert_profile_id, is_active")
+    .select("id, crystal_price, expert_profile_id, is_active, expert_profiles!inner(approval_status, is_published)")
     .eq("id", input.serviceId)
     .eq("expert_profile_id", input.expertProfileId)
     .maybeSingle();
 
-  if (!service?.is_active) {
+  const expertMeta = service?.expert_profiles as
+    | { approval_status?: string; is_published?: boolean }
+    | Array<{ approval_status?: string; is_published?: boolean }>
+    | null
+    | undefined;
+  const expertProfileMeta = Array.isArray(expertMeta) ? expertMeta[0] : expertMeta;
+
+  if (
+    !service?.is_active ||
+    expertProfileMeta?.approval_status !== EXPERT_APPROVAL_APPROVED ||
+    expertProfileMeta?.is_published !== true
+  ) {
     return { ok: false, error: "Hizmet bulunamadı." };
   }
 

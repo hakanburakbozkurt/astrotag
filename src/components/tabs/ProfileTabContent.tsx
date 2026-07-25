@@ -50,6 +50,11 @@ const AdminUserBanPanel = dynamic(
   { loading: () => <SectionSkeleton title="Admin · Hesap Yönetimi" /> }
 );
 
+const AdminExpertApprovalPanel = dynamic(
+  () => import("@/components/admin/AdminExpertApprovalPanel"),
+  { loading: () => <SectionSkeleton title="Admin · Uzman Onayları" /> }
+);
+
 function ProfileSectionHeading({ title }: { title: string }) {
   return (
     <p className="text-[10px] uppercase tracking-[0.32em] text-white/35">
@@ -167,6 +172,8 @@ export default function ProfileTabContent() {
         <Suspense fallback={<SectionSkeleton title="Davet" />}>
           <ReferralPanel />
         </Suspense>
+
+        <AdminExpertApprovalPanel />
 
         <AdminUserBanPanel />
 

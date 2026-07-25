@@ -5,6 +5,14 @@ import { getStrictClearCookieOptions } from "@/lib/nfc/device-cookies.server";
 
 export const EXPERT_PENDING_COOKIE = "astrotag_expert_pending";
 
+export type ExpertRegisterDraft = {
+  name: string;
+  title: string;
+  tradition: string;
+  experienceYears: number;
+  aboutText: string;
+};
+
 export type ExpertPendingPayload =
   | {
       mode: "login";
@@ -13,9 +21,7 @@ export type ExpertPendingPayload =
   | {
       mode: "register";
       email: string;
-      inviteCode: string;
-      name: string;
-    };
+    } & ExpertRegisterDraft;
 
 export async function setExpertPendingCookie(
   payload: ExpertPendingPayload
@@ -45,7 +51,11 @@ export async function getExpertPendingCookie(): Promise<ExpertPendingPayload | n
     }
 
     if (parsed.mode === "register") {
-      if (!parsed.inviteCode?.trim() || !parsed.name?.trim()) {
+      if (
+        !parsed.name?.trim() ||
+        !parsed.title?.trim() ||
+        !parsed.tradition?.trim()
+      ) {
         return null;
       }
     }

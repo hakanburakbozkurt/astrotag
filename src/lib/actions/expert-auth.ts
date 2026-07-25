@@ -30,8 +30,11 @@ export async function sendExpertLoginLinkAction(input: {
 
 export async function sendExpertRegisterLinkAction(input: {
   email: string;
-  inviteCode: string;
   name: string;
+  title: string;
+  tradition: string;
+  experienceYears: number;
+  aboutText: string;
 }): Promise<ExpertAuthActionResult> {
   return withNfcAction("sendExpertRegisterLinkAction", async () => {
     const result = await sendExpertRegisterMagicLink(input);

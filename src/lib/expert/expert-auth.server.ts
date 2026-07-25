@@ -2,11 +2,10 @@ import "server-only";
 
 import { randomInt, randomUUID } from "crypto";
 import { assertAccountLoginAllowed } from "@/lib/nfc/account-status.server";
+import { expertNfcSlugForCode } from "@/lib/expert/expert-codes.shared";
 import {
-  expertNfcSlugForCode,
-  isValidExpertCode,
-  normalizeExpertCode,
-} from "@/lib/expert/expert-codes.shared";
+  EXPERT_APPROVAL_PENDING,
+} from "@/lib/expert/expert-approval.shared";
 import {
   findAuthUserIdByEmail,
   getAuthUserEmail,
@@ -30,7 +29,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service";
 import { authEmailExists } from "@/lib/auth/auth-email-exists.server";
 
 const PROFILES_TABLE = "profiles";
-const ACCESS_CODES_TABLE = "access_codes";
+const EXPERT_PROFILES_TABLE = "expert_profiles";
 const PLACEHOLDER_BIRTH_DATE = "1970-01-01";
 
 export type ExpertAuthError = { ok: false; error: string };
@@ -53,38 +52,6 @@ async function generateUniqueExpertCode(
   }
 
   return null;
-}
-
-async function redeemExpertInviteCode(
-  admin: ReturnType<typeof createServiceRoleClient>,
-  inviteCode: string
-): Promise<{ ok: true } | { ok: false; error: string }> {
-  const { data: accessCode, error: lookupError } = await admin
-    .from(ACCESS_CODES_TABLE)
-    .select("id, type")
-    .eq("code", inviteCode)
-    .eq("type", "EXP")
-    .maybeSingle();
-
-  if (lookupError) {
-    return { ok: false, error: "Davet kodu doğrulanamadı. Lütfen tekrar deneyin." };
-  }
-
-  if (!accessCode?.id) {
-    return { ok: false, error: "Geçersiz veya kullanılmış davet kodu." };
-  }
-
-  const { error: redeemError } = await admin
-    .from(ACCESS_CODES_TABLE)
-    .delete()
-    .eq("id", accessCode.id)
-    .eq("type", "EXP");
-
-  if (redeemError) {
-    return { ok: false, error: "Davet kodu kullanılamadı. Lütfen tekrar deneyin." };
-  }
-
-  return { ok: true };
 }
 
 async function ensureExpertVirtualCard(
@@ -219,35 +186,33 @@ export async function sendExpertLoginMagicLink(
 
 export async function sendExpertRegisterMagicLink(input: {
   email: string;
-  inviteCode: string;
   name: string;
+  title: string;
+  tradition: string;
+  experienceYears: number;
+  aboutText: string;
 }): Promise<{ ok: true } | ExpertAuthError> {
   const email = normalizeExpertEmail(input.email);
-  const inviteCode = normalizeExpertCode(input.inviteCode);
   const name = input.name.trim();
+  const title = input.title.trim();
+  const tradition = input.tradition.trim();
+  const aboutText = input.aboutText.trim();
+  const experienceYears = Math.max(0, Math.floor(input.experienceYears));
 
   if (!isValidExpertEmail(email)) {
     return { ok: false, error: "Geçerli bir e-posta adresi girin." };
-  }
-
-  if (!isValidExpertCode(inviteCode)) {
-    return { ok: false, error: "8 haneli geçerli bir davet kodu girin." };
   }
 
   if (name.length < 2) {
     return { ok: false, error: "Adınız en az 2 karakter olmalıdır." };
   }
 
-  const admin = createServiceRoleClient();
-  const { data: inviteRow } = await admin
-    .from(ACCESS_CODES_TABLE)
-    .select("id")
-    .eq("code", inviteCode)
-    .eq("type", "EXP")
-    .maybeSingle();
+  if (title.length < 2) {
+    return { ok: false, error: "Unvan en az 2 karakter olmalıdır." };
+  }
 
-  if (!inviteRow?.id) {
-    return { ok: false, error: "Geçersiz veya kullanılmış davet kodu." };
+  if (tradition.length < 2) {
+    return { ok: false, error: "Uzmanlık alanı seçin veya girin." };
   }
 
   if (await authEmailExists(email)) {
@@ -274,8 +239,11 @@ export async function sendExpertRegisterMagicLink(input: {
   await setExpertPendingCookie({
     mode: "register",
     email,
-    inviteCode,
     name,
+    title,
+    tradition,
+    experienceYears,
+    aboutText,
   });
 
   return { ok: true };
@@ -289,16 +257,10 @@ async function createExpertProfileFromPending(
   | { ok: false; error: string }
 > {
   const admin = createServiceRoleClient();
-  const inviteCode = normalizeExpertCode(pending.inviteCode);
   const expertCode = await generateUniqueExpertCode(admin);
 
   if (!expertCode) {
     return { ok: false, error: "Uzman kodu oluşturulamadı." };
-  }
-
-  const redeemed = await redeemExpertInviteCode(admin, inviteCode);
-  if (!redeemed.ok) {
-    return redeemed;
   }
 
   const profileId = randomUUID();
@@ -326,6 +288,23 @@ async function createExpertProfileFromPending(
 
   if (profileError) {
     return { ok: false, error: "Uzman hesabı oluşturulamadı." };
+  }
+
+  const { error: expertProfileError } = await admin
+    .from(EXPERT_PROFILES_TABLE)
+    .insert({
+      profile_id: profileId,
+      display_name: pending.name.trim(),
+      title: pending.title.trim(),
+      tradition: pending.tradition.trim(),
+      experience_years: Math.max(0, pending.experienceYears ?? 0),
+      about_text: pending.aboutText?.trim() ?? "",
+      approval_status: EXPERT_APPROVAL_PENDING,
+      is_published: false,
+    });
+
+  if (expertProfileError) {
+    return { ok: false, error: "Uzman başvuru profili oluşturulamadı." };
   }
 
   const nfcCardUuid = await ensureExpertVirtualCard(admin, profileId, expertCode);

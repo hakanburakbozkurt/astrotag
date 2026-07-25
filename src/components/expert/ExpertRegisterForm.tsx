@@ -3,10 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 import { sendExpertRegisterLinkAction } from "@/lib/actions/expert-auth";
-import {
-  formatExpertCodeInput,
-  isValidExpertCode,
-} from "@/lib/expert/expert-codes.shared";
+import { EXPERT_TRADITION_OPTIONS } from "@/lib/expert/expert-approval.shared";
 import { EXPERT_LOGIN_PATH } from "@/lib/expert/expert-paths";
 import {
   authInputClassName,
@@ -18,22 +15,26 @@ function isValidEmail(email: string): boolean {
 }
 
 export default function ExpertRegisterForm() {
-  const [inviteCode, setInviteCode] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [title, setTitle] = useState("");
+  const [tradition, setTradition] = useState<string>(EXPERT_TRADITION_OPTIONS[0]);
+  const [experienceYears, setExperienceYears] = useState("1");
+  const [aboutText, setAboutText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
 
-  const normalizedInvite = useMemo(
-    () => formatExpertCodeInput(inviteCode),
-    [inviteCode]
-  );
   const normalizedEmail = useMemo(() => email.trim().toLowerCase(), [email]);
+  const parsedExperienceYears = useMemo(
+    () => Math.max(0, Number.parseInt(experienceYears, 10) || 0),
+    [experienceYears]
+  );
 
   const canSubmit =
-    isValidExpertCode(normalizedInvite) &&
     name.trim().length >= 2 &&
+    title.trim().length >= 2 &&
+    tradition.trim().length >= 2 &&
     isValidEmail(normalizedEmail) &&
     !loading;
 
@@ -51,8 +52,11 @@ export default function ExpertRegisterForm() {
     try {
       const result = await sendExpertRegisterLinkAction({
         email: normalizedEmail,
-        inviteCode: normalizedInvite,
         name: name.trim(),
+        title: title.trim(),
+        tradition: tradition.trim(),
+        experienceYears: parsedExperienceYears,
+        aboutText: aboutText.trim(),
       });
 
       if (!result.ok) {
@@ -72,13 +76,13 @@ export default function ExpertRegisterForm() {
     return (
       <div className="flex flex-col gap-4 text-center">
         <p className="rounded-xl border border-emerald-400/30 bg-emerald-950/30 px-4 py-4 text-sm text-emerald-100">
-          Kayıt bağlantısı{" "}
+          Doğrulama bağlantısı{" "}
           <span className="font-medium text-white">{normalizedEmail}</span>{" "}
-          adresine gönderildi. Bağlantıya tıkladığınızda uzman hesabınız oluşturulur
-          ve panele yönlendirilirsiniz.
+          adresine gönderildi. Bağlantıyı onayladığınızda başvurunuz incelenmek üzere
+          kaydedilir.
         </p>
         <p className="text-[11px] text-white/40">
-          Davet kodu, bağlantıyı onayladığınızda tek kullanımlık olarak tüketilir.
+          Onay sonrası Uzmanlar vitrininde yerinizi alabilirsiniz.
         </p>
         <button
           type="button"
@@ -93,20 +97,6 @@ export default function ExpertRegisterForm() {
 
   return (
     <form onSubmit={(event) => void handleSubmit(event)} className="flex flex-col gap-4" noValidate>
-      <label className="text-[11px] uppercase tracking-widest text-white/45">
-        Davet Kodu (8 hane)
-      </label>
-      <input
-        type="text"
-        inputMode="numeric"
-        required
-        maxLength={8}
-        value={inviteCode}
-        onChange={(event) => setInviteCode(formatExpertCodeInput(event.target.value))}
-        placeholder="Tek kullanımlık kod"
-        className={`${authInputClassName} text-center font-mono tracking-[0.35em]`}
-      />
-
       <label className="text-[11px] uppercase tracking-widest text-white/45">
         Ad Soyad
       </label>
@@ -135,6 +125,60 @@ export default function ExpertRegisterForm() {
         className={authInputClassName}
       />
 
+      <label className="text-[11px] uppercase tracking-widest text-white/45">
+        Unvan
+      </label>
+      <input
+        type="text"
+        required
+        minLength={2}
+        value={title}
+        onChange={(event) => setTitle(event.target.value)}
+        placeholder="Örn. Kozmik Rehber"
+        className={authInputClassName}
+      />
+
+      <label className="text-[11px] uppercase tracking-widest text-white/45">
+        Uzmanlık Alanı
+      </label>
+      <select
+        required
+        value={tradition}
+        onChange={(event) => setTradition(event.target.value)}
+        className={authInputClassName}
+      >
+        {EXPERT_TRADITION_OPTIONS.map((option) => (
+          <option key={option} value={option} className="bg-[#0f172a] text-white">
+            {option}
+          </option>
+        ))}
+      </select>
+
+      <label className="text-[11px] uppercase tracking-widest text-white/45">
+        Deneyim (yıl)
+      </label>
+      <input
+        type="number"
+        inputMode="numeric"
+        min={0}
+        max={60}
+        required
+        value={experienceYears}
+        onChange={(event) => setExperienceYears(event.target.value)}
+        className={authInputClassName}
+      />
+
+      <label className="text-[11px] uppercase tracking-widest text-white/45">
+        Kısa Tanıtım
+      </label>
+      <textarea
+        rows={3}
+        value={aboutText}
+        onChange={(event) => setAboutText(event.target.value)}
+        placeholder="Kendinizi ve çalışma tarzınızı kısaca anlatın…"
+        className={`${authInputClassName} resize-none`}
+      />
+
       {error ? (
         <p
           role="alert"
@@ -149,11 +193,12 @@ export default function ExpertRegisterForm() {
         disabled={!canSubmit}
         className={`${authPrimaryButtonClassName} mt-2`}
       >
-        {loading ? "Gönderiliyor..." : "Kayıt Bağlantısı Gönder"}
+        {loading ? "Gönderiliyor..." : "Başvuru Bağlantısı Gönder"}
       </button>
 
       <p className="text-center text-[11px] text-white/40">
-        PIN veya şifre gerekmez. E-postanıza doğrulama bağlantısı gönderilir.
+        Şifre gerekmez. E-postanıza doğrulama bağlantısı gönderilir; onay sonrası
+        vitrinde yer alırsınız.
       </p>
 
       <p className="mt-2 text-center text-[11px]">
