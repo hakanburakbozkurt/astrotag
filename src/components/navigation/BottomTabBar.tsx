@@ -17,7 +17,7 @@ export default function BottomTabBar() {
         paddingTop: "env(safe-area-inset-top, 0px)",
       }}
     >
-      <div className="mx-auto grid max-w-lg grid-cols-5 gap-0.5 px-1 py-1">
+      <div className="mx-auto grid max-w-lg grid-cols-6 gap-0.5 px-1 py-1">
         {DASHBOARD_TABS.map((tab) => {
           const isActive = activeTab === tab.id;
 

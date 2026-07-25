@@ -15,6 +15,16 @@ const SessionCounter = dynamic(
   { loading: () => <SectionSkeleton title="Yıldız Puanı" /> }
 );
 
+const CompactWallet = dynamic(
+  () => import("@/components/wallet/CompactWallet"),
+  { loading: () => <SectionSkeleton title="Cüzdan" /> }
+);
+
+const ExpertPanelSection = dynamic(
+  () => import("@/components/expert/ExpertPanelSection"),
+  { loading: () => <SectionSkeleton title="Uzman Paneli" /> }
+);
+
 const CosmicJournal = dynamic(
   () => import("@/components/dashboard/CosmicJournal"),
   { loading: () => <SectionSkeleton title="Kozmik Günlüğüm" /> }
@@ -122,6 +132,10 @@ export default function ProfileTabContent() {
       <div className="space-y-4">
         <ProfileSectionHeading title="Kullanıcı Verileri" />
 
+        <Suspense fallback={<SectionSkeleton title="Cüzdan" />}>
+          <CompactWallet />
+        </Suspense>
+
         <UserInfoSection user={userData} />
 
         <Suspense fallback={<SectionSkeleton title="Rozetlerim" />}>
@@ -135,6 +149,10 @@ export default function ProfileTabContent() {
 
       <div className="mt-8 space-y-4">
         <ProfileSectionHeading title="Uygulama Ayarları" />
+
+        <Suspense fallback={<SectionSkeleton title="Uzman Paneli" />}>
+          <ExpertPanelSection />
+        </Suspense>
 
         <Suspense fallback={<SectionSkeleton title="Yıldız Puanı" />}>
           <SessionCounter />

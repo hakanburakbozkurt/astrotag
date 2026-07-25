@@ -14,6 +14,7 @@ export const SWR_KEYS = {
   session: "nfc/session",
   profile: "user/profile",
   starPoints: "user/star-points",
+  wallet: "user/wallet",
   badgeProgress: "user/badge-progress",
   globalFeedbackStats: "social/global-feedback-stats",
   synastryScore: (profileId: string, dateKey: string, partnerFingerprint: string) =>

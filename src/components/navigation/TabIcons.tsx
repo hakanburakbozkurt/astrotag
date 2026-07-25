@@ -76,6 +76,16 @@ export function NexusTabIcon({ className }: TabIconProps) {
   );
 }
 
+export function ExpertsTabIcon({ className }: TabIconProps) {
+  return (
+    <IconShell className={className}>
+      <circle cx="12" cy="8" r="3" />
+      <path d="M5 19c1.2-2.8 3.4-4.5 7-4.5s5.8 1.7 7 4.5" />
+      <path d="M16 8.5 18 6M8 8.5 6 6" />
+    </IconShell>
+  );
+}
+
 export function ProfileTabIcon({ className }: TabIconProps) {
   return (
     <IconShell className={className}>
@@ -93,6 +103,7 @@ const TAB_ICON_MAP: Record<
   natal: NatalTabIcon,
   bonds: BondsTabIcon,
   nexus: NexusTabIcon,
+  experts: ExpertsTabIcon,
   profile: ProfileTabIcon,
 };
 

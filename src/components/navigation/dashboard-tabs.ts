@@ -1,4 +1,10 @@
-export type DashboardTabId = "dashboard" | "natal" | "bonds" | "nexus" | "profile";
+export type DashboardTabId =
+  | "dashboard"
+  | "natal"
+  | "bonds"
+  | "nexus"
+  | "experts"
+  | "profile";
 
 export interface DashboardTab {
   id: DashboardTabId;
@@ -33,6 +39,12 @@ export const DASHBOARD_TABS: DashboardTab[] = [
     href: "/dashboard/nexus",
   },
   {
+    id: "experts",
+    label: "Uzmanlar",
+    shortLabel: "Uzman",
+    href: "/dashboard/experts",
+  },
+  {
     id: "profile",
     label: "Profile",
     shortLabel: "Profile",
@@ -61,6 +73,10 @@ export function resolveDashboardTab(pathname: string): DashboardTabId {
 
   if (pathname.startsWith("/dashboard/nexus")) {
     return "nexus";
+  }
+
+  if (pathname.startsWith("/dashboard/experts")) {
+    return "experts";
   }
 
   if (
