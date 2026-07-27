@@ -9,10 +9,9 @@ import { confirmStorageAccessAction } from "@/lib/actions/nfc-auth";
 import { nfcAuthSuccessAction } from "@/lib/actions/nfc-auth-success";
 import {
   INVALID_NFC_CARD_MESSAGE,
-  DASHBOARD_PATH,
   NFC_CARD_OWNED_BY_OTHER_MESSAGE,
-  PROFILE_COMPLETE_PATH,
 } from "@/lib/nfc/constants";
+import { resolveProfileCompletionRedirect } from "@/lib/nfc/post-auth-redirect.server";
 import { canBindClaimedCard, claimNfcCard } from "@/lib/nfc/nfc-ownership.server";
 import { assertNfcUserDataCardForSession } from "@/lib/nfc/nfc-user-data-card.server";
 import {
@@ -72,17 +71,7 @@ export async function tryResumeNfcSessionForUser(params: {
   const authProfile = await getAuthProfileContext();
 
   if (authProfile?.authUserId === params.userId) {
-    const admin = createServiceRoleClient();
-    const { data: profileRow } = await admin
-      .from("profiles")
-      .select("name")
-      .eq("id", authProfile.profileId)
-      .maybeSingle();
-
-    const redirectTo = profileRow?.name?.trim()
-      ? DASHBOARD_PATH
-      : PROFILE_COMPLETE_PATH;
-
+    const redirectTo = await resolveProfileCompletionRedirect(authProfile.profileId);
     return { ok: true, redirectTo };
   }
 
@@ -304,28 +293,8 @@ async function establishNfcSessionForUser(params: {
     );
   }
 
-  const { data: profileRow, error: nameError } = await admin
-    .from("profiles")
-    .select("name")
-    .eq("id", profileId)
-    .maybeSingle();
-
-  if (nameError) {
-    console.error(
-      "[NFC_AUTH_DEBUG]: Hata sebebi profiles.select.name — profil doğrulama sorgusu başarısız"
-    );
-    return establishFailure(
-      "profiles.select.name — profil doğrulama sorgusu başarısız",
-      "profiles.select.name",
-      nameError,
-      { profileId }
-    );
-  }
-
   return {
     ok: true,
-    redirectTo: profileRow?.name?.trim()
-      ? DASHBOARD_PATH
-      : PROFILE_COMPLETE_PATH,
+    redirectTo: await resolveProfileCompletionRedirect(profileId),
   };
 }

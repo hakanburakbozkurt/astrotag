@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useSafeRouter } from "@/lib/auth/safe-router-nav.client";
+import { validatePasswordPair } from "@/lib/auth/password-rules";
 import { authQueryMessageText } from "@/lib/auth/auth-query-messages";
 import { logNfcAuthTrace } from "@/lib/auth/nfc-auth-debug";
 import { startNfcSignupAction } from "@/lib/actions/nfc-email-auth";
@@ -120,8 +121,17 @@ export default function NfcSignupForm({ initialNfcId = "" }: NfcSignupFormProps)
 
   const loginHref = nfcAuthLoginPath(uniqueId, { email });
 
+  const passwordsMismatch =
+    confirmPassword.length > 0 && password !== confirmPassword;
+
   async function submitSignup() {
     if (isSubmittingRef.current || loading || !uniqueId) {
+      return;
+    }
+
+    const passwordError = validatePasswordPair(password, confirmPassword);
+    if (passwordError) {
+      showToast(passwordError);
       return;
     }
 
@@ -229,7 +239,7 @@ export default function NfcSignupForm({ initialNfcId = "" }: NfcSignupFormProps)
         />
 
         <label className="text-[11px] uppercase tracking-widest text-white/45">
-          Şifre tekrar
+          Şifre (Tekrar)
         </label>
         <input
           type="password"
@@ -240,12 +250,20 @@ export default function NfcSignupForm({ initialNfcId = "" }: NfcSignupFormProps)
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
           placeholder="Şifrenizi tekrar girin"
-          className={authInputClassName}
+          aria-invalid={passwordsMismatch}
+          className={`${authInputClassName}${
+            passwordsMismatch ? " border-red-400/50 ring-1 ring-red-400/30" : ""
+          }`}
         />
+        {passwordsMismatch ? (
+          <p className="-mt-2 text-xs text-red-300/90" role="alert">
+            Şifreler eşleşmiyor. Lütfen aynı şifreyi iki alana da girin.
+          </p>
+        ) : null}
 
         <button
           type="button"
-          disabled={isPending}
+          disabled={isPending || passwordsMismatch}
           onClick={() => void submitSignup()}
           className={`${authPrimaryButtonClassName} mt-2`}
         >
@@ -253,8 +271,9 @@ export default function NfcSignupForm({ initialNfcId = "" }: NfcSignupFormProps)
         </button>
       </form>
 
-      <p className="mt-4 text-center text-[11px] text-white/40">
-        Yeni hesaplarda e-postanıza 6 haneli doğrulama kodu gönderilir.
+      <p className="mt-4 text-center text-[11px] leading-relaxed text-white/40">
+        Kayıt sonrası doğum tarihi ve doğum yeri bilgilerinizi tamamlamanız istenecektir.
+        E-posta doğrulaması gerekiyorsa 6 haneli kod gönderilir.
       </p>
 
       <p className="mt-3 text-center text-[11px]">
