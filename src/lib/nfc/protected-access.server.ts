@@ -1,18 +1,13 @@
 import "server-only";
 
-import { logNfcError, logNfcEvent } from "@/lib/nfc/error-logger";
-import { isAccountLoginAllowed } from "@/lib/nfc/account-status.server";
-import { ACCOUNT_SUSPENDED_MESSAGE, NFC_CARD_OWNED_BY_OTHER_MESSAGE } from "@/lib/nfc/constants";
-import { readServerCookieSessionAsync } from "@/lib/nfc/cookie-session.server";
+import { logNfcError } from "@/lib/nfc/error-logger";
+import { NFC_CARD_OWNED_BY_OTHER_MESSAGE } from "@/lib/nfc/constants";
+import { NFC_CARD_TABLE } from "@/lib/nfc/nfc-card-table";
 import {
-  NFC_CARD_META_SELECT,
-  NFC_CARD_TABLE,
-} from "@/lib/nfc/nfc-card-table";
-import {
-  getNfcSession,
-  type NfcSessionRecord,
-} from "@/lib/nfc/session.server";
-import { createSupabaseServiceClient } from "@/lib/supabase/service";
+  getAuthProfileContext,
+  requireAuthProfileContext,
+  type AuthProfileContext,
+} from "@/lib/auth/require-profile.server";
 
 export type ProtectedNfcAccessErrorCode =
   | "session_missing"
@@ -30,115 +25,58 @@ export class ProtectedNfcAccessError extends Error {
   }
 }
 
-export type ProtectedNfcContext = {
-  session: NfcSessionRecord;
-  profileId: string;
-  nfcCardUuid: string;
-  uniqueId: string;
-  authUserId: string | null;
+/** @deprecated Supabase Auth profil bağlamı — geriye dönük uyumluluk */
+export type ProtectedNfcContext = AuthProfileContext & {
+  session: {
+    sessionId: string;
+    profileId: string;
+    nfcId: string;
+    expiresAt: string;
+  };
   isClaimed: boolean;
   ownerId: string | null;
 };
 
-type NfcCardMeta = {
-  nfc_id: string;
-  is_claimed: boolean;
-  owner_id: string | null;
-};
-
-async function isSessionValidInDatabase(sessionId: string): Promise<boolean> {
-  const supabase = createSupabaseServiceClient();
-  const { data, error } = await supabase
-    .from("nfc_sessions")
-    .select("id")
-    .eq("id", sessionId)
-    .gt("expires_at", new Date().toISOString())
-    .maybeSingle();
-
-  if (error) {
-    logNfcError(
-      { layer: "protected-access", handler: "isSessionValidInDatabase" },
-      error,
-      { sessionId, dbCode: error.code }
-    );
-    return false;
-  }
-
-  return Boolean(data?.id);
-}
-
-async function loadCardMeta(nfcCardUuid: string): Promise<NfcCardMeta | null> {
-  const supabase = createSupabaseServiceClient();
-  const { data, error } = await supabase
-    .from(NFC_CARD_TABLE)
-    .select(NFC_CARD_META_SELECT)
-    .eq("id", nfcCardUuid)
-    .maybeSingle();
-
-  if (error) {
-    logNfcError(
-      { layer: "protected-access", handler: "loadCardMeta" },
-      error,
-      { nfcCardUuid, dbCode: error.code }
-    );
-    return null;
-  }
-
-  if (!data?.is_active || !data.nfc_id) {
-    logNfcEvent(
-      "warn",
-      { layer: "protected-access", handler: "loadCardMeta" },
-      "Kart meta bulunamadı veya pasif",
-      { nfcCardUuid, isActive: data?.is_active ?? null }
-    );
-    return null;
-  }
-
+function toLegacyContext(context: AuthProfileContext): ProtectedNfcContext {
   return {
-    nfc_id: data.nfc_id,
-    is_claimed: Boolean(data.is_claimed),
-    owner_id: data.owner_id ?? null,
-  };
-}
-
-function contextFromCookieSnapshot(
-  snapshot: NonNullable<Awaited<ReturnType<typeof readServerCookieSessionAsync>>>
-): ProtectedNfcContext {
-  const expiresAt =
-    snapshot.expiresAt ??
-    new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
-
-  return {
+    ...context,
     session: {
-      sessionId: snapshot.sessionId,
-      profileId: snapshot.profileId,
-      nfcId: snapshot.nfcCardUuid ?? "",
-      expiresAt,
+      sessionId: context.authUserId,
+      profileId: context.profileId,
+      nfcId: context.nfcCardUuid ?? "",
+      expiresAt: new Date(Date.now() + 86400 * 1000).toISOString(),
     },
-    profileId: snapshot.profileId,
-    nfcCardUuid: snapshot.nfcCardUuid ?? "",
-    uniqueId: "",
-    authUserId: null,
     isClaimed: true,
-    ownerId: null,
+    ownerId: context.authUserId,
   };
 }
 
-/** Okuma işlemleri — çerez doğrulaması; DB sorgusu yok. */
+async function resolveNfcCardUuid(profileId: string): Promise<string | null> {
+  const { createServiceRoleClient } = await import("@/lib/supabase/service");
+  const admin = createServiceRoleClient();
+  const { data } = await admin
+    .from(NFC_CARD_TABLE)
+    .select("id")
+    .eq("profile_id", profileId)
+    .maybeSingle();
+
+  return data?.id ?? null;
+}
+
+/** Supabase JWT oturumundan profil bağlamı */
 export async function getProtectedNfcAccess(): Promise<ProtectedNfcContext | null> {
   try {
-    const snapshot = await readServerCookieSessionAsync();
-    if (!snapshot) {
-      logNfcEvent(
-        "warn",
-        { layer: "protected-access", handler: "getProtectedNfcAccess" },
-        "NFC oturum çerezi yok veya süresi dolmuş",
-        { step: "readServerCookieSessionAsync" }
-      );
+    const context = await getAuthProfileContext();
+    if (!context) {
       return null;
     }
 
-    return contextFromCookieSnapshot(snapshot);
+    if (!context.nfcCardUuid) {
+      const nfcCardUuid = await resolveNfcCardUuid(context.profileId);
+      return toLegacyContext({ ...context, nfcCardUuid });
+    }
+
+    return toLegacyContext(context);
   } catch (error) {
     logNfcError(
       { layer: "protected-access", handler: "getProtectedNfcAccess" },
@@ -148,55 +86,20 @@ export async function getProtectedNfcAccess(): Promise<ProtectedNfcContext | nul
   }
 }
 
-/** Yazma işlemleri — oturum + kart sahipliği DB ile doğrulanır. */
+/** Yazma işlemleri — Supabase oturumu zorunlu */
 export async function requireProtectedNfcAccess(): Promise<ProtectedNfcContext> {
-  const session = await getNfcSession();
-  if (!session) {
+  try {
+    const context = await requireAuthProfileContext();
+    const nfcCardUuid =
+      context.nfcCardUuid ?? (await resolveNfcCardUuid(context.profileId));
+
+    return toLegacyContext({ ...context, nfcCardUuid });
+  } catch {
     throw new ProtectedNfcAccessError(
       "Oturum Sona Erdi veya Geçersiz Erişim",
       "session_missing"
     );
   }
-
-  const sessionValid = await isSessionValidInDatabase(session.sessionId);
-
-  if (!sessionValid) {
-    throw new ProtectedNfcAccessError(
-      "Oturum Sona Erdi veya Geçersiz Erişim",
-      "session_invalid"
-    );
-  }
-
-  const card = await loadCardMeta(session.nfcId);
-  if (!card) {
-    throw new ProtectedNfcAccessError(
-      ACCOUNT_SUSPENDED_MESSAGE,
-      "account_suspended"
-    );
-  }
-
-  const loginAllowed = await isAccountLoginAllowed({
-    profileId: session.profileId,
-    nfcCardUuid: session.nfcId,
-    uniqueId: card.nfc_id,
-  });
-
-  if (!loginAllowed) {
-    throw new ProtectedNfcAccessError(
-      ACCOUNT_SUSPENDED_MESSAGE,
-      "account_suspended"
-    );
-  }
-
-  return {
-    session,
-    profileId: session.profileId,
-    nfcCardUuid: session.nfcId,
-    uniqueId: card.nfc_id.trim(),
-    authUserId: card.owner_id,
-    isClaimed: card.is_claimed,
-    ownerId: card.owner_id,
-  };
 }
 
 export async function assertProfileMatchesProtectedAccess(

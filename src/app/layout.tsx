@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { RouterReadyProvider } from "@/lib/auth/router-ready-context.client";
 import AppProviders from "@/components/providers/AppProviders";
+import AuthSessionBootstrap from "@/components/auth/AuthSessionBootstrap";
 import PwaRegister from "@/components/PwaRegister";
 import SecurityBootstrap from "@/components/SecurityBootstrap";
 import ToastBootstrap from "@/components/ToastBootstrap";
@@ -73,6 +74,7 @@ export default function RootLayout({
       <body className="flex min-h-dvh flex-col overflow-y-auto bg-[#070b14] text-white">
         <RouterReadyProvider>
           <AppProviders>
+            <AuthSessionBootstrap />
             <PwaRegister />
             <SecurityBootstrap />
             <ToastBootstrap />

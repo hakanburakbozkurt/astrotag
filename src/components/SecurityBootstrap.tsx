@@ -14,6 +14,8 @@ import {
   PRIVATE_MODE_PATH,
   PUBLIC_PROFILE_PREFIX,
   AUTH_CALLBACK_PATH,
+  AUTH_FORGOT_PASSWORD_PATH,
+  AUTH_RESET_PASSWORD_PATH,
   EXPERT_AUTH_CALLBACK_PATH,
 } from "@/lib/nfc/constants";
 import { EXPERT_LOGIN_PATH, EXPERT_REGISTER_PATH } from "@/lib/expert/expert-paths";
@@ -49,6 +51,8 @@ function shouldRunStorageCheck(pathname: string): boolean {
     isAuthFormPath(pathname) ||
     pathname.startsWith(AUTH_CALLBACK_PATH) ||
     pathname.startsWith(EXPERT_AUTH_CALLBACK_PATH) ||
+    pathname === AUTH_FORGOT_PASSWORD_PATH ||
+    pathname === AUTH_RESET_PASSWORD_PATH ||
     pathname === EXPERT_LOGIN_PATH ||
     pathname === EXPERT_REGISTER_PATH
   ) {

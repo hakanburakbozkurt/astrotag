@@ -1,74 +1,30 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import AuthMobileShell from "@/components/auth/AuthMobileShell";
-import CardVerificationEntry from "@/components/nfc/CardVerificationEntry";
-import NfcSmartEntryGate from "@/components/nfc/NfcSmartEntryGate";
-import { HOME_PATH } from "@/lib/nfc/constants";
-import { resolveNfcScanAccess } from "@/lib/nfc/nfc-scan-access.server";
-import { getNfcCardForAuthEntry } from "@/lib/nfc/session.server";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
+import { AUTH_LOGIN_PATH } from "@/lib/nfc/constants";
 
 type PageProps = {
   searchParams: Promise<{ uid?: string; idle?: string; module?: string; to?: string }>;
 };
 
+/** @deprecated PIN girişi kaldırıldı — e-posta girişine yönlendir */
 export default async function NfcLoginPage({ searchParams }: PageProps) {
-  const { uid: rawUid, idle, module, to } = await searchParams;
-  const uniqueId = rawUid ? normalizeNfcUniqueId(rawUid) : "";
-  const idleExpired = idle === "1";
+  const { uid, idle, module, to } = await searchParams;
+  const uniqueId = uid ? normalizeNfcUniqueId(uid) : "";
+  const params = new URLSearchParams();
 
-  console.log("[NFC_ENTRY /nfc-login]", {
-    rawUid,
-    uniqueId,
-    idleExpired,
-    module,
-    to,
-  });
-
-  if (!uniqueId) {
-    return (
-      <AuthMobileShell
-        title="NFC Giriş"
-        subtitle="Oturumunuz sona erdi. NFC kartınızı okutun veya ana sayfaya dönün."
-      >
-        <Link
-          href={HOME_PATH}
-          className="auth-glass-submit flex min-h-[3rem] items-center justify-center no-underline"
-        >
-          Ana Sayfa
-        </Link>
-      </AuthMobileShell>
-    );
+  if (uniqueId) {
+    params.set("nfc", uniqueId);
+  }
+  if (idle === "1") {
+    params.set("msg", "session_expired");
+  }
+  if (module?.trim()) {
+    params.set("module", module.trim());
+  }
+  if (to?.trim()) {
+    params.set("to", to.trim());
   }
 
-  const access = await resolveNfcScanAccess(uniqueId, {
-    searchParams: { module, to },
-  });
-
-  if (access.ok) {
-    console.log("[NFC_ENTRY /nfc-login] owner session →", access.redirectTo);
-    redirect(access.redirectTo);
-  }
-
-  if (access.reason === "account_suspended") {
-    redirect(access.pinEntryPath);
-  }
-
-  let cardLookup: Awaited<ReturnType<typeof getNfcCardForAuthEntry>> | "fetch_error";
-
-  try {
-    cardLookup = await getNfcCardForAuthEntry(uniqueId);
-  } catch {
-    cardLookup = "fetch_error";
-  }
-
-  return (
-    <NfcSmartEntryGate uniqueId={uniqueId} pinRequired>
-      <CardVerificationEntry
-        uniqueId={uniqueId}
-        cardLookup={cardLookup}
-        idleExpired={idleExpired}
-      />
-    </NfcSmartEntryGate>
-  );
+  const query = params.toString();
+  redirect(query ? `${AUTH_LOGIN_PATH}?${query}` : AUTH_LOGIN_PATH);
 }

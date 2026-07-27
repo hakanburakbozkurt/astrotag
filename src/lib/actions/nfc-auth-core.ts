@@ -2,6 +2,7 @@
 
 import { nfcCardValidationErrorMessage } from "@/lib/nfc/card-validation-messages";
 import { NFC_CARD_TABLE } from "@/lib/nfc/nfc-card-table";
+import { getAuthProfileContext } from "@/lib/auth/require-profile.server";
 import { syncAnonymousProfileToUser } from "@/lib/nfc/profile-sync.server";
 import { clearPendingNfcCardCookie } from "@/lib/nfc/device-cookies.server";
 import { confirmStorageAccessAction } from "@/lib/actions/nfc-auth";
@@ -19,8 +20,6 @@ import {
   syncProfileNfcUid,
 } from "@/lib/nfc/nfc-profile-link.server";
 import {
-  getNfcSession,
-  setNfcSession,
   validateNfcCardActive,
 } from "@/lib/nfc/session.server";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
@@ -70,14 +69,14 @@ export async function tryResumeNfcSessionForUser(params: {
   userId: string;
   device: DeviceContext;
 }): Promise<{ ok: true; redirectTo: string } | { ok: false }> {
-  const existing = await getNfcSession();
+  const authProfile = await getAuthProfileContext();
 
-  if (existing?.nfcId === params.nfcCardUuid) {
+  if (authProfile?.authUserId === params.userId) {
     const admin = createServiceRoleClient();
     const { data: profileRow } = await admin
       .from("profiles")
       .select("name")
-      .eq("id", existing.profileId)
+      .eq("id", authProfile.profileId)
       .maybeSingle();
 
     const redirectTo = profileRow?.name?.trim()
@@ -277,18 +276,11 @@ async function establishNfcSessionForUser(params: {
   const nfcCardUuid = cardAssert.card.id;
 
   try {
-    await setNfcSession({
-      profileId,
-      nfcCardUuid,
-    });
     await nfcAuthSuccessAction(params.uniqueId);
   } catch (error) {
-    console.error(
-      "[NFC_AUTH_DEBUG]: Hata sebebi setNfcSession — nfc_sessions insert veya çerez yazımı başarısız"
-    );
     return establishFailure(
-      "setNfcSession — nfc_sessions insert veya çerez yazımı başarısız",
-      "setNfcSession",
+      "nfcAuthSuccessAction — giriş sonrası işlem başarısız",
+      "nfcAuthSuccessAction",
       error,
       {
         profileId,

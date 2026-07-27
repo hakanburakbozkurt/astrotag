@@ -10,11 +10,10 @@ import {
 import { clearNfcSessionCookieBundle } from "@/lib/nfc/cookie-session.server";
 import { clearPendingNfcCardCookie } from "@/lib/nfc/device-cookies.server";
 import { getStrictClearCookieOptions } from "@/lib/nfc/device-cookies.server";
-import { clearNfcSessionCookies } from "@/lib/nfc/session.server";
 
-/** NFC + Supabase auth çerezleri ve DB oturum satırı — tam çıkış */
+/** Supabase + legacy NFC çerezlerini temizle — tam çıkış */
 export async function clearAllAuthState(): Promise<void> {
-  await clearNfcSessionCookies();
+  await clearNfcSessionCookieBundle();
   await clearPendingNfcCardCookie();
   await clearAuthPendingCookie();
 
@@ -24,7 +23,4 @@ export async function clearAllAuthState(): Promise<void> {
   cookieStore.set(STORAGE_VERIFIED_COOKIE, "", clearOptions);
   cookieStore.set(PENDING_NFC_COOKIE, "", clearOptions);
   cookieStore.set(NFC_FINGERPRINT_COOKIE, "", clearOptions);
-
-  // clearNfcSessionCookies bundle'ı da temizler; çift çağrı güvenli
-  await clearNfcSessionCookieBundle();
 }

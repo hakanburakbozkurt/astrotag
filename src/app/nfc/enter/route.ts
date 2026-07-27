@@ -1,27 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { establishNfcTapSession } from "@/lib/nfc/establish-tap-session.server";
-import { NFC_LOGIN_PATH } from "@/lib/nfc/constants";
+import { AUTH_LOGIN_PATH } from "@/lib/nfc/constants";
+import { resolveNfcTagRedirect } from "@/lib/nfc/nfc-tag-redirect.server";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 
-/** NFC dokunuşu → oturum çerezi + dashboard (ana sayfaya düşmez) */
+/** NFC dokunuşu — oturum varsa dashboard, yoksa giriş */
 export async function GET(request: NextRequest) {
   const uid = normalizeNfcUniqueId(request.nextUrl.searchParams.get("uid") ?? "");
-  const returnTo = request.nextUrl.searchParams.get("to")?.trim() ?? undefined;
 
   if (!uid) {
-    return NextResponse.redirect(new URL(NFC_LOGIN_PATH, request.url));
+    return NextResponse.redirect(new URL(AUTH_LOGIN_PATH, request.url));
   }
 
-  const result = await establishNfcTapSession(uid, { returnTo });
+  const query = Object.fromEntries(request.nextUrl.searchParams.entries());
+  const redirectTo = await resolveNfcTagRedirect(uid, query);
 
-  const target = new URL(result.ok ? result.redirectTo : result.fallbackTo, request.url);
-
-  console.log("[NFC_ENTER]", {
-    uid,
-    ok: result.ok,
-    redirectTo: target.pathname + target.search,
-    reason: result.ok ? undefined : result.reason,
-  });
-
-  return NextResponse.redirect(target);
+  return NextResponse.redirect(new URL(redirectTo, request.url));
 }

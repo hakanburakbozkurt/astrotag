@@ -19,9 +19,8 @@ import {
   type ExpertPendingPayload,
 } from "@/lib/expert/expert-pending-cookie.server";
 import { EXPERT_AUTH_CALLBACK_PATH, EXPERT_LOGIN_PATH } from "@/lib/expert/expert-paths";
-import { NFC_CARD_TABLE } from "@/lib/nfc/nfc-card-table";
-import { setNfcSession } from "@/lib/nfc/session.server";
 import { SITE_URL } from "@/lib/nfc/constants";
+import { NFC_CARD_TABLE } from "@/lib/nfc/nfc-card-table";
 import { STARTING_STAR_POINTS } from "@/lib/constants/cosmic";
 import { generateReferralCode } from "@/lib/referral";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -109,7 +108,7 @@ async function findExpertProfileByAuthUserId(authUserId: string) {
   return data;
 }
 
-async function establishExpertNfcSession(
+async function establishExpertSession(
   profileId: string,
   expertCode: string
 ): Promise<{ ok: true } | { ok: false; error: string }> {
@@ -118,7 +117,7 @@ async function establishExpertNfcSession(
   const nfcCardUuid = await ensureExpertVirtualCard(admin, profileId, expertCode);
 
   if (!nfcCardUuid) {
-    return { ok: false, error: "Uzman oturumu başlatılamadı." };
+    return { ok: false, error: "Uzman profili hazırlanamadı." };
   }
 
   try {
@@ -127,7 +126,6 @@ async function establishExpertNfcSession(
       nfcCardUuid,
       uniqueId: slug,
     });
-    await setNfcSession({ profileId, nfcCardUuid });
     return { ok: true };
   } catch (error) {
     return {
@@ -347,7 +345,7 @@ export async function finalizeExpertEmailAuth(authUserId: string): Promise<
     const existingExpert = await findExpertProfileByAuthUserId(authUserId);
     if (existingExpert?.expert_code) {
       await clearExpertPendingCookie();
-      const session = await establishExpertNfcSession(
+      const session = await establishExpertSession(
         existingExpert.id,
         existingExpert.expert_code
       );
@@ -366,7 +364,7 @@ export async function finalizeExpertEmailAuth(authUserId: string): Promise<
       return { ok: false, error: created.error, redirectTo: failRedirect };
     }
 
-    const session = await establishExpertNfcSession(
+    const session = await establishExpertSession(
       created.profileId,
       created.expertCode
     );
@@ -408,7 +406,7 @@ export async function finalizeExpertEmailAuth(authUserId: string): Promise<
     };
   }
 
-  const session = await establishExpertNfcSession(expert.id, expert.expert_code);
+  const session = await establishExpertSession(expert.id, expert.expert_code);
   if (!session.ok) {
     return { ok: false, error: session.error, redirectTo: failRedirect };
   }

@@ -1,18 +1,18 @@
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
-import { HOME_PATH } from "@/lib/nfc/constants";
-import { readServerCookieSessionAsync } from "@/lib/nfc/cookie-session.server";
+import { getAuthProfileContext } from "@/lib/auth/require-profile.server";
+import { AUTH_LOGIN_PATH } from "@/lib/nfc/constants";
 
-/** Oturum yoksa ana sayfaya — profil tamamlama durumuna göre yönlendirme yok */
+/** Supabase oturumu yoksa giriş sayfasına yönlendir */
 export default async function ProfileSetupLayout({
   children,
 }: {
   children: ReactNode;
 }) {
-  const snapshot = await readServerCookieSessionAsync();
+  const authProfile = await getAuthProfileContext();
 
-  if (!snapshot) {
-    redirect(HOME_PATH);
+  if (!authProfile) {
+    redirect(AUTH_LOGIN_PATH);
   }
 
   return children;

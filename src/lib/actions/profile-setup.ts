@@ -2,7 +2,6 @@
 
 import { STARTING_STAR_POINTS } from "@/lib/constants/cosmic";
 import { DASHBOARD_PATH } from "@/lib/nfc/constants";
-import { setProfileReadyCookie } from "@/lib/nfc/cookie-session.server";
 import { clearProfileEditModeCookie } from "@/lib/nfc/profile-edit-mode.server";
 import { logNfcError } from "@/lib/nfc/error-logger";
 import { requireProtectedNfcAccess } from "@/lib/nfc/protected-access.server";
@@ -155,7 +154,6 @@ export async function saveProfileSetup(
       );
     }
 
-    await setProfileReadyCookie(true);
     await clearProfileEditModeCookie();
 
     return {

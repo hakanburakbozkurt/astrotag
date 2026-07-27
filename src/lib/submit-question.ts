@@ -3,9 +3,9 @@
 import { redirect } from "next/navigation";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import { PROFILE_SETUP_PATH } from "@/lib/nfc/constants";
+import { getAuthProfileContext } from "@/lib/auth/require-profile.server";
 import {
   assertProfileIdExists,
-  resolveProfileIdFromNfcSession,
 } from "@/lib/nfc/resolve-profile-id.server";
 import type { HoraryQuestion, HoraryQuestionInsert } from "@/types/database";
 import { SupabaseActionError, redirectToLogin } from "@/lib/supabase-action-error";
@@ -24,22 +24,15 @@ function mapSupabaseError(
 }
 
 export async function resolveProfileUserId(): Promise<string> {
-  const resolved = await resolveProfileIdFromNfcSession();
+  const authProfile = await getAuthProfileContext();
 
-  console.log("[resolveProfileUserId] oturum çözümlemesi", {
-    found: Boolean(resolved),
-    source: resolved?.source ?? null,
-    sessionId: resolved?.sessionId ?? null,
-    profileId: resolved?.profileId ?? null,
-  });
-
-  if (!resolved?.profileId?.trim()) {
+  if (!authProfile?.profileId?.trim()) {
     redirectToLogin();
     throw new SupabaseActionError("Oturum doğrulanamadı. Lütfen tekrar giriş yapın.");
   }
 
   try {
-    return await assertProfileIdExists(resolved.profileId);
+    return await assertProfileIdExists(authProfile.profileId);
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Profil doğrulanamadı.";

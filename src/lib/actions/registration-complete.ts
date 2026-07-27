@@ -114,7 +114,9 @@ export async function saveRegistrationComplete(
       return { success: false, error: "Kayıt güncellenemedi." };
     }
 
-    await syncProfileNfcUid(admin, access.profileId, access.uniqueId);
+    if (access.uniqueId) {
+      await syncProfileNfcUid(admin, access.profileId, access.uniqueId);
+    }
 
     const { error: profileError } = await admin
       .from("profiles")

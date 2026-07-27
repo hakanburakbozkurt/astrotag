@@ -2,7 +2,7 @@
 
 import { cookies } from "next/headers";
 import { signOutNfcAction, type SignOutResult } from "@/lib/actions/nfc-auth-signout";
-import { readServerCookieSessionAsync } from "@/lib/nfc/cookie-session.server";
+import { getAuthProfileContext } from "@/lib/auth/require-profile.server";
 import { clearAllAuthState } from "@/lib/nfc/clear-all-auth-cookies.server";
 import { getStrictCookieOptions } from "@/lib/nfc/device-cookies.server";
 import { STORAGE_VERIFIED_COOKIE } from "@/lib/nfc/constants";
@@ -22,36 +22,29 @@ export async function checkNfcSessionAction(): Promise<{
   expiresAt: string | null;
 }> {
   return withNfcAction("checkNfcSessionAction", async () => {
-    const snapshot = await readServerCookieSessionAsync();
+    const authProfile = await getAuthProfileContext();
 
     return {
-      authenticated: Boolean(snapshot),
-      profileId: snapshot?.profileId ?? null,
-      expiresAt: snapshot?.expiresAt ?? null,
+      authenticated: Boolean(authProfile),
+      profileId: authProfile?.profileId ?? null,
+      expiresAt: null,
     };
   });
 }
 
-/** Profil tamamlama: NFC oturumu veya yeni kayıt Supabase oturumu */
+/** Profil tamamlama: Supabase oturumu zorunlu */
 export async function checkProfilePageAccessAction(): Promise<{
   allowed: boolean;
   viaNfc: boolean;
   viaSupabase: boolean;
 }> {
   return withNfcAction("checkProfilePageAccessAction", async () => {
-    const snapshot = await readServerCookieSessionAsync();
-    const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    const viaNfc = Boolean(snapshot);
-    const viaSupabase = Boolean(user?.id);
+    const authProfile = await getAuthProfileContext();
 
     return {
-      allowed: viaNfc || viaSupabase,
-      viaNfc,
-      viaSupabase,
+      allowed: Boolean(authProfile),
+      viaNfc: false,
+      viaSupabase: Boolean(authProfile),
     };
   });
 }

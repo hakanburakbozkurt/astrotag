@@ -1,9 +1,9 @@
 "use server";
 
+import { getAuthProfileContext } from "@/lib/auth/require-profile.server";
 import { EXPERT_LOGIN_PATH } from "@/lib/expert/expert-paths";
-import { readServerCookieSessionAsync } from "@/lib/nfc/cookie-session.server";
 import { clearAllAuthState } from "@/lib/nfc/clear-all-auth-cookies.server";
-import { HOME_PATH, NFC_LOGIN_PATH } from "@/lib/nfc/constants";
+import { AUTH_LOGIN_PATH, HOME_PATH } from "@/lib/nfc/constants";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import { withNfcAction } from "@/lib/nfc/with-nfc-action.server";
@@ -30,17 +30,17 @@ async function resolvePostSignOutRedirect(profileId: string | null): Promise<str
 
   const nfcUid = profile?.nfc_uid?.trim();
   if (nfcUid) {
-    return `${NFC_LOGIN_PATH}?uid=${encodeURIComponent(nfcUid)}`;
+    return `${AUTH_LOGIN_PATH}?nfc=${encodeURIComponent(nfcUid)}`;
   }
 
   return HOME_PATH;
 }
 
-/** Supabase Auth + tüm NFC çerezleri + DB oturumu — client hard redirect yapar */
+/** Supabase Auth oturumunu sonlandır — client hard redirect yapar */
 export async function signOutNfcAction(): Promise<SignOutResult> {
   return withNfcAction("signOutNfcAction", async () => {
-    const snapshot = await readServerCookieSessionAsync();
-    const redirectTo = await resolvePostSignOutRedirect(snapshot?.profileId ?? null);
+    const authProfile = await getAuthProfileContext();
+    const redirectTo = await resolvePostSignOutRedirect(authProfile?.profileId ?? null);
 
     const supabase = await createServerSupabaseClient();
     const { error: signOutError } = await supabase.auth.signOut();

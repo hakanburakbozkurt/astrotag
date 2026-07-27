@@ -1,29 +1,30 @@
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import DashboardTabShell from "@/components/navigation/DashboardTabShell";
-import { isAccountLoginAllowed } from "@/lib/nfc/account-status.server";
-import { NFC_SUSPENDED_PATH } from "@/lib/nfc/constants";
-import { readServerCookieSessionAsync } from "@/lib/nfc/cookie-session.server";
-import { resolveNfcPinRedirectFromCookies } from "@/lib/nfc/resolve-nfc-pin-redirect.server";
+import { getAuthProfileContext } from "@/lib/auth/require-profile.server";
+import { AUTH_LOGIN_PATH, NFC_SUSPENDED_PATH } from "@/lib/nfc/constants";
+import { createServiceRoleClient } from "@/lib/supabase/service";
 
-/** Dashboard — NFC oturumu + aktif hesap zorunlu */
+/** Dashboard — Supabase Auth oturumu zorunlu */
 export default async function DashboardLayout({
   children,
 }: {
   children: ReactNode;
 }) {
-  const snapshot = await readServerCookieSessionAsync();
+  const authProfile = await getAuthProfileContext();
 
-  if (!snapshot) {
-    redirect(await resolveNfcPinRedirectFromCookies());
+  if (!authProfile) {
+    redirect(AUTH_LOGIN_PATH);
   }
 
-  const loginAllowed = await isAccountLoginAllowed({
-    profileId: snapshot.profileId,
-    nfcCardUuid: snapshot.nfcCardUuid ?? undefined,
-  });
+  const admin = createServiceRoleClient();
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("is_active")
+    .eq("id", authProfile.profileId)
+    .maybeSingle();
 
-  if (!loginAllowed) {
+  if (profile?.is_active === false) {
     redirect(NFC_SUSPENDED_PATH);
   }
 

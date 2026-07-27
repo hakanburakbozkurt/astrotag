@@ -1,20 +1,17 @@
 import { redirect } from "next/navigation";
-import { resolveNfcScanAccess } from "@/lib/nfc/nfc-scan-access.server";
+import { resolveNfcTagRedirect } from "@/lib/nfc/nfc-tag-redirect.server";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 
 type PageProps = {
   params: Promise<{ unique_id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-/** /p/{at_xxx} — oturum yoksa PIN ekranına; oturum varsa panele */
-export default async function PublicNfcProfilePage({ params }: PageProps) {
+/** /p/{at_xxx} — NFC etiket kısayolu */
+export default async function PublicNfcProfilePage({ params, searchParams }: PageProps) {
   const { unique_id: rawId } = await params;
+  const query = await searchParams;
   const uniqueId = normalizeNfcUniqueId(rawId);
-  const access = await resolveNfcScanAccess(uniqueId);
 
-  if (access.ok) {
-    redirect(access.redirectTo);
-  }
-
-  redirect(access.pinEntryPath);
+  redirect(await resolveNfcTagRedirect(uniqueId, query));
 }

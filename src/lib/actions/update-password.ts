@@ -1,13 +1,16 @@
 "use server";
 
-/** @deprecated E-posta tabanlı şifre sıfırlama kaldırıldı — WhatsApp kurtarma kullanın */
-export async function updateUserPassword(): Promise<{
-  success: false;
-  error: string;
-}> {
-  return {
-    success: false,
-    error:
-      "Şifre sıfırlama e-posta ile yapılmaz. Giriş ekranındaki WhatsApp destek bağlantısını kullanın.",
-  };
+import { updateAuthenticatedPassword } from "@/lib/auth/auth-service.server";
+import type { AuthActionResult } from "@/lib/auth/auth-service.types";
+
+export async function updateUserPassword(
+  newPassword: string
+): Promise<{ success: true } | { success: false; error: string }> {
+  const result: AuthActionResult = await updateAuthenticatedPassword(newPassword);
+
+  if (!result.ok) {
+    return { success: false, error: result.error };
+  }
+
+  return { success: true };
 }

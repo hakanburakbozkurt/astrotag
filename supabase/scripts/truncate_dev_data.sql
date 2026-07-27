@@ -6,7 +6,6 @@
 begin;
 
 truncate table
-  public.nfc_sessions,
   public.trusted_devices,
   public.referrals,
   public.tarot_history,
@@ -22,5 +21,4 @@ commit;
 
 -- Doğrulama (opsiyonel):
 -- select 'profiles' as t, count(*) from public.profiles
--- union all select 'nfc_user_data', count(*) from public.nfc_user_data
--- union all select 'nfc_sessions', count(*) from public.nfc_sessions;
+-- union all select 'nfc_user_data', count(*) from public.nfc_user_data;

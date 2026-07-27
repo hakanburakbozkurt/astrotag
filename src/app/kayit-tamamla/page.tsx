@@ -1,14 +1,14 @@
 import { redirect } from "next/navigation";
 import RegistrationCompleteView from "@/components/profile/RegistrationCompleteView";
-import { HOME_PATH } from "@/lib/nfc/constants";
-import { getNfcSession } from "@/lib/nfc/session.server";
+import { getAuthProfileContext } from "@/lib/auth/require-profile.server";
+import { AUTH_LOGIN_PATH } from "@/lib/nfc/constants";
 
-/** PIN oturumu sonrası kayıt tamamlama — oturum yoksa ana sayfa */
+/** Kayıt tamamlama — Supabase oturumu zorunlu */
 export default async function KayitTamamlaPage() {
-  const session = await getNfcSession();
+  const authProfile = await getAuthProfileContext();
 
-  if (!session) {
-    redirect(HOME_PATH);
+  if (!authProfile) {
+    redirect(AUTH_LOGIN_PATH);
   }
 
   return <RegistrationCompleteView />;

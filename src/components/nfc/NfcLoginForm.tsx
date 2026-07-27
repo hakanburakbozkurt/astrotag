@@ -4,9 +4,9 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useSafeRouter } from "@/lib/auth/safe-router-nav.client";
+import { AUTH_FORGOT_PASSWORD_PATH } from "@/lib/auth/auth-config";
 import { authQueryMessageText } from "@/lib/auth/auth-query-messages";
 import { logNfcAuthTrace } from "@/lib/auth/nfc-auth-debug";
-import WhatsAppRecoveryLink from "@/components/support/WhatsAppRecoveryLink";
 import { startNfcLoginAction } from "@/lib/actions/nfc-email-auth";
 import { authLoginPathClean, nfcAuthSignupPath } from "@/lib/nfc/auth-paths";
 import { persistNfcIdClient, readNfcIdClient } from "@/lib/nfc/nfc-id-persist.client";
@@ -228,10 +228,17 @@ export default function NfcLoginForm({ initialNfcId = "" }: NfcLoginFormProps) {
         </button>
       </form>
 
-      <WhatsAppRecoveryLink context={{ kind: "nfc", uniqueId }} label="Şifremi Unuttum" />
+      <p className="mt-2 text-center text-[11px]">
+        <Link
+          href={`${AUTH_FORGOT_PASSWORD_PATH}${email.trim() ? `?email=${encodeURIComponent(email.trim())}` : ""}`}
+          className="font-medium text-amber-200/90 underline-offset-2 hover:underline"
+        >
+          Şifremi Unuttum
+        </Link>
+      </p>
 
       <p className="mt-2 text-center text-[11px] text-white/40">
-        Şifre sıfırlama yalnızca WhatsApp destek hattı üzerinden yapılır.
+        Şifre sıfırlama bağlantısı kayıtlı e-posta adresinize gönderilir.
       </p>
 
       <p className="mt-4 text-center text-[11px] text-white/40">
