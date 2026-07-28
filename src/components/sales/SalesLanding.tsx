@@ -5,7 +5,6 @@ import ExpertJoinSection from '@/components/sales/ExpertJoinSection';
 import FeaturesSection from '@/components/sales/FeaturesSection';
 import ProductGuideSection from '@/components/sales/ProductGuideSection';
 import ProductSection from '@/components/sales/ProductSection';
-import QuickAccessPanel from '@/components/sales/QuickAccessPanel';
 import SalesHero from '@/components/sales/SalesHero';
 import SalesNav from '@/components/sales/SalesNav';
 import SalesNebulaBackdrop from '@/components/sales/SalesNebulaBackdrop';
@@ -31,7 +30,6 @@ export default function SalesLanding() {
       <div className="relative pt-14 sm:pt-16">
         <div className="mx-auto flex max-w-5xl flex-col">
           <SalesHero />
-          <QuickAccessPanel />
           <ValuePropositionSection />
           <FeaturesSection />
           <ProductSection />

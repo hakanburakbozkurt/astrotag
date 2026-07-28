@@ -4,7 +4,12 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Menu, X } from "lucide-react";
+import {
+  authPrimaryButtonClassName,
+  authSecondaryButtonClassName,
+} from "@/components/auth/auth-field-styles";
 import { LANDING_NAV_ITEMS } from "@/lib/sales/landing-nav";
+import { AUTH_LOGIN_PATH, AUTH_SIGNUP_PATH } from "@/lib/nfc/constants";
 
 export default function SalesNav() {
   const [open, setOpen] = useState(false);
@@ -87,6 +92,23 @@ export default function SalesNav() {
                 >
                   <X className="h-5 w-5" />
                 </button>
+              </div>
+
+              <div className="flex flex-col gap-2 border-b border-white/8 p-4">
+                <Link
+                  href={AUTH_LOGIN_PATH}
+                  onClick={close}
+                  className={authPrimaryButtonClassName}
+                >
+                  Giriş Yap
+                </Link>
+                <Link
+                  href={AUTH_SIGNUP_PATH}
+                  onClick={close}
+                  className={authSecondaryButtonClassName}
+                >
+                  Kayıt Ol
+                </Link>
               </div>
 
               <ul className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">

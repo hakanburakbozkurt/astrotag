@@ -54,8 +54,8 @@ export default function SalesHero() {
             {LANDING_HERO_SLOGAN}
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-white/50 sm:text-base">
-            On iki burçtan biriyle kişiselleştirilmiş anahtarlık; telefonuna dokundur, kozmik
-            profilin açılsın.
+            Kişiselleştirilmiş kozmik anahtarlıklar, natal harita, tarot ve uzman danışmanlığı —
+            hepsi tek platformda.
           </p>
         </div>
       </motion.div>
