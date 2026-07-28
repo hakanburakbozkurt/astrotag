@@ -2,57 +2,14 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import ExpertsDirectory from "@/components/experts/ExpertsDirectory";
 import TabPageScaffold from "@/components/navigation/TabPageScaffold";
 import DataLoadingState from "@/components/ui/DataLoadingState";
 import {
   getExpertPublicProfileAction,
-  listPublishedExpertsAction,
   purchaseExpertServiceAction,
 } from "@/lib/actions/wallet";
 import type { ExpertPublicProfile } from "@/lib/experts/experts.server";
-
-type ExpertCard = Awaited<ReturnType<typeof listPublishedExpertsAction>>[number];
-
-function ExpertVitrineCard({
-  expert,
-  selected,
-  onSelect,
-}: {
-  expert: ExpertCard;
-  selected: boolean;
-  onSelect: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className={`flex w-[140px] shrink-0 flex-col items-center rounded-2xl border px-3 py-4 text-center transition ${
-        selected
-          ? "border-amber-400/40 bg-amber-400/10 shadow-[0_0_20px_rgba(251,191,36,0.15)]"
-          : "border-white/10 bg-white/[0.03] hover:border-white/20"
-      }`}
-    >
-      <div className="flex h-14 w-14 items-center justify-center rounded-full border border-white/15 bg-white/[0.04] text-2xl">
-        {expert.avatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={expert.avatarUrl}
-            alt=""
-            className="h-full w-full rounded-full object-cover"
-          />
-        ) : (
-          "✨"
-        )}
-      </div>
-      <p className="mt-3 line-clamp-2 text-xs font-semibold text-white/90">
-        {expert.displayName}
-      </p>
-      <p className="mt-1 line-clamp-1 text-[10px] text-amber-200/70">
-        {expert.tradition}
-      </p>
-    </button>
-  );
-}
 
 function ExpertDetailView({
   expert,
@@ -81,7 +38,7 @@ function ExpertDetailView({
         </h2>
         <p className="mt-1 text-sm text-amber-200/80">{expert.title}</p>
         <p className="mt-2 text-xs text-white/45">
-          {expert.experienceYears}+ yıl deneyim
+          {expert.experienceYears} yıl deneyim
         </p>
       </header>
 
@@ -180,25 +137,11 @@ function ExpertDetailView({
 }
 
 export default function ExpertsTabContent() {
-  const [experts, setExperts] = useState<ExpertCard[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<ExpertPublicProfile | null>(null);
-  const [loadingList, setLoadingList] = useState(true);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [bookingBusy, setBookingBusy] = useState<string | null>(null);
   const [bookingError, setBookingError] = useState<string | null>(null);
-
-  useEffect(() => {
-    void (async () => {
-      setLoadingList(true);
-      const rows = await listPublishedExpertsAction();
-      setExperts(rows);
-      if (rows[0]) {
-        setSelectedId(rows[0].id);
-      }
-      setLoadingList(false);
-    })();
-  }, []);
 
   const loadDetail = useCallback(async (expertId: string) => {
     setLoadingDetail(true);
@@ -242,40 +185,21 @@ export default function ExpertsTabContent() {
       title="Kozmik Uzmanlar"
       description="Gerçek uzman seansları — kristal ile rezervasyon."
     >
-      {loadingList ? (
-        <DataLoadingState className="mt-6" />
-      ) : experts.length === 0 ? (
-        <p className="mt-6 text-sm text-white/45">
-          Henüz yayında uzman profili yok. Uzmanlar panelden profillerini
-          yayınlayabilir.
-        </p>
-      ) : (
-        <>
-          <div className="-mx-1 mt-4 overflow-x-auto pb-2">
-            <div className="flex gap-3 px-1">
-              {experts.map((expert) => (
-                <ExpertVitrineCard
-                  key={expert.id}
-                  expert={expert}
-                  selected={selectedId === expert.id}
-                  onSelect={() => setSelectedId(expert.id)}
-                />
-              ))}
-            </div>
-          </div>
+      <ExpertsDirectory
+        selectedId={selectedId}
+        onSelectExpert={setSelectedId}
+      />
 
-          {loadingDetail ? (
-            <DataLoadingState className="mt-6" compact />
-          ) : detail ? (
-            <ExpertDetailView
-              expert={detail}
-              onBook={(serviceId) => void handleBook(serviceId)}
-              bookingError={bookingError}
-              bookingBusy={bookingBusy}
-            />
-          ) : null}
-        </>
-      )}
+      {loadingDetail ? (
+        <DataLoadingState className="mt-2" compact />
+      ) : detail ? (
+        <ExpertDetailView
+          expert={detail}
+          onBook={(serviceId) => void handleBook(serviceId)}
+          bookingError={bookingError}
+          bookingBusy={bookingBusy}
+        />
+      ) : null}
     </TabPageScaffold>
   );
 }
