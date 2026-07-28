@@ -11,6 +11,8 @@ export type ExpertRegisterDraft = {
   tradition: string;
   experienceYears: number;
   aboutText: string;
+  phoneNumber: string;
+  socialProfileUrl: string;
 };
 
 export type ExpertPendingPayload =
@@ -54,7 +56,9 @@ export async function getExpertPendingCookie(): Promise<ExpertPendingPayload | n
       if (
         !parsed.name?.trim() ||
         !parsed.title?.trim() ||
-        !parsed.tradition?.trim()
+        !parsed.tradition?.trim() ||
+        !parsed.phoneNumber?.trim() ||
+        !parsed.socialProfileUrl?.trim()
       ) {
         return null;
       }

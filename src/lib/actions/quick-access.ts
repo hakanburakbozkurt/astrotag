@@ -13,7 +13,7 @@ import {
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 
-const GUEST_TTL_MS = 24 * 60 * 60 * 1000;
+const GUEST_TTL_MS = 12 * 60 * 60 * 1000;
 
 export type QuickAccessResult =
   | { success: true; guestCode: string; redirectTo: string }

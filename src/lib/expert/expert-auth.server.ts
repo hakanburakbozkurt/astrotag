@@ -189,12 +189,16 @@ export async function sendExpertRegisterMagicLink(input: {
   tradition: string;
   experienceYears: number;
   aboutText: string;
+  phoneNumber: string;
+  socialProfileUrl: string;
 }): Promise<{ ok: true } | ExpertAuthError> {
   const email = normalizeExpertEmail(input.email);
   const name = input.name.trim();
   const title = input.title.trim();
   const tradition = input.tradition.trim();
   const aboutText = input.aboutText.trim();
+  const phoneNumber = input.phoneNumber.trim();
+  const socialProfileUrl = input.socialProfileUrl.trim();
   const experienceYears = Math.max(0, Math.floor(input.experienceYears));
 
   if (!isValidExpertEmail(email)) {
@@ -211,6 +215,14 @@ export async function sendExpertRegisterMagicLink(input: {
 
   if (tradition.length < 2) {
     return { ok: false, error: "Uzmanlık alanı seçin veya girin." };
+  }
+
+  if (phoneNumber.length < 10) {
+    return { ok: false, error: "Geçerli bir telefon numarası girin." };
+  }
+
+  if (socialProfileUrl.length < 4) {
+    return { ok: false, error: "Sosyal medya profil bağlantısı girin." };
   }
 
   if (await authEmailExists(email)) {
@@ -242,6 +254,8 @@ export async function sendExpertRegisterMagicLink(input: {
     tradition,
     experienceYears,
     aboutText,
+    phoneNumber,
+    socialProfileUrl,
   });
 
   return { ok: true };
@@ -297,6 +311,8 @@ async function createExpertProfileFromPending(
       tradition: pending.tradition.trim(),
       experience_years: Math.max(0, pending.experienceYears ?? 0),
       about_text: pending.aboutText?.trim() ?? "",
+      phone_number: pending.phoneNumber?.trim() ?? "",
+      social_profile_url: pending.socialProfileUrl?.trim() ?? "",
       approval_status: EXPERT_APPROVAL_PENDING,
       is_published: false,
     });

@@ -2,7 +2,6 @@ import type { User } from "@supabase/supabase-js";
 import type { NextRequest } from "next/server";
 import { isAuthFormPath, isPublicAppPath, normalizeAuthPathname } from "@/lib/nfc/auth-paths";
 import {
-  extractRootUniqueId,
   isRootCardEntryPath,
 } from "@/lib/nfc/card-paths";
 import { EXPERT_AUTH_CALLBACK_PATH } from "@/lib/expert/expert-paths";
@@ -21,7 +20,6 @@ import {
   REGISTRATION_COMPLETE_PATH,
   STORAGE_VERIFIED_COOKIE,
 } from "@/lib/nfc/constants";
-import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 
 export type SecurityDenyReason =
   | "private_mode"
@@ -171,7 +169,7 @@ export async function runSecurityGate(
     return { allowed: true };
   }
 
-  if (isAuthCallbackPath(pathname)) {
+  if (isAuthCallbackPath(pathname) || pathname === "/auth/guest-expired") {
     return { allowed: true };
   }
 
@@ -203,15 +201,10 @@ export async function runSecurityGate(
   }
 
   if (!authUser?.id) {
-    const rootNfcId = extractRootUniqueId(pathname);
-    const redirectTo = rootNfcId
-      ? `${AUTH_LOGIN_PATH}?nfc=${encodeURIComponent(normalizeNfcUniqueId(rootNfcId))}`
-      : AUTH_LOGIN_PATH;
-
     return {
       allowed: false,
       reason: "session_missing",
-      redirectTo,
+      redirectTo: AUTH_LOGIN_PATH,
     };
   }
 

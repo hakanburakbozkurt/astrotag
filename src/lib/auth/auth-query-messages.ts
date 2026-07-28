@@ -14,5 +14,9 @@ export function authQueryMessageText(msg: string | null | undefined): string | n
     return CARD_NOT_ACTIVE_COPY;
   }
 
+  if (key === "guest_expired") {
+    return "Misafir oturumunuz sona erdi. Devam etmek için ücretsiz hesap oluşturun.";
+  }
+
   return key;
 }

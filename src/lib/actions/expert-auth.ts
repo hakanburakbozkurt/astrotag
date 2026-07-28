@@ -35,6 +35,8 @@ export async function sendExpertRegisterLinkAction(input: {
   tradition: string;
   experienceYears: number;
   aboutText: string;
+  phoneNumber: string;
+  socialProfileUrl: string;
 }): Promise<ExpertAuthActionResult> {
   return withNfcAction("sendExpertRegisterLinkAction", async () => {
     const result = await sendExpertRegisterMagicLink(input);

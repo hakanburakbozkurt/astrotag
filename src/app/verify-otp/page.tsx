@@ -10,10 +10,10 @@ import {
   authSecondaryButtonClassName,
 } from "@/components/auth/auth-field-styles";
 import {
-  resendNfcOtpAction,
-  verifyNfcOtpAndEnterAction,
-} from "@/lib/actions/nfc-email-auth";
-import { cardEntryPathForUniqueId } from "@/lib/nfc/card-paths";
+  resendEmailOtpAction,
+  verifyEmailOtpAction,
+} from "@/lib/actions/auth-email";
+import { AUTH_LOGIN_PATH } from "@/lib/nfc/constants";
 import { navigateAfterNfcAuth } from "@/lib/nfc/post-auth-nav.client";
 
 function VerifyOtpContent() {
@@ -28,18 +28,18 @@ function VerifyOtpContent() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
-  if (!email || !uniqueId) {
+  if (!email) {
     return (
       <AuthMobileShell
         title="Eksik bilgi"
-        subtitle="Doğrulama bağlantısı geçersiz. Lütfen NFC kartınızı tekrar okutun."
+        subtitle="Doğrulama bağlantısı geçersiz. Lütfen kayıt akışını tekrar başlatın."
       >
         <button
           type="button"
-          onClick={() => void safeReplace("/")}
+          onClick={() => void safeReplace(AUTH_LOGIN_PATH)}
           className={authSecondaryButtonClassName}
         >
-          Ana sayfa
+          Giriş sayfası
         </button>
       </AuthMobileShell>
     );
@@ -52,10 +52,10 @@ function VerifyOtpContent() {
     setInfo(null);
 
     try {
-      const result = await verifyNfcOtpAndEnterAction({
+      const result = await verifyEmailOtpAction({
         email,
         otp,
-        uniqueId,
+        uniqueId: uniqueId || undefined,
         device: {
           screenWidth: window.screen.width,
           screenHeight: window.screen.height,
@@ -71,10 +71,7 @@ function VerifyOtpContent() {
 
       navigateAfterNfcAuth(result.redirectTo);
     } catch (cause) {
-      console.error("[VerifyOtp]", cause);
-      setError(
-        cause instanceof Error ? cause.message : "Doğrulama başarısız."
-      );
+      setError(cause instanceof Error ? cause.message : "Doğrulama başarısız.");
       setLoading(false);
     }
   }
@@ -84,7 +81,7 @@ function VerifyOtpContent() {
     setError(null);
     setInfo(null);
 
-    const result = await resendNfcOtpAction(email, uniqueId);
+    const result = await resendEmailOtpAction(email, uniqueId || undefined);
     setResending(false);
 
     if (!result.success) {
@@ -134,9 +131,7 @@ function VerifyOtpContent() {
 
         <button
           type="button"
-          onClick={() =>
-            void safeReplace(cardEntryPathForUniqueId(uniqueId))
-          }
+          onClick={() => void safeReplace(AUTH_LOGIN_PATH)}
           className="text-center text-[10px] uppercase tracking-widest text-white/40 hover:text-white/60"
         >
           Giriş ekranına dön

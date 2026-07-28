@@ -2,7 +2,7 @@
  * AstroTag Auth servis katmanı — Supabase oturum + şifre sıfırlama.
  *
  * Giriş yöntemleri (AuthMethod):
- * - email_password   → nfc-email-auth.ts
+ * - email_password   → auth-email.ts
  * - digital_code     → quick-access.ts (redeemDigitalAccessCodeAction)
  * - expert_magic_link→ expert-auth.server.ts
  * - guest_anonymous  → finalizeGuestAccessAction

@@ -21,6 +21,8 @@ export default function ExpertRegisterForm() {
   const [tradition, setTradition] = useState<string>(EXPERT_TRADITION_OPTIONS[0]);
   const [experienceYears, setExperienceYears] = useState("1");
   const [aboutText, setAboutText] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [socialProfileUrl, setSocialProfileUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
@@ -35,6 +37,8 @@ export default function ExpertRegisterForm() {
     name.trim().length >= 2 &&
     title.trim().length >= 2 &&
     tradition.trim().length >= 2 &&
+    phoneNumber.trim().length >= 10 &&
+    socialProfileUrl.trim().length >= 4 &&
     isValidEmail(normalizedEmail) &&
     !loading;
 
@@ -57,6 +61,8 @@ export default function ExpertRegisterForm() {
         tradition: tradition.trim(),
         experienceYears: parsedExperienceYears,
         aboutText: aboutText.trim(),
+        phoneNumber: phoneNumber.trim(),
+        socialProfileUrl: socialProfileUrl.trim(),
       });
 
       if (!result.ok) {
@@ -169,6 +175,35 @@ export default function ExpertRegisterForm() {
       />
 
       <label className="text-[11px] uppercase tracking-widest text-white/45">
+        Telefon Numarası
+      </label>
+      <input
+        type="tel"
+        inputMode="tel"
+        autoComplete="tel"
+        required
+        minLength={10}
+        value={phoneNumber}
+        onChange={(event) => setPhoneNumber(event.target.value)}
+        placeholder="05xx xxx xx xx"
+        className={authInputClassName}
+      />
+
+      <label className="text-[11px] uppercase tracking-widest text-white/45">
+        Sosyal Medya Profili
+      </label>
+      <input
+        type="url"
+        inputMode="url"
+        required
+        minLength={4}
+        value={socialProfileUrl}
+        onChange={(event) => setSocialProfileUrl(event.target.value)}
+        placeholder="https://instagram.com/kullaniciadi"
+        className={authInputClassName}
+      />
+
+      <label className="text-[11px] uppercase tracking-widest text-white/45">
         Kısa Tanıtım
       </label>
       <textarea
@@ -197,8 +232,8 @@ export default function ExpertRegisterForm() {
       </button>
 
       <p className="text-center text-[11px] text-white/40">
-        Şifre gerekmez. E-postanıza doğrulama bağlantısı gönderilir; onay sonrası
-        vitrinde yer alırsınız.
+        Başvurunuz admin onayından geçer. Telefon ve sosyal medya bilgileriniz
+        doğrulama için kullanılır. E-postanıza magic link gönderilir.
       </p>
 
       <p className="mt-2 text-center text-[11px]">
