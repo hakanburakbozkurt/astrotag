@@ -2,6 +2,7 @@ import "server-only";
 
 import type { PostgrestError } from "@supabase/supabase-js";
 import { runManifestoPipeline } from "@/lib/ai/manifesto-pipeline";
+import { parseManifestoPresentation } from "@/lib/manifesto/manifesto-presentation";
 import {
   MANIFESTO_CATEGORIES,
   MANIFESTO_DB_COLUMNS,
@@ -82,6 +83,7 @@ function toRecord(
     maxDays,
     lastCheckedDate: row.last_checked_date,
     lastMessage: row.daily_ai_message,
+    presentation: parseManifestoPresentation(row.daily_ai_message),
     isComplete: row.is_completed,
     generatedToday,
   };
@@ -152,7 +154,7 @@ async function generateManifestSentence(input: {
   currentDay: number;
   maxDays: number;
 }): Promise<string> {
-  const message = await runManifestoPipeline({
+  const result = await runManifestoPipeline({
     user: input.user,
     category: input.category,
     techniqueType: input.techniqueType,
@@ -161,11 +163,11 @@ async function generateManifestSentence(input: {
     maxDays: input.maxDays,
   });
 
-  if (!message) {
+  if (!result) {
     throw new Error("Kozmik manifesto üretilemedi. KIE bağlantısını kontrol edin.");
   }
 
-  return message;
+  return result.storageJson;
 }
 
 async function fetchManifestoRow(

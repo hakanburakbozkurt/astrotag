@@ -41,6 +41,8 @@ export type ManifestoDbRow = {
   updated_at?: string;
 };
 
+import type { ManifestoPresentation } from "@/lib/manifesto/manifesto-presentation";
+
 /** Uygulama katmanı DTO */
 export type UserManifestoRecord = {
   id: string;
@@ -50,7 +52,10 @@ export type UserManifestoRecord = {
   currentDay: number;
   maxDays: number;
   lastCheckedDate: string | null;
+  /** Ham DB metni (JSON veya legacy düz metin) */
   lastMessage: string | null;
+  /** Çok katmanlı parse edilmiş manifesto */
+  presentation: ManifestoPresentation | null;
   isComplete: boolean;
   generatedToday: boolean;
 };

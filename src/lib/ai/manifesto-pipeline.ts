@@ -3,12 +3,19 @@ import "server-only";
 import { z } from "zod";
 import { callKieChat, logKieApiKeyStatus } from "@/lib/ai/kie-client";
 import {
-  buildOracleSystemPrompt,
+  buildManifestoSystemPrompt,
+  buildManifestoUserPromptSuffix,
+} from "@/lib/ai/manifesto-presentation-prompts";
+import {
   MEDIUM_RETRY_NUDGE,
   detectRoboticMediumTone,
 } from "@/lib/ai/medium-persona";
 import { ORACLE_JSON_GUARDRAIL } from "@/lib/ai/oracle-guardrails";
 import { buildManifestoEmphPackage } from "@/lib/manifesto/manifesto-emph.server";
+import {
+  formatManifestoForDisplay,
+  type ManifestoPresentation,
+} from "@/lib/manifesto/manifesto-presentation";
 import {
   MANIFESTO_CATEGORIES,
   MANIFESTO_TECHNIQUES,
@@ -17,18 +24,12 @@ import {
 } from "@/lib/manifesto/types";
 import type { UserData } from "@/types/user";
 
-const ManifestoJsonSchema = z.object({
-  manifest: z.string().min(20).max(280),
+const ManifestoPresentationSchema = z.object({
+  cosmicHook: z.string().min(40).max(420),
+  natalMirror: z.string().min(60).max(720),
+  manifestoClaim: z.string().min(24).max(320),
+  ritualWhisper: z.string().min(16).max(220),
 });
-
-const MANIFESTO_SYSTEM_PROMPT = buildOracleSystemPrompt(`Sen AstroTag Manifesto Motoru'sun.
-Emph ephemeris paketindeki natal harita ve bugünkü transit verilerini kullanarak TEK bir günlük manifest cümlesi yaz.
-Kurallar:
-- Türkçe, kısa (en fazla 2 cümle), vurucu ve ezoterik
-- Emir kipi veya güçlü olumlu ifade; niyet ve kategori ile hizalı
-- Korku satışı, garanti vaadi, tıbbi/finansal tavsiye yok
-- Markdown yok
-Yanıt YALNIZCA geçerli JSON: {"manifest":"..."}`);
 
 function getCategoryLabel(category: ManifestoCategoryId): string {
   return MANIFESTO_CATEGORIES.find((item) => item.id === category)?.label ?? category;
@@ -41,14 +42,22 @@ function getTechniqueLabel(techniqueType: ManifestoTechniqueId): string {
   );
 }
 
-function parseManifestJson(raw: string): string | null {
+function parseManifestoJson(raw: string): ManifestoPresentation | null {
   const trimmed = raw.trim();
 
-  const tryParse = (candidate: string): string | null => {
+  const tryParse = (candidate: string): ManifestoPresentation | null => {
     try {
       const parsed = JSON.parse(candidate) as unknown;
-      const result = ManifestoJsonSchema.safeParse(parsed);
-      return result.success ? result.data.manifest.trim() : null;
+      const result = ManifestoPresentationSchema.safeParse(parsed);
+      if (!result.success) {
+        return null;
+      }
+      return {
+        cosmicHook: result.data.cosmicHook.trim(),
+        natalMirror: result.data.natalMirror.trim(),
+        manifestoClaim: result.data.manifestoClaim.trim(),
+        ritualWhisper: result.data.ritualWhisper.trim(),
+      };
     } catch {
       return null;
     }
@@ -73,10 +82,6 @@ function parseManifestJson(raw: string): string | null {
     return tryParse(trimmed.slice(start, end + 1));
   }
 
-  if (trimmed.length >= 20 && trimmed.length <= 280 && !trimmed.startsWith("{")) {
-    return trimmed.replace(/^["']|["']$/g, "");
-  }
-
   return null;
 }
 
@@ -85,13 +90,27 @@ function buildManifestoUserPrompt(
 ): string {
   return `${ORACLE_JSON_GUARDRAIL}
 
-Aşağıdaki JSON, Emph ephemeris motorunun manifesto paketidir. Tek kaynak budur.
+Aşağıdaki JSON, Emph ephemeris motorunun manifesto paketidir. TEK KAYNAK budur — uydurma gezegen/ev/transit ekleme.
 
 EMPH PAKETİ (JSON):
 ${JSON.stringify(emphPackage, null, 2)}
 
-Bugün için kişiselleştirilmiş manifest cümlesini {"manifest":"..."} JSON formatında yaz.`;
+${buildManifestoUserPromptSuffix()}
+
+4 katmanlı manifestoyu JSON olarak yaz.`;
 }
+
+function isRoboticManifesto(presentation: ManifestoPresentation): boolean {
+  const combined = formatManifestoForDisplay(presentation);
+  return detectRoboticMediumTone(combined);
+}
+
+/** DB'ye yazılacak JSON string + parse edilmiş katmanlar */
+export type ManifestoPipelineResult = {
+  storageJson: string;
+  presentation: ManifestoPresentation;
+  displayText: string;
+};
 
 export async function runManifestoPipeline(input: {
   user: UserData;
@@ -100,7 +119,7 @@ export async function runManifestoPipeline(input: {
   intention: string;
   cycleDay: number;
   maxDays: number;
-}): Promise<string | null> {
+}): Promise<ManifestoPipelineResult | null> {
   logKieApiKeyStatus("KIE Manifesto");
 
   const apiKey = process.env.KIE_API_KEY?.trim();
@@ -127,33 +146,37 @@ export async function runManifestoPipeline(input: {
     try {
       const rawContent = await callKieChat(
         [
-          { role: "system", content: MANIFESTO_SYSTEM_PROMPT },
+          { role: "system", content: buildManifestoSystemPrompt() },
           { role: "user", content: userPrompt },
         ],
         {
-          temperature: 0.82,
-          max_tokens: 160,
+          temperature: 0.86,
+          max_tokens: 1100,
         }
       );
 
-      const manifest = parseManifestJson(rawContent);
-      if (!manifest) {
+      const presentation = parseManifestoJson(rawContent);
+      if (!presentation) {
         console.error(
           `[manifesto-pipeline] JSON doğrulama başarısız (deneme ${attempt + 1})`
         );
-        userPrompt = `${buildManifestoUserPrompt(emphPackage)}\n\n${MEDIUM_RETRY_NUDGE}\nYanıtı yalnızca {"manifest":"..."} JSON olarak ver.`;
+        userPrompt = `${buildManifestoUserPrompt(emphPackage)}\n\n${MEDIUM_RETRY_NUDGE}\nYanıtı yalnızca {"cosmicHook","natalMirror","manifestoClaim","ritualWhisper"} JSON olarak ver.`;
         continue;
       }
 
-      if (detectRoboticMediumTone(manifest)) {
+      if (isRoboticManifesto(presentation)) {
         console.error(
           `[manifesto-pipeline] Robotik ton algılandı (deneme ${attempt + 1})`
         );
-        userPrompt = `${buildManifestoUserPrompt(emphPackage)}\n\n${MEDIUM_RETRY_NUDGE}`;
+        userPrompt = `${buildManifestoUserPrompt(emphPackage)}\n\n${MEDIUM_RETRY_NUDGE}\nDaha keskin, kişiye özel metaforlar kullan; genel manifesto kalıplarından kaçın.`;
         continue;
       }
 
-      return manifest;
+      return {
+        storageJson: JSON.stringify(presentation),
+        presentation,
+        displayText: formatManifestoForDisplay(presentation),
+      };
     } catch (error) {
       console.error(
         `[manifesto-pipeline] Kie erişim hatası (deneme ${attempt + 1}):`,

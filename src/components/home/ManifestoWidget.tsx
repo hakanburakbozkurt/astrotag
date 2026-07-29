@@ -23,6 +23,48 @@ const selectClass =
 const textareaClass =
   "mt-1.5 min-h-[88px] w-full resize-y rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm leading-relaxed text-white outline-none transition placeholder:text-white/25 focus:border-violet-400/35";
 
+const LAYER_ACCENT = {
+  violet: "border-violet-400/30 text-violet-200/80",
+  amber: "border-amber-400/30 text-amber-200/80",
+  emerald: "border-emerald-400/35 text-emerald-200/85",
+  rose: "border-rose-400/25 text-rose-200/75",
+} as const;
+
+function ManifestoLayer({
+  label,
+  text,
+  accent,
+  highlight = false,
+}: {
+  label: string;
+  text: string;
+  accent: keyof typeof LAYER_ACCENT;
+  highlight?: boolean;
+}) {
+  if (!text.trim()) {
+    return null;
+  }
+
+  return (
+    <article
+      className={`rounded-xl border bg-white/[0.02] p-3.5 ${LAYER_ACCENT[accent]} ${
+        highlight ? "border-emerald-400/40 bg-emerald-500/[0.06]" : "border-white/10"
+      }`}
+    >
+      <p className="text-[9px] uppercase tracking-[0.22em] opacity-80">{label}</p>
+      <p
+        className={`mt-2 leading-relaxed ${
+          highlight
+            ? "text-base font-semibold italic text-emerald-50/95"
+            : "text-sm text-white/82"
+        }`}
+      >
+        {text}
+      </p>
+    </article>
+  );
+}
+
 export default function ManifestoWidget({ user }: ManifestoWidgetProps) {
   const [category, setCategory] = useState<ManifestoCategoryId>("para");
   const [techniqueType, setTechniqueType] =
@@ -171,7 +213,7 @@ export default function ManifestoWidget({ user }: ManifestoWidgetProps) {
           disabled={loading}
           className="w-full rounded-xl border border-violet-400/30 bg-violet-500/15 px-4 py-3 text-sm font-medium text-violet-100 transition hover:bg-violet-500/25 disabled:opacity-50"
         >
-          {loading ? "Kozmik cümle yazılıyor…" : "Bugünkü Manifestimi Al"}
+          {loading ? "Kozmik manifesto yazılıyor…" : "Bugünkü Manifestimi Al"}
         </button>
       </form>
 
@@ -194,7 +236,31 @@ export default function ManifestoWidget({ user }: ManifestoWidgetProps) {
             </div>
           </div>
 
-          {manifesto.lastMessage ? (
+          {manifesto.presentation ? (
+            <div className="space-y-4">
+              <ManifestoLayer
+                label="Gökyüzü Kapısı"
+                text={manifesto.presentation.cosmicHook}
+                accent="violet"
+              />
+              <ManifestoLayer
+                label="Harita Aynası"
+                text={manifesto.presentation.natalMirror}
+                accent="amber"
+              />
+              <ManifestoLayer
+                label="Manifesto"
+                text={manifesto.presentation.manifestoClaim}
+                accent="emerald"
+                highlight
+              />
+              <ManifestoLayer
+                label="Ritüel Fısıltısı"
+                text={manifesto.presentation.ritualWhisper}
+                accent="rose"
+              />
+            </div>
+          ) : manifesto.lastMessage ? (
             <blockquote className="border-l-2 border-amber-400/50 pl-4 text-sm italic leading-relaxed text-amber-50/90">
               “{manifesto.lastMessage}”
             </blockquote>
