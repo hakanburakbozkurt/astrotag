@@ -1,12 +1,16 @@
 import "server-only";
 
+import type { PostgrestError } from "@supabase/supabase-js";
 import { runManifestoPipeline } from "@/lib/ai/manifesto-pipeline";
 import {
   MANIFESTO_CATEGORIES,
+  MANIFESTO_DB_COLUMNS,
   MANIFESTO_TECHNIQUES,
+  MANIFESTO_UPSERT_CONFLICT_KEY,
   type GenerateManifestoInput,
   type GenerateManifestoResult,
   type ManifestoCategoryId,
+  type ManifestoDbRow,
   type ManifestoTechniqueId,
   type UserManifestoRecord,
 } from "@/lib/manifesto/types";
@@ -14,17 +18,6 @@ import { createServiceRoleClient } from "@/lib/supabase/service";
 import type { UserData } from "@/types/user";
 
 const MANIFESTOS_TABLE = "user_manifestos";
-
-type ManifestoRow = {
-  id: string;
-  profile_id: string;
-  category: string;
-  technique_type: string;
-  intention: string;
-  current_day: number;
-  last_checked_date: string | null;
-  last_message: string | null;
-};
 
 function getMaxDays(techniqueType: ManifestoTechniqueId): number {
   return (
@@ -56,8 +49,25 @@ function isValidTechnique(value: string): value is ManifestoTechniqueId {
   return MANIFESTO_TECHNIQUES.some((item) => item.id === value);
 }
 
+function logManifestoDbError(
+  operation: string,
+  profileId: string,
+  error: PostgrestError | null,
+  extra?: Record<string, unknown>
+): void {
+  console.error(`[manifestoService] ${operation} FAILED`, {
+    table: MANIFESTOS_TABLE,
+    profileId,
+    code: error?.code ?? null,
+    message: error?.message ?? "unknown",
+    details: error?.details ?? null,
+    hint: error?.hint ?? null,
+    ...extra,
+  });
+}
+
 function toRecord(
-  row: ManifestoRow,
+  row: ManifestoDbRow,
   generatedToday: boolean
 ): UserManifestoRecord {
   const techniqueType = row.technique_type as ManifestoTechniqueId;
@@ -67,12 +77,12 @@ function toRecord(
     id: row.id,
     category: row.category as ManifestoCategoryId,
     techniqueType,
-    intention: row.intention,
+    intention: row.intention_text,
     currentDay: row.current_day,
     maxDays,
     lastCheckedDate: row.last_checked_date,
-    lastMessage: row.last_message,
-    isComplete: row.current_day >= maxDays && row.last_checked_date !== null,
+    lastMessage: row.daily_ai_message,
+    isComplete: row.is_completed,
     generatedToday,
   };
 }
@@ -109,6 +119,31 @@ function resolveNextDay(input: {
   return { nextDay: 1, shouldGenerate: true, generatedToday: false };
 }
 
+function buildDbPayload(input: {
+  profileId: string;
+  category: ManifestoCategoryId;
+  techniqueType: ManifestoTechniqueId;
+  intentionText: string;
+  currentDay: number;
+  maxDays: number;
+  lastCheckedDate: string;
+  dailyAiMessage: string;
+}): Omit<
+  ManifestoDbRow,
+  "id" | "created_at" | "updated_at"
+> {
+  return {
+    profile_id: input.profileId,
+    category: input.category,
+    technique_type: input.techniqueType,
+    intention_text: input.intentionText,
+    current_day: input.currentDay,
+    last_checked_date: input.lastCheckedDate,
+    daily_ai_message: input.dailyAiMessage,
+    is_completed: input.currentDay >= input.maxDays,
+  };
+}
+
 async function generateManifestSentence(input: {
   user: UserData;
   category: ManifestoCategoryId;
@@ -133,6 +168,78 @@ async function generateManifestSentence(input: {
   return message;
 }
 
+async function fetchManifestoRow(
+  profileId: string,
+  category: ManifestoCategoryId,
+  techniqueType: ManifestoTechniqueId
+): Promise<{ row: ManifestoDbRow | null; error: PostgrestError | null }> {
+  const admin = createServiceRoleClient();
+  const { data, error } = await admin
+    .from(MANIFESTOS_TABLE)
+    .select(MANIFESTO_DB_COLUMNS)
+    .eq("profile_id", profileId)
+    .eq("category", category)
+    .eq("technique_type", techniqueType)
+    .maybeSingle();
+
+  return {
+    row: (data as ManifestoDbRow | null) ?? null,
+    error,
+  };
+}
+
+async function upsertManifestoRow(
+  profileId: string,
+  payload: ReturnType<typeof buildDbPayload>
+): Promise<{ row: ManifestoDbRow | null; error: PostgrestError | null }> {
+  const admin = createServiceRoleClient();
+
+  const { data, error } = await admin
+    .from(MANIFESTOS_TABLE)
+    .upsert(payload, { onConflict: MANIFESTO_UPSERT_CONFLICT_KEY })
+    .select(MANIFESTO_DB_COLUMNS)
+    .single();
+
+  if (error) {
+    logManifestoDbError("upsert", profileId, error, { payload });
+    return { row: null, error };
+  }
+
+  console.info("[manifestoService] upsert OK", {
+    profileId,
+    category: payload.category,
+    techniqueType: payload.technique_type,
+    currentDay: payload.current_day,
+    isCompleted: payload.is_completed,
+  });
+
+  return { row: data as ManifestoDbRow, error: null };
+}
+
+async function patchIntentionText(
+  profileId: string,
+  rowId: string,
+  intentionText: string
+): Promise<PostgrestError | null> {
+  const admin = createServiceRoleClient();
+  const { error } = await admin
+    .from(MANIFESTOS_TABLE)
+    .update({
+      intention_text: intentionText,
+    })
+    .eq("id", rowId)
+    .eq("profile_id", profileId);
+
+  if (error) {
+    logManifestoDbError("patchIntentionText", profileId, error, {
+      rowId,
+      intentionText,
+    });
+  }
+
+  return error;
+}
+
 export async function loadManifestoState(
   profileId: string,
   input: Pick<GenerateManifestoInput, "category" | "techniqueType">
@@ -141,22 +248,26 @@ export async function loadManifestoState(
     return null;
   }
 
-  const admin = createServiceRoleClient();
   const today = todayDateKey();
+  const { row, error } = await fetchManifestoRow(
+    profileId,
+    input.category,
+    input.techniqueType
+  );
 
-  const { data, error } = await admin
-    .from(MANIFESTOS_TABLE)
-    .select("*")
-    .eq("profile_id", profileId)
-    .eq("category", input.category)
-    .eq("technique_type", input.techniqueType)
-    .maybeSingle();
-
-  if (error || !data) {
+  if (error) {
+    logManifestoDbError("loadManifestoState/read", profileId, error, {
+      category: input.category,
+      techniqueType: input.techniqueType,
+    });
     return null;
   }
 
-  return toRecord(data as ManifestoRow, data.last_checked_date === today);
+  if (!row) {
+    return null;
+  }
+
+  return toRecord(row, row.last_checked_date === today);
 }
 
 export async function getOrGenerateDailyManifesto(
@@ -164,37 +275,45 @@ export async function getOrGenerateDailyManifesto(
   user: UserData,
   input: GenerateManifestoInput
 ): Promise<GenerateManifestoResult> {
+  if (!profileId?.trim()) {
+    console.error("[manifestoService] getOrGenerateDailyManifesto: profileId boş");
+    return { ok: false, error: "Profil kimliği bulunamadı.", debugCode: "NO_PROFILE_ID" };
+  }
+
   if (!isValidCategory(input.category)) {
-    return { ok: false, error: "Geçersiz kategori." };
+    return { ok: false, error: "Geçersiz kategori.", debugCode: "INVALID_CATEGORY" };
   }
 
   if (!isValidTechnique(input.techniqueType)) {
-    return { ok: false, error: "Geçersiz teknik türü." };
+    return { ok: false, error: "Geçersiz teknik türü.", debugCode: "INVALID_TECHNIQUE" };
   }
 
   if (!user.birthDate || !user.birthTime || !user.birthPlace) {
-    return { ok: false, error: "Manifesto için doğum bilgileri gerekli." };
+    return {
+      ok: false,
+      error: "Manifesto için doğum bilgileri gerekli.",
+      debugCode: "MISSING_BIRTH_DATA",
+    };
   }
 
-  const admin = createServiceRoleClient();
   const today = todayDateKey();
   const maxDays = getMaxDays(input.techniqueType);
   const intention = input.intention.trim();
 
-  const { data: existing, error: readError } = await admin
-    .from(MANIFESTOS_TABLE)
-    .select("*")
-    .eq("profile_id", profileId)
-    .eq("category", input.category)
-    .eq("technique_type", input.techniqueType)
-    .maybeSingle();
+  const { row, error: readError } = await fetchManifestoRow(
+    profileId,
+    input.category,
+    input.techniqueType
+  );
 
   if (readError) {
-    console.error("[manifestoService] read failed:", readError.message);
-    return { ok: false, error: "Manifesto kaydı okunamadı." };
+    return {
+      ok: false,
+      error: "Manifesto kaydı okunamadı.",
+      debugCode: readError.code ?? "READ_FAILED",
+    };
   }
 
-  const row = existing as ManifestoRow | null;
   const { nextDay, shouldGenerate, generatedToday } = resolveNextDay({
     lastCheckedDate: row?.last_checked_date ?? null,
     currentDay: row?.current_day ?? 1,
@@ -203,21 +322,28 @@ export async function getOrGenerateDailyManifesto(
   });
 
   if (!shouldGenerate && row) {
-    const updatedIntention = intention || row.intention;
-    if (updatedIntention !== row.intention) {
-      await admin
-        .from(MANIFESTOS_TABLE)
-        .update({
-          intention: updatedIntention,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", row.id);
+    const updatedIntention = intention || row.intention_text;
+
+    if (updatedIntention !== row.intention_text) {
+      const patchError = await patchIntentionText(
+        profileId,
+        row.id,
+        updatedIntention
+      );
+
+      if (patchError) {
+        return {
+          ok: false,
+          error: "Niyet metni güncellenemedi.",
+          debugCode: patchError.code ?? "INTENTION_PATCH_FAILED",
+        };
+      }
     }
 
     return {
       ok: true,
       manifesto: toRecord(
-        { ...row, intention: updatedIntention },
+        { ...row, intention_text: updatedIntention },
         generatedToday
       ),
     };
@@ -233,58 +359,49 @@ export async function getOrGenerateDailyManifesto(
       maxDays,
     });
 
-    const nowIso = new Date().toISOString();
-    const payload = {
-      profile_id: profileId,
+    const payload = buildDbPayload({
+      profileId,
       category: input.category,
-      technique_type: input.techniqueType,
-      intention: intention || row?.intention || "",
-      current_day: nextDay,
-      last_checked_date: today,
-      last_message: message,
-      updated_at: nowIso,
-    };
+      techniqueType: input.techniqueType,
+      intentionText: intention || row?.intention_text || "",
+      currentDay: nextDay,
+      maxDays,
+      lastCheckedDate: today,
+      dailyAiMessage: message,
+    });
 
-    if (row) {
-      const { data: updated, error: updateError } = await admin
-        .from(MANIFESTOS_TABLE)
-        .update(payload)
-        .eq("id", row.id)
-        .select("*")
-        .single();
+    const { row: savedRow, error: upsertError } = await upsertManifestoRow(
+      profileId,
+      payload
+    );
 
-      if (updateError || !updated) {
-        return { ok: false, error: "Manifesto güncellenemedi." };
-      }
-
+    if (upsertError || !savedRow) {
       return {
-        ok: true,
-        manifesto: toRecord(updated as ManifestoRow, true),
+        ok: false,
+        error: "Manifesto kaydedilemedi.",
+        debugCode: upsertError?.code ?? "UPSERT_FAILED",
       };
-    }
-
-    const { data: inserted, error: insertError } = await admin
-      .from(MANIFESTOS_TABLE)
-      .insert(payload)
-      .select("*")
-      .single();
-
-    if (insertError || !inserted) {
-      return { ok: false, error: "Manifesto kaydedilemedi." };
     }
 
     return {
       ok: true,
-      manifesto: toRecord(inserted as ManifestoRow, true),
+      manifesto: toRecord(savedRow, true),
     };
   } catch (error) {
-    console.error("[manifestoService] generate failed:", error);
+    console.error("[manifestoService] generate failed:", {
+      profileId,
+      category: input.category,
+      techniqueType: input.techniqueType,
+      error: error instanceof Error ? error.message : error,
+    });
+
     return {
       ok: false,
       error:
         error instanceof Error
           ? error.message
           : "Günlük manifesto oluşturulamadı.",
+      debugCode: "GENERATION_FAILED",
     };
   }
 }

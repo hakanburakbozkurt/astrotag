@@ -10,6 +10,7 @@ import {
   loadManifestoState,
 } from "@/services/manifestoService";
 import { requireAuthUserId } from "@/lib/supabase-actions";
+import { SupabaseActionError } from "@/lib/supabase-action-error";
 import type { UserData } from "@/types/user";
 
 export async function loadManifestoStateAction(
@@ -17,8 +18,18 @@ export async function loadManifestoStateAction(
 ): Promise<UserManifestoRecord | null> {
   try {
     const profileId = await requireAuthUserId();
+    console.info("[manifestoAction] loadManifestoState", {
+      profileId,
+      category: input.category,
+      techniqueType: input.techniqueType,
+    });
     return loadManifestoState(profileId, input);
-  } catch {
+  } catch (error) {
+    console.error("[manifestoAction] loadManifestoState auth/read failed:", {
+      category: input.category,
+      techniqueType: input.techniqueType,
+      error: error instanceof Error ? error.message : error,
+    });
     return null;
   }
 }
@@ -29,8 +40,40 @@ export async function generateDailyManifestoAction(
 ): Promise<GenerateManifestoResult> {
   try {
     const profileId = await requireAuthUserId();
-    return getOrGenerateDailyManifesto(profileId, user, input);
-  } catch {
-    return { ok: false, error: "Oturum geçersiz." };
+    console.info("[manifestoAction] generateDailyManifesto", {
+      profileId,
+      category: input.category,
+      techniqueType: input.techniqueType,
+      hasIntention: Boolean(input.intention.trim()),
+    });
+
+    const result = await getOrGenerateDailyManifesto(profileId, user, input);
+
+    if (!result.ok) {
+      console.error("[manifestoAction] generateDailyManifesto failed:", {
+        profileId,
+        category: input.category,
+        techniqueType: input.techniqueType,
+        error: result.error,
+        debugCode: result.debugCode,
+      });
+    }
+
+    return result;
+  } catch (error) {
+    const message =
+      error instanceof SupabaseActionError
+        ? error.message
+        : error instanceof Error
+          ? error.message
+          : "Oturum geçersiz.";
+
+    console.error("[manifestoAction] generateDailyManifesto auth error:", {
+      category: input.category,
+      techniqueType: input.techniqueType,
+      error: message,
+    });
+
+    return { ok: false, error: message, debugCode: "AUTH_FAILED" };
   }
 }

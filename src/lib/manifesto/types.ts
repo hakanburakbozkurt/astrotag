@@ -26,6 +26,22 @@ export const MANIFESTO_TECHNIQUES = [
 
 export type ManifestoTechniqueId = (typeof MANIFESTO_TECHNIQUES)[number]["id"];
 
+/** Supabase user_manifestos satırı — sütun adları birebir eşleşmeli */
+export type ManifestoDbRow = {
+  id: string;
+  profile_id: string;
+  category: string;
+  technique_type: string;
+  intention_text: string;
+  current_day: number;
+  last_checked_date: string | null;
+  daily_ai_message: string | null;
+  is_completed: boolean;
+  created_at?: string;
+  updated_at?: string;
+};
+
+/** Uygulama katmanı DTO */
 export type UserManifestoRecord = {
   id: string;
   category: ManifestoCategoryId;
@@ -47,4 +63,10 @@ export type GenerateManifestoInput = {
 
 export type GenerateManifestoResult =
   | { ok: true; manifesto: UserManifestoRecord }
-  | { ok: false; error: string };
+  | { ok: false; error: string; debugCode?: string };
+
+export const MANIFESTO_DB_COLUMNS =
+  "id, profile_id, category, technique_type, intention_text, current_day, last_checked_date, daily_ai_message, is_completed, updated_at" as const;
+
+export const MANIFESTO_UPSERT_CONFLICT_KEY =
+  "profile_id,category,technique_type" as const;
