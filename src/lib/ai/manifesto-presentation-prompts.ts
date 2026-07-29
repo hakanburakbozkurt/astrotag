@@ -19,7 +19,11 @@ export const MANIFESTO_LAYER_RULES = `ÇOK KATMANLI YAPI (4 alan — hepsi zorun
    Tekrarlanacak asıl manifesto. Emir kipi veya güçlü olumlu. Döngü gününe (cyclePhase) göre tonu ayarla: başlangıç=tohum, orta=derinleşme, son=hasat.
 
 4. ritualWhisper (1 cümle):
-   21 Gün veya 5×55 tekniğine özel, bugün yapılacak mikro eylem / içsel ritüel talimatı.`;
+   Seçili teknik (techniqueType / techniqueRitual) için bugünkü somut mikro eylem.
+   - 21 Gün: sabah içsel tekrar veya nefesle söyleme
+   - 5×55: 55 yazılı tekrar oturumu
+   - 3×33 (Tesla): sabah 3, öğle 6, akşam 9 kez yaz — sayıları açıkça belirt
+   - 3-6-9: techniqueRitual.repetitionsToday kadar yaz — faz adını (Tohum/Amplifikasyon/Manifest) hissettir`;
 
 export const MANIFESTO_JSON_FORMAT = `Yanıt YALNIZCA geçerli JSON:
 {
@@ -45,7 +49,8 @@ ${MANIFESTO_JSON_FORMAT}`);
 
 export function buildManifestoUserPromptSuffix(): string {
   return `
-natalSignature, categoryFocus, transitHighlights ve cyclePhase alanlarını mutlaka kullan.
+natalSignature, categoryFocus, transitHighlights, cyclePhase, techniqueRitual ve techniquePhaseLabel alanlarını mutlaka kullan.
+techniqueType'a göre manifestoClaim tonunu ayarla: 3×33=yoğun elektrikli odak, 3-6-9=ritmik sayısal amplifikasyon, 5×55=ateşli yazılı tekrar, 21 Gün=sabırlı alışkanlık inşası.
 narrativeSeeds ipuçlarıdır; uydurma ekleme.
-Her alan birbirinden farklı derinlikte olsun — cosmicHook gökyüzü, natalMirror harita, manifestoClaim niyet, ritualWhisper eylem.`.trim();
+Her alan birbirinden farklı derinlikte olsun — cosmicHook gökyüzü, natalMirror harita, manifestoClaim niyet, ritualWhisper tekniğe özel eylem.`.trim();
 }

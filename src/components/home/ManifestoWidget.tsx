@@ -4,9 +4,9 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
 import { generateDailyManifestoAction, loadManifestoStateAction } from "@/lib/actions/manifesto";
+import ManifestoTechniquePicker from "@/components/home/ManifestoTechniquePicker";
 import {
   MANIFESTO_CATEGORIES,
-  MANIFESTO_TECHNIQUES,
   type ManifestoCategoryId,
   type ManifestoTechniqueId,
   type UserManifestoRecord,
@@ -73,10 +73,6 @@ export default function ManifestoWidget({ user }: ManifestoWidgetProps) {
   const [manifesto, setManifesto] = useState<UserManifestoRecord | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const techniqueMeta = MANIFESTO_TECHNIQUES.find(
-    (item) => item.id === techniqueType
-  );
 
   const handleSubmit = useCallback(
     async (event?: FormEvent) => {
@@ -171,28 +167,12 @@ export default function ManifestoWidget({ user }: ManifestoWidgetProps) {
         </div>
 
         <div>
-          <label htmlFor="manifesto-technique" className="text-[11px] text-white/45">
-            Teknik
-          </label>
-          <select
-            id="manifesto-technique"
+          <p className="text-[11px] text-white/45">Teknik</p>
+          <ManifestoTechniquePicker
             value={techniqueType}
-            onChange={(event) =>
-              setTechniqueType(event.target.value as ManifestoTechniqueId)
-            }
-            className={selectClass}
-          >
-            {MANIFESTO_TECHNIQUES.map((item) => (
-              <option key={item.id} value={item.id} className="bg-[#0f172a]">
-                {item.label}
-              </option>
-            ))}
-          </select>
-          {techniqueMeta ? (
-            <p className="mt-1.5 text-[11px] leading-relaxed text-white/35">
-              {techniqueMeta.hint}
-            </p>
-          ) : null}
+            onChange={setTechniqueType}
+            disabled={loading}
+          />
         </div>
 
         <div>

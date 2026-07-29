@@ -13,6 +13,9 @@ import {
 import { ORACLE_JSON_GUARDRAIL } from "@/lib/ai/oracle-guardrails";
 import { buildManifestoEmphPackage } from "@/lib/manifesto/manifesto-emph.server";
 import {
+  buildTechniquePromptBlock,
+} from "@/lib/manifesto/manifesto-techniques";
+import {
   formatManifestoForDisplay,
   type ManifestoPresentation,
 } from "@/lib/manifesto/manifesto-presentation";
@@ -88,9 +91,17 @@ function parseManifestoJson(raw: string): ManifestoPresentation | null {
 function buildManifestoUserPrompt(
   emphPackage: Awaited<ReturnType<typeof buildManifestoEmphPackage>>
 ): string {
+  const techniqueBlock = buildTechniquePromptBlock(
+    emphPackage.techniqueType,
+    emphPackage.cycleDay,
+    emphPackage.maxDays
+  );
+
   return `${ORACLE_JSON_GUARDRAIL}
 
 Aşağıdaki JSON, Emph ephemeris motorunun manifesto paketidir. TEK KAYNAK budur — uydurma gezegen/ev/transit ekleme.
+
+${techniqueBlock}
 
 EMPH PAKETİ (JSON):
 ${JSON.stringify(emphPackage, null, 2)}

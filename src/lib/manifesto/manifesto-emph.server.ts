@@ -5,6 +5,11 @@ import type { CosmicAnalysisContext } from "@/lib/astrology/cosmic-context";
 import { detectCosmicTensions } from "@/lib/astrology/emph-processing-engine";
 import type { NatalChartSummary } from "@/lib/astrology/types";
 import { MANIFESTO_CATEGORY_FOCUS } from "@/lib/manifesto/manifesto-presentation";
+import {
+  resolveTechniqueCyclePhaseLabel,
+  resolveTechniqueRitualContext,
+  type ManifestoRitualContext,
+} from "@/lib/manifesto/manifesto-techniques";
 import type { ManifestoCategoryId, ManifestoTechniqueId } from "@/lib/manifesto/types";
 import { formatUserDataForPrompt } from "@/lib/tarot/tarot-profile-server";
 import type { UserData } from "@/types/user";
@@ -51,6 +56,8 @@ export type ManifestoEmphPackage = {
   cycleDay: number;
   maxDays: number;
   cyclePhase: ManifestoCyclePhase;
+  techniqueRitual: ManifestoRitualContext;
+  techniquePhaseLabel: string;
   profile: {
     userSummary: string;
   };
@@ -66,9 +73,47 @@ export type ManifestoEmphPackage = {
 
 function resolveCyclePhase(
   day: number,
-  maxDays: number
+  maxDays: number,
+  techniqueType: ManifestoTechniqueId
 ): ManifestoCyclePhase {
   const ratio = day / maxDays;
+
+  if (techniqueType === "369_method") {
+    const phaseIndex = Math.ceil(day / 3);
+    const reps = phaseIndex === 1 ? 3 : phaseIndex === 2 ? 6 : 9;
+    const phaseLabel =
+      phaseIndex === 1
+        ? `3×3 Tohum — günde ${reps} tekrar`
+        : phaseIndex === 2
+          ? `3×6 Amplifikasyon — günde ${reps} tekrar`
+          : `3×9 Manifest — günde ${reps} tekrar`;
+
+    const phase: ManifestoCyclePhase["phase"] =
+      phaseIndex === 1 ? "seed" : phaseIndex === 2 ? "deepening" : "integration";
+
+    return { day, maxDays, phase, phaseLabel };
+  }
+
+  if (techniqueType === "3x33") {
+    if (day === 1) {
+      return {
+        day,
+        maxDays,
+        phase: "seed",
+        phaseLabel: "Tesla Girişi — sabah 3, öğle 6, akşam 9",
+      };
+    }
+    if (day >= maxDays) {
+      return { day, maxDays, phase: "harvest", phaseLabel: "33. gün — frekans kilitlendi" };
+    }
+    if (day <= 11) {
+      return { day, maxDays, phase: "seed", phaseLabel: "Faz I — 3-6-9 ritmine giriş" };
+    }
+    if (day <= 22) {
+      return { day, maxDays, phase: "deepening", phaseLabel: "Faz II — yoğun odak derinleşiyor" };
+    }
+    return { day, maxDays, phase: "integration", phaseLabel: "Faz III — sayısal imza oturuyor" };
+  }
 
   if (day === 1) {
     return { day, maxDays, phase: "seed", phaseLabel: "Tohum — niyet ateşleniyor" };
@@ -171,6 +216,7 @@ function buildManifestoNarrativeSeeds(
 ): string[] {
   const seeds = [
     `${packageData.categoryLabel} · ${packageData.cyclePhase.phaseLabel}`,
+    `${packageData.techniqueLabel}: ${packageData.techniquePhaseLabel}`,
     `Yükselen ${packageData.natalSignature.ascendant} · Ay ${packageData.natalSignature.moon}`,
     `Kategori odağı: ${packageData.categoryFocus.theme}`,
   ];
@@ -217,7 +263,21 @@ export async function buildManifestoEmphPackage(input: {
   );
   const natalSignature = buildNatalSignature(context.natal);
   const categoryFocus = buildCategoryFocus(context.natal, input.category);
-  const cyclePhase = resolveCyclePhase(input.cycleDay, input.maxDays);
+  const cyclePhase = resolveCyclePhase(
+    input.cycleDay,
+    input.maxDays,
+    input.techniqueType
+  );
+  const techniqueRitual = resolveTechniqueRitualContext(
+    input.techniqueType,
+    input.cycleDay,
+    input.maxDays
+  );
+  const techniquePhaseLabel = resolveTechniqueCyclePhaseLabel(
+    input.techniqueType,
+    input.cycleDay,
+    input.maxDays
+  );
 
   const base: Omit<ManifestoEmphPackage, "narrativeSeeds"> = {
     engine: "emph",
@@ -231,6 +291,8 @@ export async function buildManifestoEmphPackage(input: {
     cycleDay: input.cycleDay,
     maxDays: input.maxDays,
     cyclePhase,
+    techniqueRitual,
+    techniquePhaseLabel,
     profile: {
       userSummary: formatUserDataForPrompt(input.userData),
     },
