@@ -35,6 +35,11 @@ const AchievementsSection = dynamic(
   { loading: () => <SectionSkeleton title="Rozetlerim" /> }
 );
 
+const ManifestoHistorySection = dynamic(
+  () => import("@/components/profile/ManifestoHistorySection"),
+  { loading: () => <SectionSkeleton title="Manifesto Geçmişi" /> }
+);
+
 const ProfileInfoSection = dynamic(
   () => import("@/components/profile/ProfileInfoSection"),
   { loading: () => <SectionSkeleton title="Partner & Astro-Bağ" /> }
@@ -149,6 +154,10 @@ export default function ProfileTabContent() {
 
         <Suspense fallback={<SectionSkeleton title="Partner & Astro-Bağ" />}>
           <ProfileInfoSection />
+        </Suspense>
+
+        <Suspense fallback={<SectionSkeleton title="Manifesto Geçmişi" />}>
+          <ManifestoHistorySection />
         </Suspense>
       </div>
 

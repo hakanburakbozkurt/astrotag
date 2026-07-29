@@ -12,7 +12,9 @@ import {
   type GenerateManifestoResult,
   type ManifestoCategoryId,
   type ManifestoDbRow,
+  type ManifestoHistoryItem,
   type ManifestoTechniqueId,
+  type DailyCosmicModalPayload,
   type UserManifestoRecord,
 } from "@/lib/manifesto/types";
 import { createServiceRoleClient } from "@/lib/supabase/service";
@@ -86,6 +88,7 @@ function toRecord(
     presentation: parseManifestoPresentation(row.daily_ai_message),
     isComplete: row.is_completed,
     generatedToday,
+    modalDismissedDate: row.modal_dismissed_date ?? null,
   };
 }
 
@@ -132,7 +135,7 @@ function buildDbPayload(input: {
   dailyAiMessage: string;
 }): Omit<
   ManifestoDbRow,
-  "id" | "created_at" | "updated_at"
+  "id" | "created_at" | "updated_at" | "modal_dismissed_date"
 > {
   return {
     profile_id: input.profileId,
@@ -406,4 +409,117 @@ export async function getOrGenerateDailyManifesto(
       debugCode: "GENERATION_FAILED",
     };
   }
+}
+
+async function fetchLatestManifestoRow(
+  profileId: string
+): Promise<ManifestoDbRow | null> {
+  const admin = createServiceRoleClient();
+  const { data, error } = await admin
+    .from(MANIFESTOS_TABLE)
+    .select(MANIFESTO_DB_COLUMNS)
+    .eq("profile_id", profileId)
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    logManifestoDbError("fetchLatestManifestoRow", profileId, error);
+    return null;
+  }
+
+  return (data as ManifestoDbRow | null) ?? null;
+}
+
+function shouldShowDailyModal(
+  record: UserManifestoRecord,
+  today: string
+): boolean {
+  if (record.lastCheckedDate !== today) {
+    return false;
+  }
+
+  return record.modalDismissedDate !== today;
+}
+
+export async function prepareDailyCosmicModal(
+  profileId: string,
+  user: UserData
+): Promise<DailyCosmicModalPayload> {
+  const today = todayDateKey();
+  const latest = await fetchLatestManifestoRow(profileId);
+
+  const category = (latest?.category as ManifestoCategoryId) ?? "ruhsal";
+  const techniqueType = (latest?.technique_type as ManifestoTechniqueId) ?? "21_days";
+  const intention = latest?.intention_text ?? "";
+
+  const result = await getOrGenerateDailyManifesto(profileId, user, {
+    category: isValidCategory(category) ? category : "ruhsal",
+    techniqueType: isValidTechnique(techniqueType) ? techniqueType : "21_days",
+    intention,
+  });
+
+  if (!result.ok) {
+    return { showModal: false, manifesto: null, error: result.error };
+  }
+
+  return {
+    showModal: shouldShowDailyModal(result.manifesto, today),
+    manifesto: result.manifesto,
+  };
+}
+
+export async function dismissDailyCosmicModal(
+  profileId: string,
+  manifestoId: string
+): Promise<{ ok: boolean; error?: string }> {
+  const admin = createServiceRoleClient();
+  const today = todayDateKey();
+
+  const { error } = await admin
+    .from(MANIFESTOS_TABLE)
+    .update({ modal_dismissed_date: today })
+    .eq("id", manifestoId)
+    .eq("profile_id", profileId);
+
+  if (error) {
+    logManifestoDbError("dismissDailyCosmicModal", profileId, error, { manifestoId });
+    return { ok: false, error: "Modal kapatılamadı." };
+  }
+
+  return { ok: true };
+}
+
+export async function listManifestoHistory(
+  profileId: string,
+  limit = 14
+): Promise<ManifestoHistoryItem[]> {
+  const admin = createServiceRoleClient();
+  const today = todayDateKey();
+
+  const { data, error } = await admin
+    .from(MANIFESTOS_TABLE)
+    .select(MANIFESTO_DB_COLUMNS)
+    .eq("profile_id", profileId)
+    .not("daily_ai_message", "is", null)
+    .order("last_checked_date", { ascending: false, nullsFirst: false })
+    .order("updated_at", { ascending: false })
+    .limit(limit);
+
+  if (error || !data) {
+    logManifestoDbError("listManifestoHistory", profileId, error);
+    return [];
+  }
+
+  return (data as ManifestoDbRow[]).map((row) => {
+    const record = toRecord(row, row.last_checked_date === today);
+    const categoryLabel =
+      MANIFESTO_CATEGORIES.find((c) => c.id === record.category)?.label ??
+      record.category;
+    const techniqueLabel =
+      MANIFESTO_TECHNIQUES.find((t) => t.id === record.techniqueType)?.label ??
+      record.techniqueType;
+
+    return { ...record, categoryLabel, techniqueLabel };
+  });
 }

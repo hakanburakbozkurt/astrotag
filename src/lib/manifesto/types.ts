@@ -37,6 +37,7 @@ export type ManifestoDbRow = {
   last_checked_date: string | null;
   daily_ai_message: string | null;
   is_completed: boolean;
+  modal_dismissed_date: string | null;
   created_at?: string;
   updated_at?: string;
 };
@@ -58,6 +59,18 @@ export type UserManifestoRecord = {
   presentation: ManifestoPresentation | null;
   isComplete: boolean;
   generatedToday: boolean;
+  modalDismissedDate: string | null;
+};
+
+export type DailyCosmicModalPayload = {
+  showModal: boolean;
+  manifesto: UserManifestoRecord | null;
+  error?: string;
+};
+
+export type ManifestoHistoryItem = UserManifestoRecord & {
+  categoryLabel: string;
+  techniqueLabel: string;
 };
 
 export type GenerateManifestoInput = {
@@ -71,7 +84,7 @@ export type GenerateManifestoResult =
   | { ok: false; error: string; debugCode?: string };
 
 export const MANIFESTO_DB_COLUMNS =
-  "id, profile_id, category, technique_type, intention_text, current_day, last_checked_date, daily_ai_message, is_completed, updated_at" as const;
+  "id, profile_id, category, technique_type, intention_text, current_day, last_checked_date, daily_ai_message, is_completed, modal_dismissed_date, updated_at" as const;
 
 export const MANIFESTO_UPSERT_CONFLICT_KEY =
   "profile_id,category,technique_type" as const;

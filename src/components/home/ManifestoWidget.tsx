@@ -133,6 +133,7 @@ export default function ManifestoWidget({ user }: ManifestoWidgetProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1], delay: 0.12 }}
       className="mb-6 w-full rounded-[28px] border border-violet-400/15 bg-gradient-to-br from-violet-500/[0.08] via-[#0f172a]/90 to-amber-500/[0.05] p-4 backdrop-blur-xl sm:mb-8 sm:p-5"
+      id="manifesto-panel"
     >
       <div className="flex items-start justify-between gap-3">
         <div>
