@@ -1,10 +1,6 @@
 import "server-only";
 
-import {
-  calculateNatalChart,
-  getNatalChartSummary,
-} from "@/lib/astrology/planet-positions";
-import type { NatalChartSummary } from "@/lib/astrology/types";
+import { runManifestoPipeline } from "@/lib/ai/manifesto-pipeline";
 import {
   MANIFESTO_CATEGORIES,
   MANIFESTO_TECHNIQUES,
@@ -18,8 +14,6 @@ import { createServiceRoleClient } from "@/lib/supabase/service";
 import type { UserData } from "@/types/user";
 
 const MANIFESTOS_TABLE = "user_manifestos";
-const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
-const OPENAI_MODEL = "gpt-4o-mini";
 
 type ManifestoRow = {
   id: string;
@@ -35,12 +29,6 @@ type ManifestoRow = {
 function getMaxDays(techniqueType: ManifestoTechniqueId): number {
   return (
     MANIFESTO_TECHNIQUES.find((item) => item.id === techniqueType)?.maxDays ?? 21
-  );
-}
-
-function getCategoryLabel(category: ManifestoCategoryId): string {
-  return (
-    MANIFESTO_CATEGORIES.find((item) => item.id === category)?.label ?? category
   );
 }
 
@@ -121,94 +109,28 @@ function resolveNextDay(input: {
   return { nextDay: 1, shouldGenerate: true, generatedToday: false };
 }
 
-function buildNatalContext(summary: NatalChartSummary): string {
-  const sun = summary.planets.find((planet) => planet.id === "sun");
-  const moon = summary.planets.find((planet) => planet.id === "moon");
-  const asc = summary.ascendant;
-
-  const topAspects = summary.aspects.slice(0, 4).map(
-    (aspect) =>
-      `${aspect.planetA}-${aspect.planetB} ${aspect.typeLabel} (${aspect.orb}°)`
-  );
-
-  return [
-    `Yükselen: ${asc.signName} ${Math.floor(asc.degreeInSign)}°`,
-    sun ? `Güneş: ${sun.label}` : null,
-    moon ? `Ay: ${moon.label}` : null,
-    topAspects.length ? `Öne çıkan açılar: ${topAspects.join(", ")}` : null,
-  ]
-    .filter(Boolean)
-    .join("\n");
-}
-
 async function generateManifestSentence(input: {
   user: UserData;
-  natalSummary: NatalChartSummary;
   category: ManifestoCategoryId;
   techniqueType: ManifestoTechniqueId;
   intention: string;
   currentDay: number;
   maxDays: number;
 }): Promise<string> {
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
-  if (!apiKey) {
-    throw new Error("OPENAI_API_KEY yapılandırılmamış.");
-  }
-
-  const techniqueLabel =
-    input.techniqueType === "21_days" ? "21 Gün Kuralı" : "5×55 Tekniği";
-
-  const systemPrompt = `Sen AstroTag Manifesto Motoru'sun.
-Kullanıcının doğum haritası verilerine ve niyetine göre TEK bir günlük manifest cümlesi yaz.
-Kurallar:
-- Türkçe, kısa (en fazla 2 cümle), vurucu ve ezoterik
-- Emir kipi veya güçlü olumlu ifade
-- Korku satışı, garanti vaadi, tıbbi/finansal tavsiye yok
-- Markdown yok; yalnızca düz metin cümle döndür`;
-
-  const userPrompt = `Kullanıcı: ${input.user.name}
-Kategori: ${getCategoryLabel(input.category)}
-Teknik: ${techniqueLabel}
-Döngü: Gün ${input.currentDay} / ${input.maxDays}
-Niyet: ${input.intention.trim() || "Genel dönüşüm ve hizalanma"}
-
-Doğum haritası özeti:
-${buildNatalContext(input.natalSummary)}
-
-Bugün için kişiselleştirilmiş manifest cümlesini yaz.`;
-
-  const response = await fetch(OPENAI_CHAT_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: OPENAI_MODEL,
-      temperature: 0.82,
-      max_tokens: 120,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-    }),
+  const message = await runManifestoPipeline({
+    user: input.user,
+    category: input.category,
+    techniqueType: input.techniqueType,
+    intention: input.intention,
+    cycleDay: input.currentDay,
+    maxDays: input.maxDays,
   });
 
-  const payload = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-    error?: { message?: string };
-  };
-
-  if (!response.ok) {
-    throw new Error(payload.error?.message ?? "Manifesto üretilemedi.");
+  if (!message) {
+    throw new Error("Kozmik manifesto üretilemedi. KIE bağlantısını kontrol edin.");
   }
 
-  const content = payload.choices?.[0]?.message?.content?.trim();
-  if (!content) {
-    throw new Error("Manifesto yanıtı boş döndü.");
-  }
-
-  return content.replace(/^["']|["']$/g, "").trim();
+  return message;
 }
 
 export async function loadManifestoState(
@@ -302,16 +224,8 @@ export async function getOrGenerateDailyManifesto(
   }
 
   try {
-    const chart = await calculateNatalChart({
-      birthDate: user.birthDate,
-      birthTime: user.birthTime,
-      birthPlace: user.birthPlace,
-    });
-    const natalSummary = getNatalChartSummary(chart);
-
     const message = await generateManifestSentence({
       user,
-      natalSummary,
       category: input.category,
       techniqueType: input.techniqueType,
       intention,
