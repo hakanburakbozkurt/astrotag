@@ -6,6 +6,7 @@ import type { UserData } from "@/types/user";
 import DashboardHeader from "./DashboardHeader";
 import ExpertPendingDashboardBanner from "@/components/expert/ExpertPendingDashboardBanner";
 import HomeSkyStatusCard from "./HomeSkyStatusCard";
+import ManifestoWidget from "@/components/home/ManifestoWidget";
 import OracleToolsSection from "./OracleToolsSection";
 import RelationshipCard from "./RelationshipCard";
 
@@ -31,6 +32,8 @@ export default function CosmicDashboard({ user }: CosmicDashboardProps) {
         <ExpertPendingDashboardBanner />
 
         <HomeSkyStatusCard user={user} />
+
+        <ManifestoWidget user={user} />
 
         <Suspense fallback={null}>
           <OracleToolsSection user={user} />
