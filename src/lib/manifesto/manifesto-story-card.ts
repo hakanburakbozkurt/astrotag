@@ -24,13 +24,25 @@ import {
   type ManifestoStarParticle,
 } from "@/lib/manifesto/manifesto-starfield";
 import {
+  transcodeManifestoWebmToMp4,
+  type ManifestoTranscodeProgress,
+} from "@/lib/manifesto/manifesto-video-transcode";
+
+export type ManifestoStoryCardInput = ManifestoStoryContentInput & {
+  presentation: ManifestoPresentation;
+};
+
+import {
   downloadShareableCard,
   type KozmicShareResult,
   type ShareableCardAsset,
 } from "@/lib/utils/share-utils";
 
-export type ManifestoStoryCardInput = ManifestoStoryContentInput & {
-  presentation: ManifestoPresentation;
+export type ManifestoVideoPipelineStage = {
+  phase: "rendering" | "loading-ffmpeg" | "transcoding";
+  label: string;
+  progress?: number;
+  elapsedSec: number;
 };
 
 export type ManifestoStoryVideoShareOutcome = {
@@ -39,11 +51,10 @@ export type ManifestoStoryVideoShareOutcome = {
   usedFallback: boolean;
 };
 
-export const MANIFESTO_VIDEO_DOWNLOAD_MESSAGE =
-  "Video galerinize indirildi! Şimdi Instagram veya TikTok'u açarak hikayenizde paylaşabilirsiniz.";
+export const MANIFESTO_VIDEO_MP4_DOWNLOAD_MESSAGE =
+  "MP4 video galerinize indirildi! Şimdi Instagram veya TikTok'ta sorunsuz paylaşabilirsiniz.";
 
-/** @deprecated İndirme odaklı akışta kullanılmıyor */
-export const MANIFESTO_VIDEO_FALLBACK_MESSAGE = MANIFESTO_VIDEO_DOWNLOAD_MESSAGE;
+export const MANIFESTO_VIDEO_DOWNLOAD_MESSAGE = MANIFESTO_VIDEO_MP4_DOWNLOAD_MESSAGE;
 
 export type ManifestoStoryVideoAsset = {
   blob: Blob;
@@ -204,15 +215,87 @@ export async function generateManifestoStoryVideo(
 
   const blob = await finished;
   const stamp = new Date().toISOString().slice(0, 10);
-  const extension = mimeType.includes("webm") ? "webm" : "mp4";
 
   return {
     blob,
     mimeType,
-    fileName: `astro-tag-manifesto-story-${stamp}.${extension}`,
+    fileName: `astro-tag-manifesto-story-${stamp}.webm`,
     shareText: buildShareText(input),
     objectUrl: URL.createObjectURL(blob),
   };
+}
+
+function mapTranscodeProgress(
+  transcode: ManifestoTranscodeProgress,
+  renderElapsedSec: number
+): ManifestoVideoPipelineStage {
+  if (transcode.phase === "loading-ffmpeg") {
+    return {
+      phase: "loading-ffmpeg",
+      label:
+        transcode.progress >= 100
+          ? "FFmpeg hazır — MP4 dönüşümü başlıyor…"
+          : "FFmpeg motoru yükleniyor…",
+      progress: transcode.progress,
+      elapsedSec: renderElapsedSec + transcode.elapsedSec,
+    };
+  }
+
+  return {
+    phase: "transcoding",
+    label: "Video MP4 formatına dönüştürülüyor…",
+    progress: transcode.progress,
+    elapsedSec: renderElapsedSec + transcode.elapsedSec,
+  };
+}
+
+/** WebM render + ffmpeg.wasm H.264 MP4 — indirme/paylaşım için ana boru hattı */
+export async function prepareManifestoStoryMp4(
+  input: ManifestoStoryCardInput,
+  onStage?: (stage: ManifestoVideoPipelineStage) => void
+): Promise<ManifestoStoryVideoAsset> {
+  const pipelineStarted = performance.now();
+  const tick = () => elapsedSec(pipelineStarted);
+
+  onStage?.({
+    phase: "rendering",
+    label: "Story video oluşturuluyor…",
+    elapsedSec: tick(),
+  });
+
+  const webmAsset = await generateManifestoStoryVideo(input, { durationMs: 6000 });
+  const renderElapsedSec = tick();
+
+  onStage?.({
+    phase: "loading-ffmpeg",
+    label: "Video MP4 formatına dönüştürülüyor…",
+    progress: 0,
+    elapsedSec: renderElapsedSec,
+  });
+
+  let mp4Blob: Blob;
+  try {
+    mp4Blob = await transcodeManifestoWebmToMp4(webmAsset.blob, (transcodeProgress) => {
+      onStage?.(mapTranscodeProgress(transcodeProgress, renderElapsedSec));
+    });
+  } finally {
+    revokeManifestoStoryVideo(webmAsset);
+  }
+
+  const stamp = new Date().toISOString().slice(0, 10);
+  const objectUrl = URL.createObjectURL(mp4Blob);
+
+  return {
+    blob: mp4Blob,
+    mimeType: "video/mp4",
+    fileName: `astro-tag-manifesto-story-${stamp}.mp4`,
+    shareText: webmAsset.shareText,
+    objectUrl,
+  };
+}
+
+function elapsedSec(sinceMs: number): number {
+  return Math.max(0, Math.round((performance.now() - sinceMs) / 1000));
 }
 
 export async function generateManifestoStoryCard(

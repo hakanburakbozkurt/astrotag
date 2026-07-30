@@ -6,10 +6,11 @@ import ManifestoStoryPreview from "@/components/home/ManifestoStoryPreview";
 import type { ManifestoPresentation } from "@/lib/manifesto/manifesto-presentation";
 import {
   deliverManifestoStoryVideo,
-  generateManifestoStoryVideo,
-  MANIFESTO_VIDEO_DOWNLOAD_MESSAGE,
+  MANIFESTO_VIDEO_MP4_DOWNLOAD_MESSAGE,
+  prepareManifestoStoryMp4,
   revokeManifestoStoryVideo,
   type ManifestoStoryVideoAsset,
+  type ManifestoVideoPipelineStage,
 } from "@/lib/manifesto/manifesto-story-card";
 
 function InstagramIcon({ className }: { className?: string }) {
@@ -31,6 +32,19 @@ function InstagramIcon({ className }: { className?: string }) {
   );
 }
 
+function pipelineProgressPercent(stage: ManifestoVideoPipelineStage | null): number {
+  if (!stage) {
+    return 0;
+  }
+  if (stage.phase === "rendering") {
+    return Math.min(35, 8 + stage.elapsedSec * 4);
+  }
+  if (stage.phase === "loading-ffmpeg") {
+    return 35 + Math.round(((stage.progress ?? 0) / 100) * 25);
+  }
+  return 60 + Math.round(((stage.progress ?? 0) / 100) * 40);
+}
+
 interface ManifestoStoryShareProps {
   presentation: ManifestoPresentation;
   userName?: string;
@@ -46,6 +60,9 @@ export default function ManifestoStoryShare({
 }: ManifestoStoryShareProps) {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const [pipelineStage, setPipelineStage] = useState<ManifestoVideoPipelineStage | null>(
+    null
+  );
   const videoAssetRef = useRef<ManifestoStoryVideoAsset | null>(null);
 
   const cardInput = useMemo(
@@ -65,12 +82,12 @@ export default function ManifestoStoryShare({
     }
   }, [cardInput]);
 
-  const ensureVideo = useCallback(async (): Promise<ManifestoStoryVideoAsset> => {
+  const ensureMp4Video = useCallback(async (): Promise<ManifestoStoryVideoAsset> => {
     if (videoAssetRef.current) {
       return videoAssetRef.current;
     }
 
-    const asset = await generateManifestoStoryVideo(cardInput, { durationMs: 6000 });
+    const asset = await prepareManifestoStoryMp4(cardInput, setPipelineStage);
     videoAssetRef.current = asset;
     return asset;
   }, [cardInput]);
@@ -78,17 +95,19 @@ export default function ManifestoStoryShare({
   const runVideoDownloadFlow = useCallback(async () => {
     setBusy(true);
     setStatus(null);
+    setPipelineStage(null);
 
     try {
-      const asset = await ensureVideo();
+      const asset = await ensureMp4Video();
       deliverManifestoStoryVideo(asset);
-      setStatus(MANIFESTO_VIDEO_DOWNLOAD_MESSAGE);
+      setStatus(MANIFESTO_VIDEO_MP4_DOWNLOAD_MESSAGE);
     } catch {
       setStatus("Video oluşturulamadı — tekrar deneyin");
     } finally {
       setBusy(false);
+      setPipelineStage(null);
     }
-  }, [ensureVideo]);
+  }, [ensureMp4Video]);
 
   useEffect(() => {
     return () => {
@@ -97,6 +116,8 @@ export default function ManifestoStoryShare({
       }
     };
   }, []);
+
+  const progressPercent = pipelineProgressPercent(pipelineStage);
 
   return (
     <div className="space-y-3">
@@ -154,9 +175,31 @@ export default function ManifestoStoryShare({
         </button>
       </div>
 
-      {busy ? (
+      {busy && pipelineStage ? (
+        <div
+          className="rounded-xl border border-violet-400/20 bg-violet-500/[0.08] px-3.5 py-3"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="flex items-center justify-between gap-2 text-[10px] text-violet-100/80">
+            <span>{pipelineStage.label}</span>
+            <span className="tabular-nums text-violet-200/60">{pipelineStage.elapsedSec}s</span>
+          </div>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-violet-400 to-amber-300 transition-all duration-300"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+          {pipelineStage.phase === "transcoding" ? (
+            <p className="mt-2 text-[10px] text-white/40">
+              H.264 MP4 · Instagram & TikTok uyumlu
+            </p>
+          ) : null}
+        </div>
+      ) : busy ? (
         <p className="text-center text-[10px] text-violet-200/60">
-          9:16 video render ediliyor… (~6 sn)
+          Story video hazırlanıyor…
         </p>
       ) : null}
 
@@ -164,12 +207,12 @@ export default function ManifestoStoryShare({
         <div
           role="status"
           className={`flex items-start gap-2.5 rounded-xl border px-3.5 py-3 text-left ${
-            status === MANIFESTO_VIDEO_DOWNLOAD_MESSAGE
+            status === MANIFESTO_VIDEO_MP4_DOWNLOAD_MESSAGE
               ? "border-amber-400/30 bg-gradient-to-br from-amber-500/14 to-violet-500/10 text-amber-50/95"
               : "border-red-400/25 bg-red-500/10 text-red-200/90"
           }`}
         >
-          {status === MANIFESTO_VIDEO_DOWNLOAD_MESSAGE ? (
+          {status === MANIFESTO_VIDEO_MP4_DOWNLOAD_MESSAGE ? (
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 opacity-90" aria-hidden />
           ) : null}
           <p className="text-[11px] leading-relaxed">{status}</p>
