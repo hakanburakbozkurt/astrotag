@@ -5,6 +5,9 @@ import {
   SOCIAL_LAYOUT,
 } from "@/lib/social/constants";
 
+/** Layout sürümü — preview/video senkron doğrulama */
+export const MANIFESTO_STORY_LAYOUT_VERSION = 2;
+
 /** Story kart çizim girdisi — preview ve video render ortak tip */
 export type ManifestoStoryContentInput = {
   presentation: {
@@ -16,24 +19,33 @@ export type ManifestoStoryContentInput = {
   cycleLabel?: string;
 };
 
-/** Story kart tipografi — preview ve video render aynı sabitleri kullanır */
+/**
+ * Story kart tipografi v2 — ana metin kartın geometrik merkezinde,
+ * büyük font ve geniş satır aralığı ile alanı doldurur.
+ */
 export const MANIFESTO_STORY_LAYOUT = {
-  headerTop: 108,
-  headerGap: 38,
-  dividerGap: 28,
-  contentPadBottom: 72,
-  cycleLabelOffset: 52,
-  hookFont: "italic 400 36px ui-serif, Georgia, serif",
-  hookLineHeight: 56,
+  /** Kompakt üst meta — ana metne alan bırakır */
+  headerTop: 96,
+  headerGap: 32,
+  dividerGap: 24,
+  contentPadBottom: 64,
+  cycleLabelOffset: 48,
+  /** Ana metin — v2 büyük tipografi */
+  hookFont: "italic 400 44px ui-serif, Georgia, serif",
+  hookLineHeight: 68,
   hookMaxLines: 5,
-  claimFont: "700 48px ui-serif, Georgia, serif",
-  claimLineHeight: 68,
-  claimMaxLines: 6,
-  mainBlockGap: 56,
-  eyebrowFont: "600 26px ui-sans-serif, system-ui, sans-serif",
-  categoryFont: "500 22px ui-sans-serif, system-ui, sans-serif",
-  userNameFont: "400 24px ui-sans-serif, system-ui, sans-serif",
+  claimFont: "700 58px ui-serif, Georgia, serif",
+  claimLineHeight: 84,
+  claimMaxLines: 5,
+  mainBlockGap: 72,
+  /** Üst meta — küçük tutulur */
+  eyebrowFont: "600 24px ui-sans-serif, system-ui, sans-serif",
+  categoryFont: "500 20px ui-sans-serif, system-ui, sans-serif",
+  userNameFont: "400 22px ui-sans-serif, system-ui, sans-serif",
   cycleFont: "500 22px ui-monospace, monospace",
+  /** Metin bloğu dikey ortalama bandı (footer üstüne kadar) */
+  mainBandTop: 248,
+  mainBandBottomOffset: 300,
 } as const;
 
 function breakLines(
@@ -82,20 +94,19 @@ function drawCenteredLines(
     y += lineHeight;
   }
 
-  ctx.textAlign = "left";
   return y;
 }
 
-function measureHeaderHeight(input: ManifestoStoryContentInput): number {
-  let height = MANIFESTO_STORY_LAYOUT.headerTop + 34;
+function measureHeaderBottom(input: ManifestoStoryContentInput): number {
+  let y = MANIFESTO_STORY_LAYOUT.headerTop + 28;
   if (input.categoryLabel) {
-    height += MANIFESTO_STORY_LAYOUT.headerGap;
+    y += MANIFESTO_STORY_LAYOUT.headerGap;
   }
   if (input.userName?.trim()) {
-    height += MANIFESTO_STORY_LAYOUT.headerGap;
+    y += MANIFESTO_STORY_LAYOUT.headerGap;
   }
-  height += MANIFESTO_STORY_LAYOUT.dividerGap + 12;
-  return height;
+  y += MANIFESTO_STORY_LAYOUT.dividerGap + 8;
+  return y;
 }
 
 export function drawManifestoStoryContent(
@@ -111,11 +122,11 @@ export function drawManifestoStoryContent(
   ctx.save();
   ctx.globalAlpha = alpha;
 
-  const pad = SOCIAL_LAYOUT.paddingX;
-  const maxWidth = SOCIAL_CANVAS_WIDTH - pad * 2;
+  const horizontalPad = 56;
+  const maxWidth = SOCIAL_CANVAS_WIDTH - horizontalPad * 2;
   const centerX = SOCIAL_CANVAS_WIDTH / 2;
 
-  // —— Header (üst, ortalanmış) ——
+  // —— Kompakt header (üst, ortalı) ——
   let headerY = MANIFESTO_STORY_LAYOUT.headerTop;
 
   ctx.fillStyle = SOCIAL_COLORS.amberMuted;
@@ -139,18 +150,23 @@ export function drawManifestoStoryContent(
   }
 
   headerY += MANIFESTO_STORY_LAYOUT.dividerGap;
-  ctx.strokeStyle = "rgba(251,191,36,0.28)";
+  ctx.strokeStyle = "rgba(251,191,36,0.32)";
   ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.moveTo(pad + 40, headerY);
-  ctx.lineTo(SOCIAL_CANVAS_WIDTH - pad - 40, headerY);
+  ctx.moveTo(horizontalPad + 24, headerY);
+  ctx.lineTo(SOCIAL_CANVAS_WIDTH - horizontalPad - 24, headerY);
   ctx.stroke();
 
-  // —— Ana metin bloğu (dikey + yatay ortalı) ——
-  const contentTop = measureHeaderHeight(input) + 36;
-  const contentBottom =
-    SOCIAL_CANVAS_HEIGHT - SOCIAL_LAYOUT.footerHeight - MANIFESTO_STORY_LAYOUT.contentPadBottom;
-  const contentHeight = contentBottom - contentTop;
+  // —— Ana metin: kartın dikey merkez bandında geometrik ortalama ——
+  const bandTop = Math.max(
+    measureHeaderBottom(input) + 32,
+    MANIFESTO_STORY_LAYOUT.mainBandTop
+  );
+  const bandBottom =
+    SOCIAL_CANVAS_HEIGHT -
+    SOCIAL_LAYOUT.footerHeight -
+    MANIFESTO_STORY_LAYOUT.mainBandBottomOffset;
+  const bandMidY = (bandTop + bandBottom) / 2;
 
   ctx.font = MANIFESTO_STORY_LAYOUT.hookFont;
   const hookLines = breakLines(
@@ -161,21 +177,22 @@ export function drawManifestoStoryContent(
   );
 
   ctx.font = MANIFESTO_STORY_LAYOUT.claimFont;
-  const claimText = `"${input.presentation.manifestoClaim}"`;
   const claimLines = breakLines(
     ctx,
-    claimText,
+    `"${input.presentation.manifestoClaim}"`,
     maxWidth,
     MANIFESTO_STORY_LAYOUT.claimMaxLines
   );
 
-  const hookBlockHeight = hookLines.length * MANIFESTO_STORY_LAYOUT.hookLineHeight;
-  const claimBlockHeight = claimLines.length * MANIFESTO_STORY_LAYOUT.claimLineHeight;
+  const hookBlockHeight =
+    hookLines.length * MANIFESTO_STORY_LAYOUT.hookLineHeight;
+  const claimBlockHeight =
+    claimLines.length * MANIFESTO_STORY_LAYOUT.claimLineHeight;
   const totalMainHeight =
     hookBlockHeight + MANIFESTO_STORY_LAYOUT.mainBlockGap + claimBlockHeight;
 
-  let mainStartY = contentTop + Math.max(0, (contentHeight - totalMainHeight) / 2);
-  mainStartY += MANIFESTO_STORY_LAYOUT.hookLineHeight * 0.82;
+  const blockTopY = bandMidY - totalMainHeight / 2;
+  const hookStartY = blockTopY + MANIFESTO_STORY_LAYOUT.hookLineHeight * 0.78;
 
   ctx.fillStyle = SOCIAL_COLORS.textSecondary;
   ctx.font = MANIFESTO_STORY_LAYOUT.hookFont;
@@ -183,7 +200,7 @@ export function drawManifestoStoryContent(
     ctx,
     hookLines,
     centerX,
-    mainStartY,
+    hookStartY,
     MANIFESTO_STORY_LAYOUT.hookLineHeight
   );
 
@@ -197,7 +214,6 @@ export function drawManifestoStoryContent(
     MANIFESTO_STORY_LAYOUT.claimLineHeight
   );
 
-  // —— Döngü etiketi (alt, ortalanmış) ——
   if (input.cycleLabel) {
     ctx.fillStyle = SOCIAL_COLORS.textMuted;
     ctx.font = MANIFESTO_STORY_LAYOUT.cycleFont;
@@ -205,7 +221,9 @@ export function drawManifestoStoryContent(
     ctx.fillText(
       input.cycleLabel,
       centerX,
-      SOCIAL_CANVAS_HEIGHT - SOCIAL_LAYOUT.footerHeight - MANIFESTO_STORY_LAYOUT.cycleLabelOffset
+      SOCIAL_CANVAS_HEIGHT -
+        SOCIAL_LAYOUT.footerHeight -
+        MANIFESTO_STORY_LAYOUT.cycleLabelOffset
     );
   }
 

@@ -39,8 +39,11 @@ export type ManifestoStoryVideoShareOutcome = {
   usedFallback: boolean;
 };
 
-export const MANIFESTO_VIDEO_FALLBACK_MESSAGE =
-  "Video indirildi! Instagram/TikTok uygulamasını açarak hikayenize ekleyebilirsiniz.";
+export const MANIFESTO_VIDEO_DOWNLOAD_MESSAGE =
+  "Video galerinize indirildi! Şimdi Instagram veya TikTok'u açarak hikayenizde paylaşabilirsiniz.";
+
+/** @deprecated İndirme odaklı akışta kullanılmıyor */
+export const MANIFESTO_VIDEO_FALLBACK_MESSAGE = MANIFESTO_VIDEO_DOWNLOAD_MESSAGE;
 
 export type ManifestoStoryVideoAsset = {
   blob: Blob;
@@ -260,53 +263,22 @@ export function revokeManifestoStoryVideo(asset: ManifestoStoryVideoAsset): void
   URL.revokeObjectURL(asset.objectUrl);
 }
 
+export function deliverManifestoStoryVideo(
+  asset: ManifestoStoryVideoAsset
+): ManifestoStoryVideoShareOutcome {
+  downloadManifestoStoryVideo(asset);
+  return {
+    result: "downloaded",
+    message: MANIFESTO_VIDEO_DOWNLOAD_MESSAGE,
+    usedFallback: false,
+  };
+}
+
+/** İndirme odaklı ana paylaşım akışı — navigator.share kullanılmaz */
 export async function shareManifestoStoryVideo(
   asset: ManifestoStoryVideoAsset
 ): Promise<ManifestoStoryVideoShareOutcome> {
-  const fallback = (): ManifestoStoryVideoShareOutcome => {
-    downloadManifestoStoryVideo(asset);
-    return {
-      result: "downloaded",
-      message: MANIFESTO_VIDEO_FALLBACK_MESSAGE,
-      usedFallback: true,
-    };
-  };
-
-  if (typeof navigator === "undefined" || !navigator.share) {
-    return fallback();
-  }
-
-  const file = new File([asset.blob], asset.fileName, { type: asset.mimeType });
-
-  try {
-    const canShareFiles = navigator.canShare?.({ files: [file] }) ?? false;
-
-    if (!canShareFiles) {
-      return fallback();
-    }
-
-    await navigator.share({
-      title: "AstroTag · Günlük Kozmik Manifesto",
-      text: asset.shareText,
-      files: [file],
-    });
-
-    return {
-      result: "shared",
-      message: "Paylaşım menüsü açıldı",
-      usedFallback: false,
-    };
-  } catch (error) {
-    if (error instanceof DOMException && error.name === "AbortError") {
-      return {
-        result: "cancelled",
-        message: "Paylaşım iptal edildi",
-        usedFallback: false,
-      };
-    }
-
-    return fallback();
-  }
+  return deliverManifestoStoryVideo(asset);
 }
 
 export async function shareManifestoStoryCard(

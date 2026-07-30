@@ -5,15 +5,12 @@ import { CheckCircle2, Download, Loader2, Share2, Video } from "lucide-react";
 import ManifestoStoryPreview from "@/components/home/ManifestoStoryPreview";
 import type { ManifestoPresentation } from "@/lib/manifesto/manifesto-presentation";
 import {
-  downloadManifestoStoryVideo,
+  deliverManifestoStoryVideo,
   generateManifestoStoryVideo,
-  MANIFESTO_VIDEO_FALLBACK_MESSAGE,
+  MANIFESTO_VIDEO_DOWNLOAD_MESSAGE,
   revokeManifestoStoryVideo,
-  shareManifestoStoryVideo,
   type ManifestoStoryVideoAsset,
 } from "@/lib/manifesto/manifesto-story-card";
-
-type StatusTone = "neutral" | "success" | "fallback" | "cancelled" | "error";
 
 function InstagramIcon({ className }: { className?: string }) {
   return (
@@ -49,7 +46,6 @@ export default function ManifestoStoryShare({
 }: ManifestoStoryShareProps) {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
-  const [statusTone, setStatusTone] = useState<StatusTone>("neutral");
   const videoAssetRef = useRef<ManifestoStoryVideoAsset | null>(null);
 
   const cardInput = useMemo(
@@ -79,61 +75,20 @@ export default function ManifestoStoryShare({
     return asset;
   }, [cardInput]);
 
-  const runVideoAction = useCallback(
-    async (action: "share" | "download" | "instagram" | "tiktok") => {
-      setBusy(true);
-      setStatus(null);
-      setStatusTone("neutral");
+  const runVideoDownloadFlow = useCallback(async () => {
+    setBusy(true);
+    setStatus(null);
 
-      try {
-        const asset = await ensureVideo();
-
-        if (action === "download") {
-          downloadManifestoStoryVideo(asset);
-          setStatusTone("success");
-          setStatus("Video indirildi — Story/Reels'e yükleyebilirsin");
-          return;
-        }
-
-        const outcome = await shareManifestoStoryVideo(asset);
-
-        if (outcome.result === "shared") {
-          setStatusTone("success");
-          setStatus(
-            action === "instagram"
-              ? "Instagram paylaşım menüsü açıldı"
-              : action === "tiktok"
-                ? "TikTok paylaşım menüsü açıldı"
-                : "Paylaşım menüsü açıldı"
-          );
-          return;
-        }
-
-        if (outcome.result === "cancelled") {
-          setStatusTone("cancelled");
-          setStatus(outcome.message);
-          return;
-        }
-
-        setStatusTone("fallback");
-        setStatus(outcome.usedFallback ? MANIFESTO_VIDEO_FALLBACK_MESSAGE : outcome.message);
-      } catch {
-        setStatusTone("error");
-        setStatus("Video oluşturulamadı — tekrar deneyin");
-      } finally {
-        setBusy(false);
-      }
-    },
-    [ensureVideo]
-  );
-
-  const statusStyles: Record<StatusTone, string> = {
-    neutral: "border-white/10 bg-white/[0.03] text-white/50",
-    success: "border-emerald-400/25 bg-emerald-500/10 text-emerald-100/90",
-    fallback: "border-amber-400/30 bg-gradient-to-br from-amber-500/12 to-violet-500/10 text-amber-50/95",
-    cancelled: "border-white/10 bg-white/[0.03] text-white/45",
-    error: "border-red-400/25 bg-red-500/10 text-red-200/90",
-  };
+    try {
+      const asset = await ensureVideo();
+      deliverManifestoStoryVideo(asset);
+      setStatus(MANIFESTO_VIDEO_DOWNLOAD_MESSAGE);
+    } catch {
+      setStatus("Video oluşturulamadı — tekrar deneyin");
+    } finally {
+      setBusy(false);
+    }
+  }, [ensureVideo]);
 
   useEffect(() => {
     return () => {
@@ -157,7 +112,7 @@ export default function ManifestoStoryShare({
         <button
           type="button"
           disabled={busy}
-          onClick={() => void runVideoAction("share")}
+          onClick={() => void runVideoDownloadFlow()}
           className="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-400/30 bg-amber-400/10 px-3 py-2.5 text-xs font-medium text-amber-100 transition hover:bg-amber-400/18 disabled:opacity-50"
         >
           {busy ? (
@@ -170,7 +125,7 @@ export default function ManifestoStoryShare({
         <button
           type="button"
           disabled={busy}
-          onClick={() => void runVideoAction("download")}
+          onClick={() => void runVideoDownloadFlow()}
           className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.04] px-3 py-2.5 text-xs font-medium text-white/80 transition hover:bg-white/[0.08] disabled:opacity-50"
         >
           <Download className="h-4 w-4" aria-hidden />
@@ -182,7 +137,7 @@ export default function ManifestoStoryShare({
         <button
           type="button"
           disabled={busy}
-          onClick={() => void runVideoAction("instagram")}
+          onClick={() => void runVideoDownloadFlow()}
           className="inline-flex items-center justify-center gap-2 rounded-xl border border-pink-400/25 bg-gradient-to-br from-pink-500/10 to-purple-600/10 px-3 py-2.5 text-xs font-medium text-pink-100 transition hover:from-pink-500/16 disabled:opacity-50"
         >
           <InstagramIcon className="h-4 w-4" />
@@ -191,7 +146,7 @@ export default function ManifestoStoryShare({
         <button
           type="button"
           disabled={busy}
-          onClick={() => void runVideoAction("tiktok")}
+          onClick={() => void runVideoDownloadFlow()}
           className="inline-flex items-center justify-center gap-2 rounded-xl border border-cyan-300/20 bg-gradient-to-br from-cyan-500/10 to-slate-500/10 px-3 py-2.5 text-xs font-medium text-cyan-100 transition hover:from-cyan-500/16 disabled:opacity-50"
         >
           <Video className="h-4 w-4" aria-hidden />
@@ -208,9 +163,13 @@ export default function ManifestoStoryShare({
       {status ? (
         <div
           role="status"
-          className={`flex items-start gap-2.5 rounded-xl border px-3.5 py-3 text-left ${statusStyles[statusTone]}`}
+          className={`flex items-start gap-2.5 rounded-xl border px-3.5 py-3 text-left ${
+            status === MANIFESTO_VIDEO_DOWNLOAD_MESSAGE
+              ? "border-amber-400/30 bg-gradient-to-br from-amber-500/14 to-violet-500/10 text-amber-50/95"
+              : "border-red-400/25 bg-red-500/10 text-red-200/90"
+          }`}
         >
-          {statusTone === "fallback" || statusTone === "success" ? (
+          {status === MANIFESTO_VIDEO_DOWNLOAD_MESSAGE ? (
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 opacity-90" aria-hidden />
           ) : null}
           <p className="text-[11px] leading-relaxed">{status}</p>
