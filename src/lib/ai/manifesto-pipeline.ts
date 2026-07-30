@@ -5,6 +5,7 @@ import { callKieChat, logKieApiKeyStatus } from "@/lib/ai/kie-client";
 import {
   buildManifestoSystemPrompt,
   buildManifestoUserPromptSuffix,
+  detectManifestoTemplateTone,
 } from "@/lib/ai/manifesto-presentation-prompts";
 import {
   MEDIUM_RETRY_NUDGE,
@@ -106,9 +107,18 @@ ${techniqueBlock}
 EMPH PAKETİ (JSON):
 ${JSON.stringify(emphPackage, null, 2)}
 
-${buildManifestoUserPromptSuffix()}
+${buildManifestoUserPromptSuffix(emphPackage)}
 
 4 katmanlı manifestoyu JSON olarak yaz.`;
+}
+
+const MANIFESTO_TEMPERATURES = [0.89, 0.88, 0.9] as const;
+
+function isTemplatedManifesto(
+  presentation: ManifestoPresentation,
+  bannedMetaphors: string[]
+): boolean {
+  return detectManifestoTemplateTone(presentation, bannedMetaphors);
 }
 
 function isRoboticManifesto(presentation: ManifestoPresentation): boolean {
@@ -130,6 +140,7 @@ export async function runManifestoPipeline(input: {
   intention: string;
   cycleDay: number;
   maxDays: number;
+  previousPresentation?: string | null;
 }): Promise<ManifestoPipelineResult | null> {
   logKieApiKeyStatus("KIE Manifesto");
 
@@ -148,10 +159,12 @@ export async function runManifestoPipeline(input: {
     intention: input.intention,
     cycleDay: input.cycleDay,
     maxDays: input.maxDays,
+    previousPresentation: input.previousPresentation,
   });
 
   let userPrompt = buildManifestoUserPrompt(emphPackage);
   const maxRetries = 2;
+  const bannedMetaphors = emphPackage.narrativeDirective.variation.bannedMetaphors;
 
   for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
     try {
@@ -161,7 +174,7 @@ export async function runManifestoPipeline(input: {
           { role: "user", content: userPrompt },
         ],
         {
-          temperature: 0.86,
+          temperature: MANIFESTO_TEMPERATURES[attempt] ?? 0.89,
           max_tokens: 1100,
         }
       );
@@ -180,6 +193,14 @@ export async function runManifestoPipeline(input: {
           `[manifesto-pipeline] Robotik ton algılandı (deneme ${attempt + 1})`
         );
         userPrompt = `${buildManifestoUserPrompt(emphPackage)}\n\n${MEDIUM_RETRY_NUDGE}\nDaha keskin, kişiye özel metaforlar kullan; genel manifesto kalıplarından kaçın.`;
+        continue;
+      }
+
+      if (isTemplatedManifesto(presentation, bannedMetaphors)) {
+        console.error(
+          `[manifesto-pipeline] Şablon/klişe ton algılandı (deneme ${attempt + 1})`
+        );
+        userPrompt = `${buildManifestoUserPrompt(emphPackage)}\n\n${MEDIUM_RETRY_NUDGE}\nYasak metaforları ve ezber kalıpları (Yükselen+Ay trio, kapı/eşik/tohum) kullanma. narrativeDirective'daki lens ve imgeleri birebir uygula; önceki güne benzer cümle iskeleti kurma.`;
         continue;
       }
 

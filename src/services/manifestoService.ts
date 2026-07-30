@@ -156,6 +156,7 @@ async function generateManifestSentence(input: {
   intention: string;
   currentDay: number;
   maxDays: number;
+  previousPresentation?: string | null;
 }): Promise<string> {
   const result = await runManifestoPipeline({
     user: input.user,
@@ -164,6 +165,7 @@ async function generateManifestSentence(input: {
     intention: input.intention,
     cycleDay: input.currentDay,
     maxDays: input.maxDays,
+    previousPresentation: input.previousPresentation,
   });
 
   if (!result) {
@@ -362,6 +364,7 @@ export async function getOrGenerateDailyManifesto(
       intention,
       currentDay: nextDay,
       maxDays,
+      previousPresentation: row?.daily_ai_message ?? null,
     });
 
     const payload = buildDbPayload({
