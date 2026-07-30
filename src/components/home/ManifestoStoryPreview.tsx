@@ -7,11 +7,9 @@ import {
   SOCIAL_LAYOUT,
   getSocialShareQrUrl,
 } from "@/lib/social/constants";
-import type { ManifestoStoryCardInput } from "@/lib/manifesto/manifesto-story-card";
-import {
-  drawManifestoStoryFooter,
-  drawManifestoStoryContent,
-} from "@/lib/manifesto/manifesto-story-card";
+import type { ManifestoStoryContentInput } from "@/lib/manifesto/manifesto-story-layout";
+import { drawManifestoStoryContent } from "@/lib/manifesto/manifesto-story-layout";
+import { drawManifestoStoryFooter } from "@/lib/manifesto/manifesto-story-card";
 import {
   createManifestoStarfield,
   drawManifestoStarfield,
@@ -20,7 +18,7 @@ import {
 } from "@/lib/manifesto/manifesto-starfield";
 
 type ManifestoStoryPreviewProps = {
-  input: ManifestoStoryCardInput;
+  input: ManifestoStoryContentInput;
   className?: string;
 };
 

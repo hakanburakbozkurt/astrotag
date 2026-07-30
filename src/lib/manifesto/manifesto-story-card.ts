@@ -12,6 +12,12 @@ import {
 } from "@/lib/social/constants";
 import type { ManifestoPresentation } from "@/lib/manifesto/manifesto-presentation";
 import {
+  drawManifestoStoryContent,
+  type ManifestoStoryContentInput,
+} from "@/lib/manifesto/manifesto-story-layout";
+
+export { drawManifestoStoryContent } from "@/lib/manifesto/manifesto-story-layout";
+import {
   createManifestoStarfield,
   drawManifestoStarfield,
   updateManifestoStarfield,
@@ -23,12 +29,18 @@ import {
   type ShareableCardAsset,
 } from "@/lib/utils/share-utils";
 
-export type ManifestoStoryCardInput = {
+export type ManifestoStoryCardInput = ManifestoStoryContentInput & {
   presentation: ManifestoPresentation;
-  userName?: string;
-  cycleLabel?: string;
-  categoryLabel?: string;
 };
+
+export type ManifestoStoryVideoShareOutcome = {
+  result: KozmicShareResult;
+  message: string;
+  usedFallback: boolean;
+};
+
+export const MANIFESTO_VIDEO_FALLBACK_MESSAGE =
+  "Video indirildi! Instagram/TikTok uygulamasını açarak hikayenize ekleyebilirsiniz.";
 
 export type ManifestoStoryVideoAsset = {
   blob: Blob;
@@ -37,43 +49,6 @@ export type ManifestoStoryVideoAsset = {
   shareText: string;
   objectUrl: string;
 };
-
-function wrapText(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  x: number,
-  y: number,
-  maxWidth: number,
-  lineHeight: number,
-  maxLines?: number
-): number {
-  const words = text.trim().split(/\s+/).filter(Boolean);
-  let line = "";
-  let cursorY = y;
-  let lines = 0;
-
-  for (const word of words) {
-    const testLine = line ? `${line} ${word}` : word;
-    if (ctx.measureText(testLine).width > maxWidth && line) {
-      ctx.fillText(line, x, cursorY);
-      line = word;
-      cursorY += lineHeight;
-      lines += 1;
-      if (maxLines && lines >= maxLines) {
-        return cursorY;
-      }
-    } else {
-      line = testLine;
-    }
-  }
-
-  if (line && (!maxLines || lines < maxLines)) {
-    ctx.fillText(line, x, cursorY);
-    cursorY += lineHeight;
-  }
-
-  return cursorY;
-}
 
 async function loadImage(source: string): Promise<HTMLImageElement | null> {
   try {
@@ -118,84 +93,6 @@ export async function drawManifestoStoryFooter(
       SOCIAL_LAYOUT.qrSize
     );
   }
-}
-
-export function drawManifestoStoryContent(
-  ctx: CanvasRenderingContext2D,
-  input: ManifestoStoryCardInput,
-  options?: { contentAlpha?: number }
-): void {
-  const alpha = options?.contentAlpha ?? 1;
-  if (alpha <= 0) {
-    return;
-  }
-
-  ctx.save();
-  ctx.globalAlpha = alpha;
-
-  const pad = SOCIAL_LAYOUT.paddingX;
-  const maxWidth = SOCIAL_CANVAS_WIDTH - pad * 2;
-
-  ctx.fillStyle = SOCIAL_COLORS.amberMuted;
-  ctx.font = "600 28px ui-sans-serif, system-ui, sans-serif";
-  ctx.fillText("GÜNLÜK KOZMİK MANİFESTO", pad, 120);
-
-  if (input.categoryLabel) {
-    ctx.fillStyle = SOCIAL_COLORS.textMuted;
-    ctx.font = "500 24px ui-sans-serif, system-ui, sans-serif";
-    ctx.fillText(input.categoryLabel.toUpperCase(), pad, 162);
-  }
-
-  if (input.userName?.trim()) {
-    ctx.fillStyle = SOCIAL_COLORS.textSecondary;
-    ctx.font = "400 26px ui-sans-serif, system-ui, sans-serif";
-    ctx.fillText(input.userName.trim(), pad, 204);
-  }
-
-  ctx.strokeStyle = "rgba(251,191,36,0.35)";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(pad, 240);
-  ctx.lineTo(SOCIAL_CANVAS_WIDTH - pad, 240);
-  ctx.stroke();
-
-  ctx.fillStyle = SOCIAL_COLORS.textSecondary;
-  ctx.font = "italic 400 34px ui-serif, Georgia, serif";
-  let cursorY = wrapText(
-    ctx,
-    input.presentation.cosmicHook,
-    pad,
-    310,
-    maxWidth,
-    48,
-    5
-  );
-
-  cursorY += 48;
-
-  ctx.fillStyle = SOCIAL_COLORS.amber;
-  ctx.font = "700 42px ui-serif, Georgia, serif";
-  wrapText(
-    ctx,
-    `"${input.presentation.manifestoClaim}"`,
-    pad,
-    cursorY,
-    maxWidth,
-    56,
-    6
-  );
-
-  if (input.cycleLabel) {
-    ctx.fillStyle = SOCIAL_COLORS.textMuted;
-    ctx.font = "500 24px ui-monospace, monospace";
-    ctx.fillText(
-      input.cycleLabel,
-      pad,
-      SOCIAL_CANVAS_HEIGHT - SOCIAL_LAYOUT.footerHeight - 48
-    );
-  }
-
-  ctx.restore();
 }
 
 export async function renderManifestoStoryFrame(
@@ -365,32 +262,51 @@ export function revokeManifestoStoryVideo(asset: ManifestoStoryVideoAsset): void
 
 export async function shareManifestoStoryVideo(
   asset: ManifestoStoryVideoAsset
-): Promise<KozmicShareResult> {
-  if (typeof navigator !== "undefined" && navigator.share) {
-    const file = new File([asset.blob], asset.fileName, { type: asset.mimeType });
-    try {
-      if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({
-          title: "AstroTag · Günlük Kozmik Manifesto",
-          text: asset.shareText,
-          files: [file],
-        });
-        return "shared";
-      }
-      await navigator.share({
-        title: "AstroTag · Günlük Kozmik Manifesto",
-        text: asset.shareText,
-      });
-      return "shared";
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") {
-        return "cancelled";
-      }
-    }
+): Promise<ManifestoStoryVideoShareOutcome> {
+  const fallback = (): ManifestoStoryVideoShareOutcome => {
+    downloadManifestoStoryVideo(asset);
+    return {
+      result: "downloaded",
+      message: MANIFESTO_VIDEO_FALLBACK_MESSAGE,
+      usedFallback: true,
+    };
+  };
+
+  if (typeof navigator === "undefined" || !navigator.share) {
+    return fallback();
   }
 
-  downloadManifestoStoryVideo(asset);
-  return "downloaded";
+  const file = new File([asset.blob], asset.fileName, { type: asset.mimeType });
+
+  try {
+    const canShareFiles = navigator.canShare?.({ files: [file] }) ?? false;
+
+    if (!canShareFiles) {
+      return fallback();
+    }
+
+    await navigator.share({
+      title: "AstroTag · Günlük Kozmik Manifesto",
+      text: asset.shareText,
+      files: [file],
+    });
+
+    return {
+      result: "shared",
+      message: "Paylaşım menüsü açıldı",
+      usedFallback: false,
+    };
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      return {
+        result: "cancelled",
+        message: "Paylaşım iptal edildi",
+        usedFallback: false,
+      };
+    }
+
+    return fallback();
+  }
 }
 
 export async function shareManifestoStoryCard(
