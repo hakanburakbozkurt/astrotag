@@ -7,12 +7,18 @@ import {
   SOCIAL_CANVAS_WIDTH,
   SOCIAL_COLORS,
   SOCIAL_LAYOUT,
+  SOCIAL_VIDEO,
   getSocialShareQrUrl,
 } from "@/lib/social/constants";
 import type { ManifestoPresentation } from "@/lib/manifesto/manifesto-presentation";
 import {
+  createManifestoStarfield,
+  drawManifestoStarfield,
+  updateManifestoStarfield,
+  type ManifestoStarParticle,
+} from "@/lib/manifesto/manifesto-starfield";
+import {
   downloadShareableCard,
-  openShareableCardInNewTab,
   type KozmicShareResult,
   type ShareableCardAsset,
 } from "@/lib/utils/share-utils";
@@ -22,6 +28,14 @@ export type ManifestoStoryCardInput = {
   userName?: string;
   cycleLabel?: string;
   categoryLabel?: string;
+};
+
+export type ManifestoStoryVideoAsset = {
+  blob: Blob;
+  mimeType: string;
+  fileName: string;
+  shareText: string;
+  objectUrl: string;
 };
 
 function wrapText(
@@ -61,39 +75,28 @@ function wrapText(
   return cursorY;
 }
 
-function drawStarfield(ctx: CanvasRenderingContext2D): void {
-  ctx.fillStyle = SOCIAL_COLORS.background;
-  ctx.fillRect(0, 0, SOCIAL_CANVAS_WIDTH, SOCIAL_CANVAS_HEIGHT);
-
-  for (let i = 0; i < 120; i += 1) {
-    const x = (i * 137.508) % SOCIAL_CANVAS_WIDTH;
-    const y = (i * 97.31) % SOCIAL_CANVAS_HEIGHT;
-    const r = i % 3 === 0 ? 2.2 : 1.2;
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fillStyle = i % 5 === 0 ? SOCIAL_COLORS.amber : "rgba(255,255,255,0.35)";
-    ctx.fill();
+async function loadImage(source: string): Promise<HTMLImageElement | null> {
+  try {
+    return await new Promise((resolve, reject) => {
+      const image = new Image();
+      image.crossOrigin = "anonymous";
+      image.onload = () => resolve(image);
+      image.onerror = () => reject(new Error("Görsel yüklenemedi"));
+      image.src = source;
+    });
+  } catch {
+    return null;
   }
-
-  const glow = ctx.createRadialGradient(540, 420, 20, 540, 420, 520);
-  glow.addColorStop(0, "rgba(139,92,246,0.22)");
-  glow.addColorStop(0.5, "rgba(251,191,36,0.08)");
-  glow.addColorStop(1, "rgba(10,15,26,0)");
-  ctx.fillStyle = glow;
-  ctx.fillRect(0, 0, SOCIAL_CANVAS_WIDTH, SOCIAL_CANVAS_HEIGHT);
 }
 
-async function loadImage(source: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const image = new Image();
-    image.crossOrigin = "anonymous";
-    image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error("QR yüklenemedi"));
-    image.src = source;
-  });
+function buildShareText(input: ManifestoStoryCardInput): string {
+  return `${input.presentation.manifestoClaim}\n\n${SOCIAL_BRAND_URL}`;
 }
 
-async function drawFooter(ctx: CanvasRenderingContext2D): Promise<void> {
+export async function drawManifestoStoryFooter(
+  ctx: CanvasRenderingContext2D,
+  qrImage: HTMLImageElement | null
+): Promise<void> {
   const footerY = SOCIAL_CANVAS_HEIGHT - SOCIAL_LAYOUT.footerHeight;
   ctx.fillStyle = "rgba(255,255,255,0.04)";
   ctx.fillRect(0, footerY, SOCIAL_CANVAS_WIDTH, SOCIAL_LAYOUT.footerHeight);
@@ -106,33 +109,29 @@ async function drawFooter(ctx: CanvasRenderingContext2D): Promise<void> {
   ctx.font = "400 24px ui-sans-serif, system-ui, sans-serif";
   ctx.fillText(SOCIAL_BRAND_DOMAIN, SOCIAL_LAYOUT.paddingX, footerY + 92);
 
-  try {
-    const qr = await loadImage(getSocialShareQrUrl(SOCIAL_LAYOUT.qrSize));
+  if (qrImage) {
     ctx.drawImage(
-      qr,
+      qrImage,
       SOCIAL_CANVAS_WIDTH - SOCIAL_LAYOUT.paddingX - SOCIAL_LAYOUT.qrSize,
       footerY + 36,
       SOCIAL_LAYOUT.qrSize,
       SOCIAL_LAYOUT.qrSize
     );
-  } catch {
-    // QR opsiyonel
   }
 }
 
-export async function generateManifestoStoryCard(
-  input: ManifestoStoryCardInput
-): Promise<ShareableCardAsset> {
-  const canvas = document.createElement("canvas");
-  canvas.width = SOCIAL_CANVAS_WIDTH;
-  canvas.height = SOCIAL_CANVAS_HEIGHT;
-  const ctx = canvas.getContext("2d");
-
-  if (!ctx) {
-    throw new Error("Canvas oluşturulamadı");
+export function drawManifestoStoryContent(
+  ctx: CanvasRenderingContext2D,
+  input: ManifestoStoryCardInput,
+  options?: { contentAlpha?: number }
+): void {
+  const alpha = options?.contentAlpha ?? 1;
+  if (alpha <= 0) {
+    return;
   }
 
-  drawStarfield(ctx);
+  ctx.save();
+  ctx.globalAlpha = alpha;
 
   const pad = SOCIAL_LAYOUT.paddingX;
   const maxWidth = SOCIAL_CANVAS_WIDTH - pad * 2;
@@ -189,10 +188,148 @@ export async function generateManifestoStoryCard(
   if (input.cycleLabel) {
     ctx.fillStyle = SOCIAL_COLORS.textMuted;
     ctx.font = "500 24px ui-monospace, monospace";
-    ctx.fillText(input.cycleLabel, pad, SOCIAL_CANVAS_HEIGHT - SOCIAL_LAYOUT.footerHeight - 48);
+    ctx.fillText(
+      input.cycleLabel,
+      pad,
+      SOCIAL_CANVAS_HEIGHT - SOCIAL_LAYOUT.footerHeight - 48
+    );
   }
 
-  await drawFooter(ctx);
+  ctx.restore();
+}
+
+export async function renderManifestoStoryFrame(
+  ctx: CanvasRenderingContext2D,
+  input: ManifestoStoryCardInput,
+  particles: ManifestoStarParticle[],
+  timeMs: number,
+  qrImage: HTMLImageElement | null,
+  contentAlpha = 1
+): Promise<void> {
+  updateManifestoStarfield(particles);
+  drawManifestoStarfield(ctx, particles, SOCIAL_CANVAS_WIDTH, SOCIAL_CANVAS_HEIGHT, timeMs);
+  drawManifestoStoryContent(ctx, input, { contentAlpha });
+  await drawManifestoStoryFooter(ctx, qrImage);
+}
+
+function pickSupportedVideoMimeType(): string {
+  const candidates = [
+    "video/webm;codecs=vp9",
+    "video/webm;codecs=vp8",
+    "video/webm",
+  ];
+  return candidates.find((type) => MediaRecorder.isTypeSupported(type)) ?? "video/webm";
+}
+
+function waitFrame(): Promise<void> {
+  return new Promise((resolve) => requestAnimationFrame(() => resolve()));
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function contentAlphaForProgress(progress: number): number {
+  if (progress <= 0.12) {
+    return progress / 0.12;
+  }
+  return 1;
+}
+
+export async function generateManifestoStoryVideo(
+  input: ManifestoStoryCardInput,
+  options?: { durationMs?: number }
+): Promise<ManifestoStoryVideoAsset> {
+  if (typeof document === "undefined") {
+    throw new Error("Video yalnızca tarayıcıda oluşturulabilir");
+  }
+
+  const durationMs = clamp(
+    options?.durationMs ?? 6000,
+    SOCIAL_VIDEO.minDurationMs,
+    7000
+  );
+  const totalFrames = Math.round((durationMs / 1000) * SOCIAL_VIDEO.fps);
+  const particles = createManifestoStarfield();
+  const qrImage = await loadImage(getSocialShareQrUrl(SOCIAL_LAYOUT.qrSize));
+
+  const canvas = document.createElement("canvas");
+  canvas.width = SOCIAL_CANVAS_WIDTH;
+  canvas.height = SOCIAL_CANVAS_HEIGHT;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    throw new Error("Canvas oluşturulamadı");
+  }
+
+  const mimeType = pickSupportedVideoMimeType();
+  const stream = canvas.captureStream(SOCIAL_VIDEO.fps);
+  const recorder = new MediaRecorder(stream, {
+    mimeType,
+    videoBitsPerSecond: 5_500_000,
+  });
+
+  const chunks: Blob[] = [];
+  recorder.ondataavailable = (event) => {
+    if (event.data.size > 0) {
+      chunks.push(event.data);
+    }
+  };
+
+  const finished = new Promise<Blob>((resolve, reject) => {
+    recorder.onstop = () => {
+      resolve(new Blob(chunks, { type: mimeType }));
+    };
+    recorder.onerror = () => reject(new Error("Video kaydı başarısız"));
+  });
+
+  recorder.start();
+  const startedAt = performance.now();
+
+  for (let frame = 0; frame < totalFrames; frame += 1) {
+    const progress = frame / Math.max(totalFrames - 1, 1);
+    const timeMs = startedAt + frame * (1000 / SOCIAL_VIDEO.fps);
+    await renderManifestoStoryFrame(
+      ctx,
+      input,
+      particles,
+      timeMs,
+      qrImage,
+      contentAlphaForProgress(progress)
+    );
+    await waitFrame();
+  }
+
+  recorder.stop();
+  stream.getTracks().forEach((track) => track.stop());
+
+  const blob = await finished;
+  const stamp = new Date().toISOString().slice(0, 10);
+  const extension = mimeType.includes("webm") ? "webm" : "mp4";
+
+  return {
+    blob,
+    mimeType,
+    fileName: `astro-tag-manifesto-story-${stamp}.${extension}`,
+    shareText: buildShareText(input),
+    objectUrl: URL.createObjectURL(blob),
+  };
+}
+
+export async function generateManifestoStoryCard(
+  input: ManifestoStoryCardInput
+): Promise<ShareableCardAsset> {
+  const canvas = document.createElement("canvas");
+  canvas.width = SOCIAL_CANVAS_WIDTH;
+  canvas.height = SOCIAL_CANVAS_HEIGHT;
+  const ctx = canvas.getContext("2d");
+
+  if (!ctx) {
+    throw new Error("Canvas oluşturulamadı");
+  }
+
+  const particles = createManifestoStarfield();
+  const qrImage = await loadImage(getSocialShareQrUrl(SOCIAL_LAYOUT.qrSize));
+  await renderManifestoStoryFrame(ctx, input, particles, 0, qrImage, 1);
 
   const blob = await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((b) => {
@@ -211,8 +348,49 @@ export async function generateManifestoStoryCard(
     blob,
     dataUrl,
     fileName: `astro-tag-manifesto-story-${stamp}.png`,
-    shareText: `${input.presentation.manifestoClaim}\n\n${SOCIAL_BRAND_URL}`,
+    shareText: buildShareText(input),
   };
+}
+
+export function downloadManifestoStoryVideo(asset: ManifestoStoryVideoAsset): void {
+  const link = document.createElement("a");
+  link.href = asset.objectUrl;
+  link.download = asset.fileName;
+  link.click();
+}
+
+export function revokeManifestoStoryVideo(asset: ManifestoStoryVideoAsset): void {
+  URL.revokeObjectURL(asset.objectUrl);
+}
+
+export async function shareManifestoStoryVideo(
+  asset: ManifestoStoryVideoAsset
+): Promise<KozmicShareResult> {
+  if (typeof navigator !== "undefined" && navigator.share) {
+    const file = new File([asset.blob], asset.fileName, { type: asset.mimeType });
+    try {
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({
+          title: "AstroTag · Günlük Kozmik Manifesto",
+          text: asset.shareText,
+          files: [file],
+        });
+        return "shared";
+      }
+      await navigator.share({
+        title: "AstroTag · Günlük Kozmik Manifesto",
+        text: asset.shareText,
+      });
+      return "shared";
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return "cancelled";
+      }
+    }
+  }
+
+  downloadManifestoStoryVideo(asset);
+  return "downloaded";
 }
 
 export async function shareManifestoStoryCard(
@@ -240,7 +418,7 @@ export async function shareManifestoStoryCard(
     }
   }
 
-  openShareableCardInNewTab(asset);
+  downloadShareableCard(asset);
   return { result: "downloaded", asset };
 }
 

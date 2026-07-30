@@ -5,8 +5,10 @@ import { motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
 import { generateDailyManifestoAction, loadManifestoStateAction } from "@/lib/actions/manifesto";
 import ManifestoTechniquePicker from "@/components/home/ManifestoTechniquePicker";
+import ManifestoStoryShare from "@/components/home/ManifestoStoryShare";
 import {
   MANIFESTO_CATEGORIES,
+  MANIFESTO_TECHNIQUES,
   type ManifestoCategoryId,
   type ManifestoTechniqueId,
   type UserManifestoRecord,
@@ -251,6 +253,25 @@ export default function ManifestoWidget({ user }: ManifestoWidgetProps) {
             <p className="text-[11px] text-amber-200/70">
               Döngü tamamlandı. Yarın yeni bir seriye başlayabilirsin.
             </p>
+          ) : null}
+
+          {manifesto.presentation ? (
+            <section className="rounded-2xl border border-white/10 bg-black/25 p-4">
+              <p className="mb-3 text-center text-[10px] uppercase tracking-[0.22em] text-white/35">
+                Story Video · 9:16
+              </p>
+              <ManifestoStoryShare
+                presentation={manifesto.presentation}
+                userName={user.name ?? undefined}
+                categoryLabel={
+                  MANIFESTO_CATEGORIES.find((c) => c.id === manifesto.category)?.label
+                }
+                cycleLabel={`Gün ${manifesto.currentDay} / ${manifesto.maxDays} · ${
+                  MANIFESTO_TECHNIQUES.find((t) => t.id === manifesto.techniqueType)?.label ??
+                  manifesto.techniqueType
+                }`}
+              />
+            </section>
           ) : null}
         </div>
       ) : null}

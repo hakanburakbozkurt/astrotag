@@ -185,7 +185,7 @@ export default function DailyCosmicModal({
 
                   <section className="rounded-2xl border border-white/10 bg-black/25 p-4">
                     <p className="mb-3 text-center text-[10px] uppercase tracking-[0.22em] text-white/35">
-                      Story Kartı · 9:16
+                      Story Video · 9:16
                     </p>
                     <ManifestoStoryShare
                       presentation={presentation}
