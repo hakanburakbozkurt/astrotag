@@ -44,7 +44,7 @@ export async function renderBrandCardFrame(ctx: CanvasRenderingContext2D): Promi
   ctx.fillStyle = "rgba(251,191,36,0.95)";
   ctx.font = "700 72px ui-monospace, monospace";
   ctx.textAlign = "center";
-  ctx.fillText("astro-tag.app", SOCIAL_CANVAS_WIDTH / 2, SOCIAL_CANVAS_HEIGHT / 2 - 24);
+  ctx.fillText("astrotag.app", SOCIAL_CANVAS_WIDTH / 2, SOCIAL_CANVAS_HEIGHT / 2 - 24);
 
   ctx.fillStyle = "rgba(255,255,255,0.55)";
   ctx.font = "400 32px ui-sans-serif, system-ui, sans-serif";

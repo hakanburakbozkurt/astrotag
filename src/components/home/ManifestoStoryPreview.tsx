@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import {
   SOCIAL_CANVAS_HEIGHT,
   SOCIAL_CANVAS_WIDTH,
@@ -17,19 +17,46 @@ import {
   type ManifestoStarParticle,
 } from "@/lib/manifesto/manifesto-starfield";
 
+export type ManifestoStoryPreviewHandle = {
+  /** 1080×1920 PNG — önizleme canvas'ının o anki karesi */
+  capturePng: () => Promise<Blob>;
+};
+
 type ManifestoStoryPreviewProps = {
   input: ManifestoStoryContentInput;
   className?: string;
 };
 
-export default function ManifestoStoryPreview({
-  input,
-  className = "",
-}: ManifestoStoryPreviewProps) {
+const ManifestoStoryPreview = forwardRef<
+  ManifestoStoryPreviewHandle,
+  ManifestoStoryPreviewProps
+>(function ManifestoStoryPreview({ input, className = "" }, ref) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<ManifestoStarParticle[] | null>(null);
   const qrRef = useRef<HTMLImageElement | null>(null);
   const frameRef = useRef<number | null>(null);
+
+  useImperativeHandle(ref, () => ({
+    capturePng: async () => {
+      const canvas = canvasRef.current;
+      if (!canvas) {
+        throw new Error("Önizleme hazır değil");
+      }
+
+      return new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(new Error("Ekran görüntüsü oluşturulamadı"));
+            }
+          },
+          "image/png"
+        );
+      });
+    },
+  }));
 
   useEffect(() => {
     particlesRef.current = createManifestoStarfield(72);
@@ -93,4 +120,6 @@ export default function ManifestoStoryPreview({
       className={`h-full w-full object-cover ${className}`}
     />
   );
-}
+});
+
+export default ManifestoStoryPreview;

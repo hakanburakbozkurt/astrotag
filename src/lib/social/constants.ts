@@ -2,9 +2,9 @@
 export const SOCIAL_CANVAS_WIDTH = 1080;
 export const SOCIAL_CANVAS_HEIGHT = 1920;
 
-export const SOCIAL_BRAND_DOMAIN = "astro-tag.app";
+export const SOCIAL_BRAND_DOMAIN = "astrotag.app";
 export const SOCIAL_BRAND_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://astro-tag.app";
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://astrotag.app";
 
 export const SOCIAL_COLORS = {
   background: "#0a0f1a",

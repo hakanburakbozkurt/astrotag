@@ -13,8 +13,6 @@
     "hash-pin-test": "node scripts/hash-pin-test.js"
   },
   "dependencies": {
-    "@ffmpeg/ffmpeg": "^0.12.15",
-    "@ffmpeg/util": "^0.12.2",
     "@react-spring/web": "^10.1.0",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.2",
