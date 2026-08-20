@@ -18,16 +18,32 @@ import {
 } from "@/lib/nfc/constants";
 import { SALES_MOTION_EASE } from "@/lib/sales/sales-motion";
 
+/** Oturumlu → dashboard; oturumsuz → kayıt / giriş (NFC akışından bağımsız) */
+function resolveLandingCtas(isAuthenticated: boolean) {
+  if (isAuthenticated) {
+    return {
+      primaryHref: DASHBOARD_PATH,
+      primaryLabel: "Dashboard'a Git",
+      secondaryHref: DASHBOARD_PATH,
+      secondaryLabel: "Profilini Aç",
+    };
+  }
+
+  return {
+    primaryHref: AUTH_SIGNUP_PATH,
+    primaryLabel: "Kozmik Haritana Başla",
+    secondaryHref: AUTH_LOGIN_PATH,
+    secondaryLabel: "Giriş Yap",
+  };
+}
+
 export default function CosmicHero() {
   const motionReady = useMotionReady();
   const reducedMotion = usePrefersReducedMotion();
   const canAnimate = motionReady && !reducedMotion;
   const { isAuthenticated, isLoading } = useAuth();
-
-  const primaryHref = isAuthenticated ? DASHBOARD_PATH : AUTH_SIGNUP_PATH;
-  const primaryLabel = isAuthenticated ? "Dashboard'a Git" : "Kozmik Haritana Başla";
-  const secondaryHref = isAuthenticated ? DASHBOARD_PATH : AUTH_LOGIN_PATH;
-  const secondaryLabel = isAuthenticated ? "Profilini Aç" : "Giriş Yap";
+  const { primaryHref, primaryLabel, secondaryHref, secondaryLabel } =
+    resolveLandingCtas(isAuthenticated);
 
   return (
     <section

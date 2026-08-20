@@ -11,14 +11,13 @@ import {
   CARD_ENTRY_PREFIX,
   DASHBOARD_PATH,
   HOME_PATH,
+  NFC_ENTER_PATH,
   NFC_LOGIN_PATH,
-  PRIVATE_MODE_PATH,
   PROFILE_COMPLETE_PATH,
   PROFILE_SETUP_PATH,
   PUBLIC_PATHS,
   PUBLIC_PROFILE_PREFIX,
   REGISTRATION_COMPLETE_PATH,
-  STORAGE_VERIFIED_COOKIE,
 } from "@/lib/nfc/constants";
 
 export type SecurityDenyReason =
@@ -43,7 +42,7 @@ function isPublicProfilePath(pathname: string): boolean {
 }
 
 function isWarningPath(pathname: string): boolean {
-  return pathname.startsWith(PRIVATE_MODE_PATH);
+  return pathname.startsWith("/private-mode-warning");
 }
 
 function isAuthCallbackPath(pathname: string): boolean {
@@ -158,6 +157,7 @@ export function shouldRedirectUnknownToHome(pathname: string): boolean {
 
 /**
  * Korunan rotalar: Supabase Auth oturumu (JWT + refresh) zorunlu.
+ * Gizli sekme / depolama doğrulaması yalnızca NFC kart rotalarında (SecurityBootstrap).
  */
 export async function runSecurityGate(
   request: NextRequest,
@@ -187,17 +187,6 @@ export async function runSecurityGate(
 
   if (!isProtectedPath(pathname)) {
     return { allowed: true };
-  }
-
-  const storageVerified =
-    request.cookies.get(STORAGE_VERIFIED_COOKIE)?.value === "1";
-
-  if (!storageVerified) {
-    return {
-      allowed: false,
-      reason: "private_mode",
-      redirectTo: PRIVATE_MODE_PATH,
-    };
   }
 
   if (!authUser?.id) {

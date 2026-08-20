@@ -2,7 +2,7 @@ import "server-only";
 
 import { getAuthPendingCookie } from "@/lib/auth/auth-pending-cookie.server";
 import { cardEntryPathForUniqueId } from "@/lib/nfc/card-paths";
-import { HOME_PATH } from "@/lib/nfc/constants";
+import { DASHBOARD_PATH } from "@/lib/nfc/constants";
 
 function sanitizeNextPath(next: string | null | undefined): string | null {
   if (!next?.trim()) {
@@ -31,5 +31,5 @@ export async function resolveAuthCallbackDestination(
     return cardEntryPathForUniqueId(pending.nfcId);
   }
 
-  return HOME_PATH;
+  return DASHBOARD_PATH;
 }

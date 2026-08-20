@@ -9,8 +9,20 @@ import {
   authSecondaryButtonClassName,
 } from "@/components/auth/auth-field-styles";
 import { LANDING_NAV_ITEMS } from "@/components/landing/landing-nav";
-import { AUTH_LOGIN_PATH, AUTH_SIGNUP_PATH, DASHBOARD_PATH } from "@/lib/nfc/constants";
+import {
+  AUTH_LOGIN_PATH,
+  AUTH_SIGNUP_PATH,
+  DASHBOARD_PATH,
+} from "@/lib/nfc/constants";
 import { useAuth } from "@/lib/auth";
+
+function resolveNavPrimaryHref(isAuthenticated: boolean): string {
+  return isAuthenticated ? DASHBOARD_PATH : AUTH_LOGIN_PATH;
+}
+
+function resolveNavPrimaryLabel(isAuthenticated: boolean): string {
+  return isAuthenticated ? "Dashboard'a Git" : "Giriş Yap";
+}
 
 export default function LandingNav() {
   const [open, setOpen] = useState(false);
@@ -99,21 +111,30 @@ export default function LandingNav() {
 
               <div className="flex flex-col gap-2 border-b border-white/8 p-4">
                 {isAuthenticated ? (
-                  <Link
-                    href={DASHBOARD_PATH}
-                    onClick={close}
-                    className={authPrimaryButtonClassName}
-                  >
-                    Dashboard&apos;a Git
-                  </Link>
-                ) : (
                   <>
                     <Link
-                      href={AUTH_LOGIN_PATH}
+                      href={DASHBOARD_PATH}
                       onClick={close}
                       className={authPrimaryButtonClassName}
                     >
-                      Giriş Yap
+                      {resolveNavPrimaryLabel(true)}
+                    </Link>
+                    <Link
+                      href={DASHBOARD_PATH}
+                      onClick={close}
+                      className={authSecondaryButtonClassName}
+                    >
+                      Profilini Aç
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      href={resolveNavPrimaryHref(false)}
+                      onClick={close}
+                      className={authPrimaryButtonClassName}
+                    >
+                      {resolveNavPrimaryLabel(false)}
                     </Link>
                     <Link
                       href={AUTH_SIGNUP_PATH}
