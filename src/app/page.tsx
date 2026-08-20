@@ -1,3 +1,5 @@
-import SalesLanding from '@/components/sales/SalesLanding';
+import LandingPage from "@/components/landing/LandingPage";
 
-export default function Page() { return <SalesLanding/>; }
+export default function Page() {
+  return <LandingPage />;
+}

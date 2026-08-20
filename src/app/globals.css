@@ -1,9 +1,12 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300&family=Inter:wght@300;400;500;600&display=swap");
 @import "tailwindcss";
 
 :root {
   --bg-deep: #030614;
   --glass-bg: rgba(255, 255, 255, 0.05);
+  --font-serif-display: "Cormorant Garamond", "Playfair Display", Georgia, serif;
+  --landing-gold: rgba(251, 191, 36, 0.85);
+  --landing-gold-border: rgba(251, 191, 36, 0.25);
 }
 
 @keyframes starfield-drift {
@@ -558,5 +561,97 @@ body::after {
   .auth-glass-submit:disabled {
     opacity: 0.55;
     cursor: not-allowed;
+  }
+}
+
+/* ── Landing page (mobile-first vitrin) ── */
+.astrotag-landing {
+  color-scheme: dark;
+  background-color: var(--bg-deep);
+  color: #fff;
+  -webkit-overflow-scrolling: touch;
+}
+
+.astrotag-landing .landing-serif {
+  font-family: var(--font-serif-display);
+  font-weight: 300;
+  letter-spacing: 0.01em;
+}
+
+.astrotag-landing .landing-glass {
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--landing-gold-border);
+}
+
+.astrotag-landing .landing-kicker {
+  font-family: "Inter", sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: rgba(251, 191, 36, 0.7);
+}
+
+.astrotag-landing .landing-carousel {
+  display: flex;
+  gap: 0.875rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 1rem;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  touch-action: pan-x pan-y;
+}
+
+.astrotag-landing .landing-carousel::-webkit-scrollbar {
+  display: none;
+}
+
+.astrotag-landing .landing-carousel-item {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+.astrotag-landing .landing-spotlight-card {
+  animation: landing-spotlight-pulse 5s ease-in-out infinite;
+}
+
+@keyframes landing-spotlight-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 48px rgba(251, 191, 36, 0.16),
+      inset 0 0 0 1px rgba(251, 191, 36, 0.14);
+  }
+
+  50% {
+    box-shadow:
+      0 0 72px rgba(251, 191, 36, 0.26),
+      inset 0 0 0 1px rgba(251, 191, 36, 0.22);
+  }
+}
+
+.astrotag-landing .landing-hero-ring {
+  animation: landing-ring-drift 90s linear infinite;
+}
+
+@keyframes landing-ring-drift {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .astrotag-landing .landing-spotlight-card,
+  .astrotag-landing .landing-hero-ring {
+    animation: none;
   }
 }
