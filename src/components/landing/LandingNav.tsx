@@ -126,7 +126,10 @@ export default function LandingNav() {
                 )}
               </div>
 
-              <ul className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
+              <ul
+                className="flex flex-1 flex-col gap-1 overflow-y-auto p-3"
+                style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom, 0px))" }}
+              >
                 {LANDING_NAV_ITEMS.map((item) => (
                   <li key={item.href}>
                     <Link
@@ -144,19 +147,6 @@ export default function LandingNav() {
                   </li>
                 ))}
               </ul>
-
-              <div
-                className="border-t border-white/8 p-4"
-                style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom, 0px))" }}
-              >
-                <Link
-                  href="/siparislerim"
-                  onClick={close}
-                  className="block rounded-xl border border-white/10 px-4 py-3 text-center text-sm font-medium text-white/75 hover:bg-white/[0.04]"
-                >
-                  Siparişlerim
-                </Link>
-              </div>
             </motion.nav>
           </>
         ) : null}

@@ -11,14 +11,14 @@ export const LANDING_NAV_ITEMS: LandingNavItem[] = [
     description: "Natal harita, Nexus ve Oracle",
   },
   {
-    label: "Koleksiyon",
-    href: "#koleksiyon",
-    description: "Fiziksel-dijital NFC köprüsü",
-  },
-  {
     label: "Yıldız Paketleri",
     href: "#yildiz-paketleri",
     description: "Kozmik kredi vitrini",
+  },
+  {
+    label: "Güven",
+    href: "#guven",
+    description: "Gizlilik ve astronomik doğruluk",
   },
   {
     label: "Destek",

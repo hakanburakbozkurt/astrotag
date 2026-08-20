@@ -55,11 +55,11 @@ export default function CosmicHero() {
 
         <h1 className="landing-serif mt-4 text-[2rem] leading-[1.12] text-white sm:text-[2.35rem]">
           Evrenin gizli haritası,
-          <span className="mt-1 block text-amber-100/90">cebindeki rehber</span>
+          <span className="mt-1 block text-amber-100/90">dijital rehberin</span>
         </h1>
 
         <p className="mt-4 max-w-sm text-sm leading-relaxed text-white/55">
-          Natal harita, günlük Nexus ve Oracle — kozmik rehberliğin lüks dijital vitrini.
+          Natal harita, günlük Nexus ve Oracle — saf astroloji, lüks dijital deneyim.
         </p>
 
         <div className={`${LANDING_CTA_STACK} max-w-xs`}>

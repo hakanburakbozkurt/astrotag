@@ -4,7 +4,6 @@ import Starfield from "@/components/Starfield";
 import SalesNebulaBackdrop from "@/components/sales/SalesNebulaBackdrop";
 import CosmicHero from "@/components/landing/CosmicHero";
 import LandingNav from "@/components/landing/LandingNav";
-import NfcProductShowcase from "@/components/landing/NfcProductShowcase";
 import OraclePreviewGrid from "@/components/landing/OraclePreviewGrid";
 import StarPackagesShowcase from "@/components/landing/StarPackagesShowcase";
 import TrustFooter from "@/components/landing/TrustFooter";
@@ -28,7 +27,6 @@ export default function LandingPage() {
       <div className="relative mx-auto flex max-w-lg flex-col">
         <CosmicHero />
         <OraclePreviewGrid />
-        <NfcProductShowcase />
         <StarPackagesShowcase />
         <TrustFooter />
       </div>
