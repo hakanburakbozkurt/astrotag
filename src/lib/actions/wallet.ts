@@ -9,6 +9,17 @@ import {
   type WalletBalances,
 } from "@/lib/experts/experts.server";
 import { initCrystalCheckout } from "@/lib/payments/iyzico.server";
+import {
+  CHECKOUT_REQUIRED_CONSENTS,
+} from "@/lib/legal/consent-config";
+import {
+  ConsentValidationError,
+  type ConsentAcceptanceInput,
+  assertRequiredConsentsInDb,
+  recordUserConsents,
+  validateConsentPayload,
+} from "@/lib/legal/consent.server";
+import { requireAuthUserUuid } from "@/lib/auth/require-auth-user.server";
 import { requireAuthUserId } from "@/lib/supabase-actions";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 
@@ -32,13 +43,30 @@ export async function getExpertPublicProfileAction(
 }
 
 export async function initCrystalCheckoutAction(
-  packageId: string
+  packageId: string,
+  consents?: ConsentAcceptanceInput[]
 ): Promise<
   | { ok: true; checkoutUrl: string; transactionId: string; devMode?: boolean }
   | { ok: false; error: string }
 > {
   try {
     const profileId = await requireAuthUserId();
+    const authUserId = await requireAuthUserUuid();
+
+    try {
+      validateConsentPayload(CHECKOUT_REQUIRED_CONSENTS, consents);
+      await recordUserConsents({
+        authUserId,
+        consents: consents ?? [],
+      });
+      await assertRequiredConsentsInDb(authUserId, CHECKOUT_REQUIRED_CONSENTS);
+    } catch (error) {
+      if (error instanceof ConsentValidationError) {
+        return { ok: false, error: error.message };
+      }
+      throw error;
+    }
+
     const result = await initCrystalCheckout(profileId, packageId);
 
     if (!result.ok) {

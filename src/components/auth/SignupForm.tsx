@@ -7,6 +7,7 @@ import { useSafeRouter } from "@/lib/auth/safe-router-nav.client";
 import { validatePasswordPair } from "@/lib/auth/password-rules";
 import { authQueryMessageText } from "@/lib/auth/auth-query-messages";
 import { startSignupAction } from "@/lib/actions/auth-email";
+import { LEGAL_VERSION } from "@/lib/legal/consent-config";
 import { AUTH_LOGIN_PATH } from "@/lib/nfc/constants";
 import { navigateAfterNfcAuth } from "@/lib/nfc/post-auth-nav.client";
 import {
@@ -31,6 +32,8 @@ export default function SignupForm({ optionalNfcId = "" }: SignupFormProps) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<AuthToast | null>(null);
+  const [acceptedTos, setAcceptedTos] = useState(false);
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
   const isSubmittingRef = useRef(false);
   const isPending = loading || routerPending;
 
@@ -78,6 +81,11 @@ export default function SignupForm({ optionalNfcId = "" }: SignupFormProps) {
       return;
     }
 
+    if (!acceptedTos || !acceptedPrivacy) {
+      showToast("Devam etmek için kullanım koşulları ve gizlilik politikasını kabul etmelisiniz.");
+      return;
+    }
+
     isSubmittingRef.current = true;
     setLoading(true);
     setToast(null);
@@ -93,6 +101,18 @@ export default function SignupForm({ optionalNfcId = "" }: SignupFormProps) {
           screenHeight: window.screen.height,
           userAgent: navigator.userAgent,
         },
+        consents: [
+          {
+            consentType: "tos",
+            version: LEGAL_VERSION,
+            isAccepted: acceptedTos,
+          },
+          {
+            consentType: "privacy",
+            version: LEGAL_VERSION,
+            isAccepted: acceptedPrivacy,
+          },
+        ],
       });
 
       if (!result.success) {
@@ -204,9 +224,36 @@ export default function SignupForm({ optionalNfcId = "" }: SignupFormProps) {
           </p>
         ) : null}
 
+        <div className="mt-1 space-y-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+          <label className="flex min-h-11 cursor-pointer items-start gap-3 text-xs leading-relaxed text-white/70">
+            <input
+              type="checkbox"
+              checked={acceptedTos}
+              onChange={(event) => setAcceptedTos(event.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/20 accent-amber-400"
+            />
+            <span>
+              Platform Kullanım Koşulları&apos;nı ({LEGAL_VERSION}) okudum ve kabul
+              ediyorum.
+            </span>
+          </label>
+          <label className="flex min-h-11 cursor-pointer items-start gap-3 text-xs leading-relaxed text-white/70">
+            <input
+              type="checkbox"
+              checked={acceptedPrivacy}
+              onChange={(event) => setAcceptedPrivacy(event.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/20 accent-amber-400"
+            />
+            <span>
+              Gizlilik Politikası / KVKK Aydınlatma Metni&apos;ni ({LEGAL_VERSION})
+              okudum ve kabul ediyorum.
+            </span>
+          </label>
+        </div>
+
         <button
           type="submit"
-          disabled={isPending || passwordsMismatch}
+          disabled={isPending || passwordsMismatch || !acceptedTos || !acceptedPrivacy}
           className={`${authPrimaryButtonClassName} mt-2`}
         >
           {isPending ? "Kayıt olunuyor..." : "Kayıt Ol"}

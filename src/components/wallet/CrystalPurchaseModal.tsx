@@ -6,6 +6,7 @@ import {
   initCrystalCheckoutAction,
   listCrystalPackagesAction,
 } from "@/lib/actions/wallet";
+import { LEGAL_VERSION } from "@/lib/legal/consent-config";
 
 type CrystalPackage = Awaited<ReturnType<typeof listCrystalPackagesAction>>[number];
 
@@ -24,6 +25,12 @@ export default function CrystalPurchaseModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [acceptedDistanceSelling, setAcceptedDistanceSelling] = useState(false);
+  const [acceptedCayma, setAcceptedCayma] = useState(false);
+  const [acceptedInstantFulfillment, setAcceptedInstantFulfillment] = useState(false);
+
+  const checkoutConsentsReady =
+    acceptedDistanceSelling && acceptedCayma && acceptedInstantFulfillment;
 
   useEffect(() => {
     if (!open) {
@@ -45,11 +52,32 @@ export default function CrystalPurchaseModal({
   }, [open]);
 
   const handlePurchase = async (packageId: string) => {
+    if (!checkoutConsentsReady) {
+      setError("Devam etmek için mesafeli satış ve dijital ifa onaylarını kabul edin.");
+      return;
+    }
+
     setBusyId(packageId);
     setError(null);
 
     try {
-      const result = await initCrystalCheckoutAction(packageId);
+      const result = await initCrystalCheckoutAction(packageId, [
+        {
+          consentType: "distance_selling",
+          version: LEGAL_VERSION,
+          isAccepted: acceptedDistanceSelling,
+        },
+        {
+          consentType: "cayma_hakki",
+          version: LEGAL_VERSION,
+          isAccepted: acceptedCayma,
+        },
+        {
+          consentType: "instant_digital_fulfillment",
+          version: LEGAL_VERSION,
+          isAccepted: acceptedInstantFulfillment,
+        },
+      ]);
 
       if (!result.ok) {
         setError(result.error);
@@ -98,15 +126,59 @@ export default function CrystalPurchaseModal({
             {loading ? (
               <p className="mt-6 text-sm text-white/45">Yükleniyor…</p>
             ) : (
-              <ul className="mt-4 space-y-2">
-                {packages.map((pkg) => (
-                  <li key={pkg.id}>
-                    <button
-                      type="button"
-                      disabled={busyId !== null}
-                      onClick={() => void handlePurchase(pkg.id)}
-                      className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-left transition hover:border-violet-400/25 disabled:opacity-60"
-                    >
+              <>
+                <div className="mt-4 space-y-2.5 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                  <label className="flex min-h-11 cursor-pointer items-start gap-3 text-[11px] leading-relaxed text-white/65">
+                    <input
+                      type="checkbox"
+                      checked={acceptedDistanceSelling}
+                      onChange={(event) =>
+                        setAcceptedDistanceSelling(event.target.checked)
+                      }
+                      className="mt-0.5 h-4 w-4 shrink-0 accent-violet-400"
+                    />
+                    <span>
+                      Mesafeli Satış Sözleşmesi ve Ön Bilgilendirme Formu&apos;nu (
+                      {LEGAL_VERSION}) okudum, kabul ediyorum.
+                    </span>
+                  </label>
+                  <label className="flex min-h-11 cursor-pointer items-start gap-3 text-[11px] leading-relaxed text-white/65">
+                    <input
+                      type="checkbox"
+                      checked={acceptedCayma}
+                      onChange={(event) => setAcceptedCayma(event.target.checked)}
+                      className="mt-0.5 h-4 w-4 shrink-0 accent-violet-400"
+                    />
+                    <span>
+                      Dijital kristal yüklemesinde cayma hakkımın sona erebileceğini (
+                      {LEGAL_VERSION}) kabul ediyorum.
+                    </span>
+                  </label>
+                  <label className="flex min-h-11 cursor-pointer items-start gap-3 text-[11px] leading-relaxed text-white/65">
+                    <input
+                      type="checkbox"
+                      checked={acceptedInstantFulfillment}
+                      onChange={(event) =>
+                        setAcceptedInstantFulfillment(event.target.checked)
+                      }
+                      className="mt-0.5 h-4 w-4 shrink-0 accent-violet-400"
+                    />
+                    <span>
+                      Kristallerin ödeme sonrası anında dijital hesabıma
+                      yükleneceğini ({LEGAL_VERSION}) onaylıyorum.
+                    </span>
+                  </label>
+                </div>
+
+                <ul className="mt-4 space-y-2">
+                  {packages.map((pkg) => (
+                    <li key={pkg.id}>
+                      <button
+                        type="button"
+                        disabled={busyId !== null || !checkoutConsentsReady}
+                        onClick={() => void handlePurchase(pkg.id)}
+                        className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-left transition hover:border-violet-400/25 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
                       <div>
                         <p className="text-sm font-medium text-white/90">
                           {pkg.title}
@@ -127,6 +199,7 @@ export default function CrystalPurchaseModal({
                   </li>
                 ))}
               </ul>
+              </>
             )}
 
             {error ? <p className="mt-3 text-xs text-red-300/85">{error}</p> : null}

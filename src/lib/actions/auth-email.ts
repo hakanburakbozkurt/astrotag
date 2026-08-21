@@ -39,8 +39,17 @@ import {
 } from "@/lib/nfc/session.server";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { withNfcAction } from "@/lib/nfc/with-nfc-action.server";
+import {
+  SIGNUP_REQUIRED_CONSENTS,
+} from "@/lib/legal/consent-config";
+import {
+  ConsentValidationError,
+  type ConsentAcceptanceInput,
+  recordUserConsents,
+  validateConsentPayload,
+} from "@/lib/legal/consent.server";
 import { clearPendingNfcCardCookie, setPendingNfcCardCookie } from "@/lib/nfc/device-cookies.server";
+import { withNfcAction } from "@/lib/nfc/with-nfc-action.server";
 
 export type AuthEmailActionFailure = {
   success: false;
@@ -205,6 +214,7 @@ export async function startSignupAction(params: {
   confirmPassword: string;
   uniqueId?: string;
   device?: DeviceContext;
+  consents?: ConsentAcceptanceInput[];
 }): Promise<AuthEmailActionSuccess | AuthEmailActionFailure> {
   try {
     return await withNfcAction("startSignupAction", async () => {
@@ -217,6 +227,15 @@ export async function startSignupAction(params: {
       const passwordError = validatePasswordPair(params.password, params.confirmPassword);
       if (passwordError) {
         return { success: false, error: passwordError };
+      }
+
+      try {
+        validateConsentPayload(SIGNUP_REQUIRED_CONSENTS, params.consents);
+      } catch (error) {
+        if (error instanceof ConsentValidationError) {
+          return { success: false, error: error.message };
+        }
+        throw error;
       }
 
       const supabase = await createServerSupabaseClient();
@@ -244,6 +263,11 @@ export async function startSignupAction(params: {
       }
 
       if (signUp.data.user?.id && signUp.data.session) {
+        await recordUserConsents({
+          authUserId: signUp.data.user.id,
+          consents: params.consents ?? [],
+        });
+
         const redirectTo = await finishStandardAuthSuccess(
           signUp.data.user.id,
           params.uniqueId,
@@ -254,6 +278,10 @@ export async function startSignupAction(params: {
       }
 
       if (signUp.data.user?.id) {
+        await recordUserConsents({
+          authUserId: signUp.data.user.id,
+          consents: params.consents ?? [],
+        });
         await ensureProfileForAuthUser(signUp.data.user.id, params.uniqueId);
       }
 
