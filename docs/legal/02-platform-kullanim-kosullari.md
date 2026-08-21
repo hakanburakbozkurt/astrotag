@@ -37,6 +37,13 @@ Tüm içerikler **eğlence, kişisel farkındalık ve yorum** amaçlıdır. **Ke
 - Suistimal (sahte hesap, bot, promosyon kötüye kullanımı) yasak — hesap kapatılabilir.
 - Platform kurallarına aykırı içerik paylaşılamaz.
 
+### Hesap silme (KVKK — unutulma hakkı)
+
+- Hesabınızı **dilediğiniz zaman** uygulama içinden veya destek kanalı üzerinden silebilirsiniz.
+- Silme sonrası giriş yapamazsınız; profil kişisel verileriniz anonimleştirilir.
+- **Ödeme kayıtları** (`crystal_ledger`, ödeme işlemleri) ve **sözleşme onay geçmişi** (`user_consents`), Türk Ticaret Kanunu (TTK), Vergi Usul Kanunu (VUK) ve denetim yükümlülükleri gereği **yasal saklama süresi boyunca** kişisel kimliğinizden ayrıştırılarak güvenli şekilde saklanmaya devam edebilir.
+- Detaylı hükümler için **Madde 14 — Hesap Silme ve Veri Saklama Politikası**’na bakın.
+
 ### Dijital onaylar
 
 AI veya kristal harcayan işlemlerde **anında dijital ifa** başlar; checkout veya işlem öncesi onay kutuları ile bilgilendirilirsiniz (Mesafeli Satış ve İade Politikası ile birlikte okuyun).
@@ -147,14 +154,41 @@ Uzman’ların Platform’a kabulü, hizmet listelemesi, komisyon oranı, ödeme
 ### Madde 12 — Değişiklik, Askıya Alma, Fesih
 
 **12.1.** AstroTag, Koşulları güncelleyebilir; önemli değişiklikler en az **14 gün önceden** duyurulur.  
-**12.2.** Kullanıcı hesabını kapatabilir; bakiye ve iade koşulları İade Politikası’na tabidir.  
+**12.2.** Kullanıcı hesabını kapatabilir; bakiye ve iade koşulları İade Politikası’na tabidir. Hesap silme ve veri saklama usulü **Madde 14**’te düzenlenmiştir.  
 **12.3.** AstroTag, güvenlik veya mevzuat gereği hizmeti askıya alabilir.
 
 ### Madde 13 — Uyuşmazlık ve Yetkili Merciler
 
 6502 sayılı Kanun ve ilgili mevzuat uygulanır. Tüketici işlemlerinde Tüketici Hakem Heyeti / Tüketici Mahkemeleri yetkilidir.
 
-### Madde 14 — Yürürlük
+### Madde 14 — Hesap Silme ve Veri Saklama Politikası (KVKK / Unutulma Hakkı)
+
+**14.1. Talep hakkı.** 6698 sayılı Kişisel Verilerin Korunması Kanunu (“KVKK”) kapsamında Kullanıcı, **hesabını dilediği zaman** silme ve kişisel verilerinin işlenmesinin sona erdirilmesini talep edebilir. Talep, Platform’un sunduğu hesap silme akışı veya [DESTEK E-POSTASI] üzerinden iletilebilir.
+
+**14.2. Silme kapsamı.** Onaylanan hesap silme talebi üzerinde AstroTag:
+
+- Kimlik doğrulama (oturum) kaydını (`auth` hesabı) **işlemin en son adımında** devre dışı bırakır veya siler;
+- Aşağıdaki **kişisel içerik kayıtlarını** veritabanından kalıcı olarak siler (hard delete): Tarot geçmişi, horary soruları, kozmik okuma arşivi, manifesto kayıtları, yıldız/kozmik günlükleri, rozetler, referans eşleşmeleri, NFC oturum kayıtları ve benzeri kullanıcıya özel içerik tabloları;
+- Profildeki **doğrudan tanımlayıcı kişisel verileri** (ad, doğum bilgileri, partner bilgileri, telefon, NFC eşleştirme, PIN vb.) anonimleştirir veya siler;
+- Kullanıcının Platform’a yeniden giriş yapmasını engeller.
+
+**14.3. Yasal saklama istisnası (TTK / VUK / denetim).** Aşağıdaki kayıtlar, **6102 sayılı Türk Ticaret Kanunu**, **213 sayılı Vergi Usul Kanunu**, 6502 sayılı Tüketicinin Korunması Hakkında Kanun ve ilgili ikincil mevzuat uyarınca zorunlu **defter, belge ve denetim izleri** kapsamında, yasal saklama süreleri dolana kadar **tamamen silinmeyebilir**; bunun yerine kişisel veri niteliği taşıyan alanlar **anonimleştirilir** veya kimlik bağlantısı güvenli biçimde koparılır:
+
+| Kayıt türü | Amaç | Silme / anonimleştirme |
+|------------|------|-------------------------|
+| **`user_consents`** | Sözleşme, aydınlatma ve dijital onay audit izi | `user_id` bağı koparılır; IP / cihaz bilgisi silinir; onay türü, sürüm ve zaman damgası korunur |
+| **`crystal_ledger`** | Kristal yükleme / promosyon mali hareket defteri | `user_id` bağı koparılır; tutar, işlem türü, ödeme referansı ve zaman damgası korunur |
+| **Ödeme işlem kayıtları** | Fatura, iade ve vergi uyumu | Profil kimliği teknik referans olarak kalabilir; kişisel veriler anonimleştirilmiş profille eşleştirilir |
+
+**14.4. Saklama süresi.** Yasal zorunluluk kapsamındaki kayıtlar, ilgili mevzuatta öngörülen süreler (genel olarak **ticari defter ve belgeler için en az 5 yıl**, vergi mevzuatı kapsamındaki belgeler için **10 yıl** gibi; kesin süre işlem türüne göre değişir) boyunca güvenli ortamda muhafaza edilir; süre sonunda imha veya kalıcı anonimleştirme uygulanır.
+
+**14.5. Geri alınamazlık.** Hesap silme işlemi tamamlandıktan sonra profil verileri geri getirilemez; kullanılmayan dijital bakiyeler (kristal / yıldız) İade Politikası ve Mesafeli Satış hükümlerine tabidir.
+
+**14.6. İstisnai durumlar.** Yürürlükteki dava, icra, vergi incelemesi veya yetkili makam talebi bulunan hallerde, yasal yükümlülük saklı kalmak kaydıyla silme talebi ertelenebilir veya kısmi anonimleştirme uygulanabilir.
+
+**14.7. Başvuru.** KVKK md. 11 kapsamındaki diğer talepler (bilgi alma, düzeltme vb.) Gizlilik Politikası’nda belirtilen kanallardan iletilir.
+
+### Madde 15 — Yürürlük
 
 Kullanıcı’nın kayıt olması veya hizmeti kullanmaya devam etmesi Koşulları kabul ettiği anlamına gelir. Sürüm: **1.0**.
 
