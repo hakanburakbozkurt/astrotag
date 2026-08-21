@@ -1,16 +1,18 @@
-import type { UserData } from "@/types/user";
 import type { AstrologyInterpretationResponse } from "@/lib/ai/astrology-interpretation";
 
-export async function fetchNatalInterpretation(
-  userData: UserData
-): Promise<AstrologyInterpretationResponse> {
+export type NatalInterpretationResponse = AstrologyInterpretationResponse & {
+  cached?: boolean;
+  remainingStars?: number;
+};
+
+export async function fetchNatalInterpretation(): Promise<NatalInterpretationResponse> {
   const response = await fetch("/api/ai/natal-interpretation", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userData }),
+    body: JSON.stringify({}),
   });
 
-  const data = (await response.json()) as AstrologyInterpretationResponse & {
+  const data = (await response.json()) as NatalInterpretationResponse & {
     error?: string;
   };
 
@@ -25,5 +27,7 @@ export async function fetchNatalInterpretation(
   return {
     presentation: data.presentation,
     interpretation: data.interpretation?.trim() || data.presentation.details,
+    cached: data.cached ?? false,
+    remainingStars: data.remainingStars,
   };
 }

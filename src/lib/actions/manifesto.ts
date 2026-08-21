@@ -14,9 +14,9 @@ import {
   loadManifestoState,
   prepareDailyCosmicModal,
 } from "@/services/manifestoService";
+import { requireVerifiedUserProfileForAi } from "@/lib/ai/verified-profile.server";
 import { requireAuthUserId } from "@/lib/supabase-actions";
 import { SupabaseActionError } from "@/lib/supabase-action-error";
-import type { UserData } from "@/types/user";
 
 export async function loadManifestoStateAction(
   input: Pick<GenerateManifestoInput, "category" | "techniqueType">
@@ -40,11 +40,10 @@ export async function loadManifestoStateAction(
 }
 
 export async function generateDailyManifestoAction(
-  user: UserData,
   input: GenerateManifestoInput
 ): Promise<GenerateManifestoResult> {
   try {
-    const profileId = await requireAuthUserId();
+    const { profileId, profile } = await requireVerifiedUserProfileForAi("self");
     console.info("[manifestoAction] generateDailyManifesto", {
       profileId,
       category: input.category,
@@ -52,7 +51,7 @@ export async function generateDailyManifestoAction(
       hasIntention: Boolean(input.intention.trim()),
     });
 
-    const result = await getOrGenerateDailyManifesto(profileId, user, input);
+    const result = await getOrGenerateDailyManifesto(profileId, profile, input);
 
     if (!result.ok) {
       console.error("[manifestoAction] generateDailyManifesto failed:", {
@@ -83,12 +82,10 @@ export async function generateDailyManifestoAction(
   }
 }
 
-export async function prepareDailyCosmicModalAction(
-  user: UserData
-): Promise<DailyCosmicModalPayload> {
+export async function prepareDailyCosmicModalAction(): Promise<DailyCosmicModalPayload> {
   try {
-    const profileId = await requireAuthUserId();
-    return prepareDailyCosmicModal(profileId, user);
+    const { profileId, profile } = await requireVerifiedUserProfileForAi("self");
+    return prepareDailyCosmicModal(profileId, profile);
   } catch (error) {
     console.error("[manifestoAction] prepareDailyCosmicModal failed:", error);
     return { showModal: false, manifesto: null, error: "Oturum geçersiz." };

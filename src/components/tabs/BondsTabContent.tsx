@@ -17,8 +17,9 @@ import {
 } from "@/lib/compatibility/daily-questions";
 import { hasPartnerFormData, partnerFormFromUserData } from "@/lib/partner-profile";
 import type { SynastryScoreResponse } from "@/lib/ai/synastry";
+import { STAR_POINTS_COST_PER_ACTION } from "@/lib/constants/cosmic";
+import { STAR_POINTS_UPDATED_EVENT } from "@/lib/energy-events";
 import type { AnalysisUiStatus, OracleAnalysisPresentation } from "@/lib/analysis/types";
-import { usePaidAnalysis } from "@/hooks/usePaidAnalysis";
 
 const SynastryVisualizerSection = dynamic(
   () => import("@/components/synastry/SynastryVisualizerSection"),
@@ -46,20 +47,12 @@ function readCachedScore(dateKey: string): SynastryScoreResponse | null {
 export default function BondsTabContent() {
   const { userId } = useAuth();
   const { userData, isPending, error: profileError } = useUserProfile();
-  const {
-    totalStarPoints,
-    detailsUnlocked,
-    isUnlocking,
-    unlockError,
-    unlockDetails,
-    resetUnlock,
-  } = usePaidAnalysis();
-
   const [selectedQuestion, setSelectedQuestion] = useState("");
   const [customQuestion, setCustomQuestion] = useState("");
   const [presentation, setPresentation] = useState<OracleAnalysisPresentation | null>(
     null
   );
+  const [detailsUnlocked, setDetailsUnlocked] = useState(false);
   const [analysisStatus, setAnalysisStatus] = useState<AnalysisUiStatus>("idle");
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const feedbackReferenceId = useRef<string | null>(null);
@@ -81,17 +74,25 @@ export default function BondsTabContent() {
     setAnalysisStatus("loading");
     setAnalysisError(null);
     setPresentation(null);
+    setDetailsUnlocked(false);
     setSelectedQuestion(trimmed);
-    resetUnlock();
 
     try {
-      const result = await fetchSynastryAnalysis(trimmed, userData, {
+      const result = await fetchSynastryAnalysis(trimmed, {
         compatibilityScore: cachedScore?.score,
-        partnerName: partner?.partnerName,
       });
       setPresentation(result.presentation);
+      setDetailsUnlocked(true);
       feedbackReferenceId.current = crypto.randomUUID();
       setAnalysisStatus("ready");
+
+      if (typeof result.remainingStars === "number" && typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent(STAR_POINTS_UPDATED_EVENT, {
+            detail: { starPoints: result.remainingStars },
+          })
+        );
+      }
     } catch (err) {
       setAnalysisStatus("error");
       setAnalysisError(
@@ -103,14 +104,6 @@ export default function BondsTabContent() {
   const handleCustomSubmit = (event: FormEvent) => {
     event.preventDefault();
     void runAnalysis(customQuestion);
-  };
-
-  const handleUnlockDetails = () => {
-    if (!presentation) {
-      return;
-    }
-
-    void unlockDetails(presentation.cost);
   };
 
   if (isPending) {
@@ -185,7 +178,8 @@ export default function BondsTabContent() {
               Hazır Sorular
             </p>
             <p className="mt-2 text-xs text-white/40">
-              Her gün yenilenen 3 ilişki sorusu · özet ücretsiz
+              Her gün yenilenen 3 ilişki sorusu · analiz −{STAR_POINTS_COST_PER_ACTION}{" "}
+              yıldız
             </p>
 
             <div className="mt-4 space-y-3">
@@ -222,7 +216,7 @@ export default function BondsTabContent() {
                 disabled={analysisStatus === "loading" || !customQuestion.trim()}
                 className="min-h-11 w-full rounded-xl border border-amber-400/30 bg-amber-400/10 py-3 text-sm font-medium text-amber-100 disabled:opacity-60"
               >
-                Synastry Özetini Al
+                Synastry Analizi Al (−{STAR_POINTS_COST_PER_ACTION} Yıldız)
               </button>
             </form>
           </section>
@@ -232,10 +226,10 @@ export default function BondsTabContent() {
             presentation={presentation}
             error={analysisError}
             detailsUnlocked={detailsUnlocked}
-            isUnlocking={isUnlocking}
-            unlockError={unlockError}
-            totalStarPoints={totalStarPoints}
-            onUnlockDetails={handleUnlockDetails}
+            isUnlocking={false}
+            unlockError={null}
+            totalStarPoints={0}
+            onUnlockDetails={() => undefined}
             moduleLabel="Synastry Analizi"
             loadingLabel="Natal + transit + synastry harmanlanıyor..."
             share={{

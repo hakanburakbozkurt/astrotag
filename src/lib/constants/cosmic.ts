@@ -8,6 +8,7 @@ export const TAROT_STAR_POINTS_COST = 0;
 export const REFERRAL_STAR_POINTS_BONUS = 20;
 export const REFERRAL_CODE_PREFIX = "REFASTRO-";
 export const TAROT_CACHE_HOURS = 24;
+export const NATAL_INTERPRETATION_CACHE_HOURS = 24;
 export const TAROT_SPREAD_SIZE = 3;
 
 /** Kozmik Profil — Oracle seviye maliyetleri */

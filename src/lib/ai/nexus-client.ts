@@ -1,14 +1,17 @@
 import type { NexusDailyResponse } from "@/lib/ai/nexus";
-import type { UserData } from "@/types/user";
 
-export async function fetchNexusDaily(userData: UserData): Promise<NexusDailyResponse> {
+export type NexusDailyClientResponse = NexusDailyResponse & {
+  cached?: boolean;
+};
+
+export async function fetchNexusDaily(): Promise<NexusDailyClientResponse> {
   const response = await fetch("/api/ai/nexus/daily", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userData }),
+    body: JSON.stringify({}),
   });
 
-  const data = (await response.json()) as NexusDailyResponse & {
+  const data = (await response.json()) as NexusDailyClientResponse & {
     error?: string;
   };
 

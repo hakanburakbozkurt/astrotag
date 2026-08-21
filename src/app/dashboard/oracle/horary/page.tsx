@@ -10,13 +10,9 @@ import ShareButton from "@/components/analysis/ShareButton";
 import { splitLegacyAnalysisText } from "@/lib/analysis/parse-oracle-response";
 import { useRequireAuth, useUserProfile } from "@/lib/auth";
 import { STAR_POINTS_COST_PER_ACTION } from "@/lib/constants/cosmic";
-import { fetchHoraryReading } from "@/lib/ai/horary-client";
-import { submitHoraryQuestion } from "@/lib/submit-question";
-import {
-  getStarPoints,
-  getHoraryQuestion,
-  updateHoraryAnswer,
-} from "@/lib/supabase-actions";
+import { runHoraryReading } from "@/lib/actions/horary-reading";
+import { getStarPoints } from "@/lib/supabase-actions";
+import { STAR_POINTS_UPDATED_EVENT } from "@/lib/energy-events";
 import OracleModuleErrorBoundary from "@/components/oracle/OracleModuleErrorBoundary";
 import { ORACLE_COSMIC_DATA_ERROR, logOracleModuleError } from "@/lib/oracle/oracle-errors";
 import { PROFILE_SETUP_PATH } from "@/lib/nfc/constants";
@@ -89,22 +85,25 @@ export default function HoraryPage() {
     setHasSubmitted(true);
 
     try {
-      const record = await submitHoraryQuestion(trimmed);
-      const aiResult = await fetchHoraryReading(trimmed, userData);
+      const result = await runHoraryReading(trimmed);
 
-      await updateHoraryAnswer(
-        record.id,
-        aiResult.answer,
-        aiResult.cosmicContext ?? null
-      );
-
-      const saved = await getHoraryQuestion(record.id);
-      if (!saved?.ai_answer?.trim()) {
-        throw new Error("answer_missing");
+      if (!result.success) {
+        if (result.redirectTo) {
+          router.push(result.redirectTo);
+          return;
+        }
+        setError(result.error);
+        setHasSubmitted(false);
+        return;
       }
 
-      setAnswer(saved.ai_answer);
-      setStarPoints((current) => Math.max(0, current - STAR_POINTS_COST_PER_ACTION));
+      setAnswer(result.answer);
+      setStarPoints(result.remainingStars);
+      window.dispatchEvent(
+        new CustomEvent(STAR_POINTS_UPDATED_EVENT, {
+          detail: { starPoints: result.remainingStars },
+        })
+      );
     } catch (err) {
       if (
         typeof err === "object" &&

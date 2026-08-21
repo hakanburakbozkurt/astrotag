@@ -36,10 +36,7 @@ function scoreCacheKey(dateKey: string, userData: UserData): string {
   return `${dateKey}_${buildSynastryScoreFingerprint(userData)}`;
 }
 
-function readCachedScore(
-  dateKey: string,
-  userData: UserData
-): SynastryScoreResponse | null {
+function readCachedScore(dateKey: string, userData: UserData): SynastryScoreResponse | null {
   if (typeof window === "undefined") return null;
   const raw = sessionStorage.getItem(
     `${SCORE_CACHE_PREFIX}${scoreCacheKey(dateKey, userData)}`
@@ -53,12 +50,21 @@ function readCachedScore(
   }
 }
 
-function writeCachedScore(dateKey: string, userData: UserData, score: SynastryScoreResponse): void {
+function writeCachedScore(
+  dateKey: string,
+  userData: UserData,
+  score: SynastryScoreResponse
+): void {
   if (typeof window === "undefined") return;
   sessionStorage.setItem(
     `${SCORE_CACHE_PREFIX}${scoreCacheKey(dateKey, userData)}`,
     JSON.stringify(score)
   );
+}
+
+function writeCachedScoreByDate(dateKey: string, score: SynastryScoreResponse): void {
+  if (typeof window === "undefined") return;
+  sessionStorage.setItem(`${SCORE_CACHE_PREFIX}${dateKey}`, JSON.stringify(score));
 }
 
 async function loadSynastryScore(
@@ -67,12 +73,14 @@ async function loadSynastryScore(
 ): Promise<SynastryScoreResponse | null> {
   const cached = readCachedScore(dateKey, userData);
   if (cached) {
+    writeCachedScoreByDate(dateKey, cached);
     return cached;
   }
 
-  const scoreResult = await fetchSynastryScoreCached(userData).catch(() => null);
+  const scoreResult = await fetchSynastryScoreCached().catch(() => null);
   if (scoreResult) {
     writeCachedScore(dateKey, userData, scoreResult);
+    writeCachedScoreByDate(dateKey, scoreResult);
   }
   return scoreResult;
 }

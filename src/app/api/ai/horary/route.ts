@@ -1,14 +1,17 @@
 import { NextResponse } from "next/server";
-import { HORARY_ERROR_MESSAGE, requestHoraryReading } from "@/lib/ai/horary";
+import { runHoraryReading } from "@/lib/actions/horary-reading";
+import { HORARY_ERROR_MESSAGE } from "@/lib/ai/horary";
 import { withNfcApiRoute } from "@/lib/nfc/with-nfc-api-route";
-import type { UserData } from "@/types/user";
 
-export const POST = withNfcApiRoute("api/ai/horary", async (request, access) => {
+/**
+ * @deprecated Tercih edilen giriş: `runHoraryReading` server action.
+ * Bu route yalnızca geriye dönük uyumluluk içindir; client `userData` kabul etmez.
+ */
+export const POST = withNfcApiRoute("api/ai/horary", async (request) => {
   const body = await request.json();
   const question = body?.question as string | undefined;
-  const userData = body?.userData as UserData | undefined;
 
-  if (!question?.trim() || !userData) {
+  if (!question?.trim()) {
     return NextResponse.json(
       {
         error: HORARY_ERROR_MESSAGE,
@@ -18,9 +21,23 @@ export const POST = withNfcApiRoute("api/ai/horary", async (request, access) => 
     );
   }
 
-  const result = await requestHoraryReading(question, userData, {
-    logContext: { profileId: access.profileId },
-  });
+  const result = await runHoraryReading(question.trim());
 
-  return NextResponse.json(result);
+  if (!result.success) {
+    const status = result.error.includes("yıldız") ? 402 : 403;
+    return NextResponse.json(
+      {
+        error: result.error,
+        answer: result.error,
+        redirectTo: result.redirectTo ?? null,
+      },
+      { status }
+    );
+  }
+
+  return NextResponse.json({
+    answer: result.answer,
+    questionId: result.questionId,
+    remainingStars: result.remainingStars,
+  });
 });

@@ -56,6 +56,34 @@ export async function loadVerifiedUserProfileForAi(
   return profile;
 }
 
+export async function loadVerifiedSynastryProfileForAi(
+  profileId: string
+): Promise<UserData> {
+  const profile = await getServerUserProfile(profileId);
+  if (!profile) {
+    throw new SupabaseActionError("Kullanıcı profili alınamadı.");
+  }
+
+  assertCompleteBirthProfile(profile, "Kayıtlı");
+
+  if (!hasPartnerData(profile)) {
+    throw new SupabaseActionError(
+      "Partner doğum bilgileri profilinizde kayıtlı değil."
+    );
+  }
+
+  return profile;
+}
+
+export async function requireVerifiedSynastryProfile(): Promise<{
+  profileId: string;
+  profile: UserData;
+}> {
+  const profileId = await requireAuthUserId();
+  const profile = await loadVerifiedSynastryProfileForAi(profileId);
+  return { profileId, profile };
+}
+
 export async function requireVerifiedUserProfileForAi(
   subject: VerifiedProfileSubject = "self"
 ): Promise<{ profileId: string; profile: UserData }> {

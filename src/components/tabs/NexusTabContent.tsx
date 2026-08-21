@@ -18,7 +18,6 @@ import { resolveProfileSunSigns } from "@/lib/astrology/sun-sign";
 import { getDailyCompatibilityDateKey } from "@/lib/compatibility/daily-questions";
 import { PROFILE_SETUP_PATH } from "@/lib/nfc/constants";
 import type { NexusDailyResponse } from "@/lib/ai/nexus";
-import type { UserData } from "@/types/user";
 
 const NEXUS_CACHE_PREFIX = "nexus_daily_";
 
@@ -47,16 +46,13 @@ function writeCachedNexus(data: NexusDailyResponse): void {
   sessionStorage.setItem(`${NEXUS_CACHE_PREFIX}${data.date}`, JSON.stringify(data));
 }
 
-async function loadNexusDaily(
-  userData: UserData,
-  dateKey: string
-): Promise<NexusDailyResponse> {
+async function loadNexusDaily(dateKey: string): Promise<NexusDailyResponse> {
   const cached = readCachedNexus(dateKey);
   if (cached) {
     return cached;
   }
 
-  const result = await fetchNexusDailyCached(userData);
+  const result = await fetchNexusDailyCached();
   writeCachedNexus(result);
   return result;
 }
@@ -74,7 +70,7 @@ export default function NexusTabContent() {
     error: nexusError,
     isPending: isNexusPending,
     showError: showNexusError,
-  } = useQuery(swrKey, () => loadNexusDaily(userData!, dateKey), {
+  } = useQuery(swrKey, () => loadNexusDaily(dateKey), {
     fallbackData: readCachedNexus(dateKey) ?? undefined,
     revalidateIfStale: true,
   });

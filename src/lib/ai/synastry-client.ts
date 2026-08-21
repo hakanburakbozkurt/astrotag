@@ -1,20 +1,25 @@
-import type { UserData } from "@/types/user";
 import type {
   SynastryAnalyzeResponse,
   SynastryScoreResponse,
 } from "@/lib/ai/synastry";
 import { formatPresentationForArchive } from "@/lib/analysis/types";
 
-export async function fetchSynastryScore(
-  userData: UserData
-): Promise<SynastryScoreResponse> {
+export type SynastryScoreClientResponse = SynastryScoreResponse & {
+  cached?: boolean;
+};
+
+export type SynastryAnalyzeClientResponse = SynastryAnalyzeResponse & {
+  remainingStars?: number;
+};
+
+export async function fetchSynastryScore(): Promise<SynastryScoreClientResponse> {
   const response = await fetch("/api/ai/compatibility/score", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userData }),
+    body: JSON.stringify({}),
   });
 
-  const data = (await response.json()) as SynastryScoreResponse & {
+  const data = (await response.json()) as SynastryScoreClientResponse & {
     error?: string;
   };
 
@@ -27,24 +32,20 @@ export async function fetchSynastryScore(
 
 export async function fetchSynastryAnalysis(
   question: string,
-  userData: UserData,
   options?: {
     compatibilityScore?: number;
-    partnerName?: string;
   }
-): Promise<SynastryAnalyzeResponse> {
+): Promise<SynastryAnalyzeClientResponse> {
   const response = await fetch("/api/ai/compatibility/analyze", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       question,
-      userData,
       compatibilityScore: options?.compatibilityScore,
-      partnerName: options?.partnerName,
     }),
   });
 
-  const data = (await response.json()) as SynastryAnalyzeResponse & {
+  const data = (await response.json()) as SynastryAnalyzeClientResponse & {
     error?: string;
   };
 

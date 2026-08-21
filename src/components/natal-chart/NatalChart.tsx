@@ -6,9 +6,9 @@ import type { NatalChartViewMode } from "@/lib/astrology/types";
 import { ORACLE_COSMIC_DATA_ERROR } from "@/lib/oracle/oracle-errors";
 import { useNatalChart } from "@/hooks/useNatalChart";
 import { useNatalInterpretation } from "@/hooks/useNatalInterpretation";
-import { usePaidAnalysis } from "@/hooks/usePaidAnalysis";
 import AnalysisResults from "@/components/analysis/AnalysisResults";
 import CosmicAccuracyBadge from "@/components/social-proof/CosmicAccuracyBadge";
+import { STAR_POINTS_COST_PER_ACTION } from "@/lib/constants/cosmic";
 import { resolvePlanetRadiusOffsets } from "@/lib/astrology/planet-offset";
 import {
   ASPECT_LEGEND,
@@ -36,16 +36,9 @@ export default function NatalChart({ userData, viewMode }: NatalChartProps) {
     status: interpretationStatus,
     presentation,
     error: interpretationError,
-    requestInterpretation,
-  } = useNatalInterpretation(status === "ready" ? userData : null);
-  const {
-    totalStarPoints,
     detailsUnlocked,
-    isUnlocking,
-    unlockError,
-    unlockDetails,
-    resetUnlock,
-  } = usePaidAnalysis();
+    requestInterpretation,
+  } = useNatalInterpretation(status === "ready");
 
   const [activePlanetId, setActivePlanetId] = useState<
     import("@/lib/astrology/types").PlanetId | null
@@ -103,16 +96,8 @@ export default function NatalChart({ userData, viewMode }: NatalChartProps) {
   );
 
   const handleRequestInterpretation = useCallback(() => {
-    resetUnlock();
     void requestInterpretation();
-  }, [requestInterpretation, resetUnlock]);
-
-  const handleUnlockDetails = useCallback(() => {
-    if (!presentation) {
-      return;
-    }
-    void unlockDetails(presentation.cost);
-  }, [presentation, unlockDetails]);
+  }, [requestInterpretation]);
 
   useEffect(() => {
     return () => {
@@ -221,7 +206,7 @@ export default function NatalChart({ userData, viewMode }: NatalChartProps) {
               onClick={handleRequestInterpretation}
               className="min-h-11 w-full rounded-xl border border-amber-400/30 bg-amber-400/10 py-2.5 text-sm font-medium text-amber-100 transition hover:bg-amber-400/20"
             >
-              Kozmik Mesajı Al
+              Kozmik Mesajı Al (−{STAR_POINTS_COST_PER_ACTION} Yıldız)
             </button>
           </div>
         ) : (
@@ -230,10 +215,10 @@ export default function NatalChart({ userData, viewMode }: NatalChartProps) {
             presentation={presentation}
             error={interpretationError}
             detailsUnlocked={detailsUnlocked}
-            isUnlocking={isUnlocking}
-            unlockError={unlockError}
-            totalStarPoints={totalStarPoints}
-            onUnlockDetails={handleUnlockDetails}
+            isUnlocking={false}
+            unlockError={null}
+            totalStarPoints={0}
+            onUnlockDetails={() => undefined}
             moduleLabel="Açıların Kozmik Mesajı"
             loadingLabel="Yıldızlar konuşuyor…"
             share={{

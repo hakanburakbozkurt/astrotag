@@ -780,8 +780,19 @@ export async function updateBondAdditionalInfo(
 }
 
 export async function insertHoraryQuestion(question: string): Promise<HoraryQuestion> {
-  const { submitHoraryQuestion } = await import("@/lib/submit-question");
-  return submitHoraryQuestion(question);
+  const { runHoraryReading } = await import("@/lib/actions/horary-reading");
+  const result = await runHoraryReading(question);
+
+  if (!result.success) {
+    throw new SupabaseActionError(result.error);
+  }
+
+  const saved = await getHoraryQuestion(result.questionId);
+  if (!saved) {
+    throw new SupabaseActionError("Horary kaydı okunamadı.");
+  }
+
+  return saved;
 }
 
 async function fetchHoraryQuestionForOwner(

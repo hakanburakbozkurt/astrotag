@@ -22,7 +22,7 @@ export default function DailyCosmicModalGate({ user }: DailyCosmicModalGateProps
     let cancelled = false;
 
     void (async () => {
-      const payload = await prepareDailyCosmicModalAction(user);
+      const payload = await prepareDailyCosmicModalAction();
       if (cancelled) {
         return;
       }
@@ -38,7 +38,7 @@ export default function DailyCosmicModalGate({ user }: DailyCosmicModalGateProps
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, []);
 
   const handleAccept = useCallback(async () => {
     if (manifesto) {

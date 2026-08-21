@@ -82,7 +82,7 @@ export default function ManifestoWidget({ user }: ManifestoWidgetProps) {
       setLoading(true);
       setError(null);
 
-      const result = await generateDailyManifestoAction(user, {
+      const result = await generateDailyManifestoAction({
         category,
         techniqueType,
         intention,
@@ -97,7 +97,7 @@ export default function ManifestoWidget({ user }: ManifestoWidgetProps) {
       setManifesto(result.manifesto);
       setLoading(false);
     },
-    [user, category, techniqueType, intention]
+    [category, techniqueType, intention]
   );
 
   useEffect(() => {
