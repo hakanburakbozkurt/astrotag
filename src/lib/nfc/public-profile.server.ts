@@ -25,12 +25,7 @@ export async function getPublicProfileByUniqueId(
       is_active,
       owner_id,
       profiles (
-        name,
-        birth_date,
-        birth_time,
-        birth_place,
-        relationship_status,
-        star_points
+        name
       )
     `
     )
@@ -42,22 +37,8 @@ export async function getPublicProfileByUniqueId(
   }
 
   const row = data.profiles as
-    | {
-        name: string | null;
-        birth_date: string | null;
-        birth_time: string | null;
-        birth_place: string | null;
-        relationship_status: string | null;
-        star_points: number | null;
-      }
-    | {
-        name: string | null;
-        birth_date: string | null;
-        birth_time: string | null;
-        birth_place: string | null;
-        relationship_status: string | null;
-        star_points: number | null;
-      }[]
+    | { name: string | null }
+    | { name: string | null }[]
     | null;
 
   const profile = Array.isArray(row) ? row[0] : row;
@@ -68,11 +49,6 @@ export async function getPublicProfileByUniqueId(
     profile: {
       uniqueId: data.nfc_id,
       name: displayName,
-      birthDate: profile?.birth_date ?? null,
-      birthTime: profile?.birth_time ?? null,
-      birthPlace: profile?.birth_place ?? null,
-      relationshipStatus: profile?.relationship_status ?? null,
-      starPoints: profile?.star_points ?? 0,
       hasOwner: Boolean(data.owner_id),
     },
   };

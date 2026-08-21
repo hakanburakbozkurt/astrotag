@@ -16,6 +16,7 @@ import {
   deserializeOraclePresentation,
   serializeOraclePresentation,
 } from "@/lib/analysis/presentation-storage";
+import { toClientOraclePresentation } from "@/lib/analysis/presentation-gate.server";
 import type { OracleAnalysisPresentation } from "@/lib/analysis/types";
 import { requireVerifiedUserProfileForAi } from "@/lib/ai/verified-profile.server";
 import {
@@ -32,6 +33,7 @@ import {
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import {
   creditStarPointsBonus,
+  consumeStarPoints,
   consumeTarotStarPoints,
 } from "@/lib/supabase-actions";
 import { SupabaseActionError } from "@/lib/supabase-action-error";
@@ -50,6 +52,20 @@ export type InterpretTarotSpreadResult = {
   cached: boolean;
   errorMessage?: string;
 };
+
+export type UnlockTarotDetailsResult =
+  | { ok: true; details: string; remainingStars: number }
+  | { ok: false; error: string };
+
+function toClientResult(
+  presentation: OracleAnalysisPresentation,
+  cached: boolean
+): InterpretTarotSpreadResult {
+  return {
+    presentation: toClientOraclePresentation(presentation),
+    cached,
+  };
+}
 
 function logInterpretError(error: unknown, context: string): void {
   if (error instanceof Error) {
@@ -170,7 +186,7 @@ export async function interpretTarotSpread(input: {
 
     const cached = await getCachedPresentation(profileId, cardIds);
     if (cached) {
-      return { presentation: cached, cached: true };
+      return toClientResult(cached, true);
     }
 
     await consumeTarotStarPoints();
@@ -207,10 +223,7 @@ export async function interpretTarotSpread(input: {
       });
     }
 
-    return {
-      presentation,
-      cached: false,
-    };
+    return toClientResult(presentation, false);
   } catch (error) {
     if (error instanceof SupabaseActionError) {
       return {
@@ -226,5 +239,43 @@ export async function interpretTarotSpread(input: {
       cached: false,
       errorMessage: TAROT_ACTION_ERROR_MESSAGE,
     };
+  }
+}
+
+/**
+ * Premium tarot detayları — yıldız harcandıktan sonra sunucudan tam metin.
+ */
+export async function unlockTarotAnalysisDetails(input: {
+  cardIds: string[];
+}): Promise<UnlockTarotDetailsResult> {
+  try {
+    if (!Array.isArray(input.cardIds) || input.cardIds.length !== TAROT_SPREAD_SIZE) {
+      return { ok: false, error: "Geçersiz kart seçimi." };
+    }
+
+    const { profileId } = await requireVerifiedUserProfileForAi("self");
+    const stored = await getCachedPresentation(profileId, input.cardIds);
+
+    if (!stored?.details?.trim()) {
+      return {
+        ok: false,
+        error: "Detaylar bulunamadı. Önce tarot yorumunu tamamlayın.",
+      };
+    }
+
+    const remainingStars = await consumeStarPoints(STAR_POINTS_COST_PER_ACTION);
+
+    return {
+      ok: true,
+      details: stored.details.trim(),
+      remainingStars,
+    };
+  } catch (error) {
+    if (error instanceof SupabaseActionError) {
+      return { ok: false, error: error.message };
+    }
+
+    logInterpretError(error, "unlockTarotAnalysisDetails");
+    return { ok: false, error: TAROT_ACTION_ERROR_MESSAGE };
   }
 }

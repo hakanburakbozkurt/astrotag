@@ -6,6 +6,12 @@ import {
   iyzicoCheckoutReturnUrl,
   isIyzicoConfigured,
 } from "@/lib/payments/iyzico.config";
+import {
+  assertDevCompleteAllowed,
+  assertPaymentCallbackAuthorized,
+  assertProductionPaymentsConfigured,
+  PaymentCompletionForbiddenError,
+} from "@/lib/payments/payment-completion-auth.server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 
 export type InitCrystalCheckoutResult =
@@ -25,6 +31,16 @@ export async function initCrystalCheckout(
   profileId: string,
   packageId: string
 ): Promise<InitCrystalCheckoutResult> {
+  try {
+    assertProductionPaymentsConfigured();
+  } catch (error) {
+    const message =
+      error instanceof PaymentCompletionForbiddenError
+        ? error.message
+        : "Ödeme sistemi yapılandırılmamış.";
+    return { ok: false, error: message };
+  }
+
   const admin = createServiceRoleClient();
 
   const { data: pkg, error: pkgError } = await admin
@@ -56,6 +72,10 @@ export async function initCrystalCheckout(
   }
 
   if (!isIyzicoConfigured()) {
+    if (process.env.NODE_ENV === "production") {
+      return { ok: false, error: "Ödeme sistemi yapılandırılmamış." };
+    }
+
     const devCheckoutUrl = `/api/payments/iyzico/dev-complete?tx=${transactionId}`;
     return {
       ok: true,
@@ -82,7 +102,44 @@ export async function initCrystalCheckout(
   };
 }
 
-export async function completeCrystalPurchase(
+export async function completeCrystalPurchaseFromDev(
+  transactionId: string
+): Promise<{ ok: boolean; crystalsGranted?: number; error?: string }> {
+  try {
+    assertDevCompleteAllowed();
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof PaymentCompletionForbiddenError
+          ? error.message
+          : "Dev-complete izni yok.",
+    };
+  }
+
+  return completeCrystalPurchase(transactionId);
+}
+
+export async function completeCrystalPurchaseFromCallback(
+  transactionId: string,
+  signature: string | null | undefined
+): Promise<{ ok: boolean; crystalsGranted?: number; error?: string }> {
+  try {
+    assertPaymentCallbackAuthorized(transactionId, signature);
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof PaymentCompletionForbiddenError
+          ? error.message
+          : "Ödeme doğrulaması başarısız.",
+    };
+  }
+
+  return completeCrystalPurchase(transactionId);
+}
+
+async function completeCrystalPurchase(
   transactionId: string
 ): Promise<{ ok: boolean; crystalsGranted?: number; error?: string }> {
   const admin = createServiceRoleClient();

@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
+  if (process.env.NODE_ENV !== "development") {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   const body = await request.json();
 
-  console.log("\n========== SUPABASE KAYIT HATASI ==========");
+  console.log("\n========== SUPABASE KAYIT HATASI (dev) ==========");
   console.log("Zaman:", new Date().toISOString());
   console.log("Olası sebep:", body.likelyCause ?? "—");
   console.log("Tablo:", body.table ?? "—");

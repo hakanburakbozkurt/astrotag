@@ -13,6 +13,7 @@ import {
 import { loadVerifiedUserProfileForAi } from "@/lib/ai/verified-profile.server";
 import { TAROT_SPREAD_SIZE, TAROT_STAR_POINTS_COST } from "@/lib/constants/cosmic";
 import { getCardById } from "@/data/deck";
+import { toClientOraclePresentation } from "@/lib/analysis/presentation-gate.server";
 import { withNfcApiRoute } from "@/lib/nfc/with-nfc-api-route";
 import {
   formatPartnerDataForPrompt,
@@ -104,5 +105,7 @@ export const POST = withNfcApiRoute("api/ai/tarot", async (request, access) => {
     throw new TarotReadingError(TAROT_READING_FALLBACK_MESSAGE);
   }
 
-  return NextResponse.json({ presentation });
+  return NextResponse.json({
+    presentation: toClientOraclePresentation(presentation),
+  });
 });

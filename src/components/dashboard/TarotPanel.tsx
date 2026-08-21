@@ -7,8 +7,10 @@ import {
   TAROT_ACTION_ERROR_MESSAGE,
   TAROT_READING_FALLBACK_MESSAGE,
 } from "@/lib/ai/tarot-constants";
-import { interpretTarotSpread } from "@/lib/actions/tarot-reading";
+import { interpretTarotSpread, unlockTarotAnalysisDetails } from "@/lib/actions/tarot-reading";
 import { TAROT_SPREAD_SIZE } from "@/lib/constants/cosmic";
+import { STAR_POINTS_UPDATED_EVENT } from "@/lib/energy-events";
+import { useStarEconomy } from "@/hooks/useStarEconomy";
 import {
   getTarotCardById,
   type TarotCardDefinition,
@@ -17,7 +19,6 @@ import TarotFlipCard, { FLIP_DURATION } from "@/components/tarot/TarotFlipCard";
 import TarotDeck from "@/components/tarot/TarotDeck";
 import AnalysisResults from "@/components/analysis/AnalysisResults";
 import CosmicAccuracyBadge from "@/components/social-proof/CosmicAccuracyBadge";
-import { usePaidAnalysis } from "@/hooks/usePaidAnalysis";
 import type { AnalysisUiStatus, OracleAnalysisPresentation } from "@/lib/analysis/types";
 import { TAROT_SPREAD_POSITIONS } from "@/lib/tarot/share-content";
 import { tarotDeck } from "@/data/deck";
@@ -44,14 +45,15 @@ export default function TarotPanel({ onClose }: TarotPanelProps) {
   const [validationHint, setValidationHint] = useState<string | null>(null);
   const ritualTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const feedbackReferenceId = useRef<string | null>(null);
-  const {
-    totalStarPoints,
-    detailsUnlocked,
-    isUnlocking,
-    unlockError,
-    unlockDetails,
-    resetUnlock,
-  } = usePaidAnalysis();
+  const { totalStarPoints, refresh: refreshStarPoints } = useStarEconomy();
+  const [detailsUnlocked, setDetailsUnlocked] = useState(false);
+  const [isUnlocking, setIsUnlocking] = useState(false);
+  const [unlockError, setUnlockError] = useState<string | null>(null);
+
+  const resetUnlock = useCallback(() => {
+    setDetailsUnlocked(false);
+    setUnlockError(null);
+  }, []);
 
   const selectedCards = useMemo(
     () =>
@@ -187,11 +189,43 @@ export default function TarotPanel({ onClose }: TarotPanelProps) {
   };
 
   const handleUnlockDetails = useCallback(() => {
-    if (!presentation) {
+    if (!presentation || detailsUnlocked || isUnlocking) {
       return;
     }
-    void unlockDetails(presentation.cost);
-  }, [presentation, unlockDetails]);
+
+    void (async () => {
+      setIsUnlocking(true);
+      setUnlockError(null);
+
+      try {
+        const result = await unlockTarotAnalysisDetails({ cardIds: selectedIds });
+
+        if (!result.ok) {
+          setUnlockError(result.error);
+          return;
+        }
+
+        setPresentation((current) =>
+          current ? { ...current, details: result.details } : current
+        );
+        setDetailsUnlocked(true);
+        window.dispatchEvent(
+          new CustomEvent(STAR_POINTS_UPDATED_EVENT, {
+            detail: { starPoints: result.remainingStars },
+          })
+        );
+        void refreshStarPoints();
+      } finally {
+        setIsUnlocking(false);
+      }
+    })();
+  }, [
+    detailsUnlocked,
+    isUnlocking,
+    presentation,
+    refreshStarPoints,
+    selectedIds,
+  ]);
 
   const handleReset = () => {
     clearRitualTimers();
