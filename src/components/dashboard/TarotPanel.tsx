@@ -29,7 +29,7 @@ interface TarotPanelProps {
   onClose: () => void;
 }
 
-export default function TarotPanel({ user, onClose }: TarotPanelProps) {
+export default function TarotPanel({ onClose }: TarotPanelProps) {
   const [question, setQuestion] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [revealedCount, setRevealedCount] = useState(0);
@@ -156,7 +156,6 @@ export default function TarotPanel({ user, onClose }: TarotPanelProps) {
     try {
       const result = await interpretTarotSpread({
         question: question.trim(),
-        userProfile: user,
         cards: selectedCards.map((card, index) => ({
           id: card.id,
           name: card.name,

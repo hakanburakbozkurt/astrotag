@@ -39,13 +39,13 @@ export function getCosmicProfileTier(id: CosmicProfileTierId): CosmicProfileTier
 }
 
 export interface CosmicProfileFormInput {
-  name: string;
-  birthDate: string;
-  birthTime: string;
-  birthCity: string;
-  birthDistrict: string;
   tier: CosmicProfileTierId;
+  subject?: "self" | "partner";
+  relationshipType?: string;
 }
+
+/** @deprecated Client doğum alanları kaldırıldı; CosmicProfileAnalysisInput kullanın. */
+export type LegacyCosmicProfileFormInput = CosmicProfileFormInput;
 
 export interface CosmicProfileMeta {
   subject_name: string;

@@ -1,5 +1,3 @@
-import type { UserData } from "@/types/user";
-import type { TarotResponse } from "@/lib/ai/tarot";
 import { TAROT_CACHE_HOURS } from "@/lib/constants/cosmic";
 import {
   getAuthUserId,
@@ -9,9 +7,8 @@ import {
 
 export async function fetchTarotReading(
   question: string,
-  userData: UserData,
   cardIds: string[]
-): Promise<TarotResponse> {
+): Promise<{ reading: string; cached: boolean }> {
   const userId = await getAuthUserId();
   if (!userId) {
     throw new Error("Oturum bulunamadı.");
@@ -25,12 +22,21 @@ export async function fetchTarotReading(
   const response = await fetch("/api/ai/tarot", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ question, userData, cardIds }),
+    body: JSON.stringify({ question, cardIds }),
   });
 
-  const data = (await response.json()) as TarotResponse & { error?: string };
+  const data = (await response.json()) as {
+    reading?: string;
+    presentation?: { executiveSummary?: string };
+    error?: string;
+  };
 
-  if (!response.ok || !data.reading?.trim()) {
+  const reading =
+    data.reading?.trim() ??
+    data.presentation?.executiveSummary?.trim() ??
+    "";
+
+  if (!response.ok || !reading) {
     throw new Error(data.error ?? "Tarot request failed");
   }
 
@@ -38,11 +44,11 @@ export async function fetchTarotReading(
     userId,
     question,
     cardIds,
-    reading: data.reading,
+    reading,
   });
 
   return {
-    reading: data.reading,
+    reading,
     cached: false,
   };
 }

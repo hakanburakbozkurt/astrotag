@@ -17,16 +17,24 @@ import {
   serializeOraclePresentation,
 } from "@/lib/analysis/presentation-storage";
 import type { OracleAnalysisPresentation } from "@/lib/analysis/types";
-import { STAR_POINTS_COST_PER_ACTION, TAROT_CACHE_HOURS, TAROT_SPREAD_SIZE } from "@/lib/constants/cosmic";
+import { requireVerifiedUserProfileForAi } from "@/lib/ai/verified-profile.server";
+import {
+  STAR_POINTS_COST_PER_ACTION,
+  TAROT_CACHE_HOURS,
+  TAROT_SPREAD_SIZE,
+  TAROT_STAR_POINTS_COST,
+} from "@/lib/constants/cosmic";
 import { buildCardSignature } from "@/lib/tarot/deck";
 import {
   formatPartnerDataForPrompt,
   formatUserDataForPrompt,
-  getServerUserProfile,
 } from "@/lib/tarot/tarot-profile-server";
-import { getNfcSessionProfileId } from "@/lib/nfc/session.server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
-import type { UserData } from "@/types/user";
+import {
+  creditStarPointsBonus,
+  consumeTarotStarPoints,
+} from "@/lib/supabase-actions";
+import { SupabaseActionError } from "@/lib/supabase-action-error";
 
 export type { TarotReadingCard } from "@/lib/ai/tarot-pipeline-schemas";
 
@@ -54,28 +62,6 @@ function logInterpretError(error: unknown, context: string): void {
   }
 
   console.error(`INTERPRET_TAROT_SPREAD_ERROR [${context}]:`, error);
-}
-
-async function getServerAuthUserId(): Promise<string | null> {
-  return getNfcSessionProfileId();
-}
-
-async function resolveUserProfileForReading(
-  userId: string | null,
-  clientProfile?: UserData
-): Promise<UserData | null> {
-  if (userId) {
-    const serverProfile = await getServerUserProfile(userId);
-    if (serverProfile) {
-      return serverProfile;
-    }
-  }
-
-  if (clientProfile?.name && clientProfile.birthDate) {
-    return clientProfile;
-  }
-
-  return null;
 }
 
 async function getCachedPresentation(
@@ -134,12 +120,11 @@ async function saveReadingHistory(input: {
 }
 
 /**
- * Tarot yorumu — Server Action (Kie.ai + Supabase profil kişiselleştirmesi).
+ * Tarot yorumu — Server Action (Kie.ai + doğrulanmış Supabase profili).
  */
 export async function interpretTarotSpread(input: {
   question: string;
   cards: TarotReadingCard[];
-  userProfile?: UserData;
 }): Promise<InterpretTarotSpreadResult> {
   try {
     if (!process.env.KIE_API_KEY?.trim()) {
@@ -153,25 +138,10 @@ export async function interpretTarotSpread(input: {
       };
     }
 
+    const { profileId, profile: userProfile } =
+      await requireVerifiedUserProfileForAi("self");
+
     const cardsWithPositions = assignSpreadPositions(input.cards);
-    const userId = await getServerAuthUserId();
-
-    const userProfile = await resolveUserProfileForReading(
-      userId,
-      input.userProfile
-    );
-
-    if (!userProfile) {
-      console.error(
-        "INTERPRET_TAROT_SPREAD_ERROR: Kullanıcı profili alınamadı (Supabase oturumu veya profil eksik)"
-      );
-      return {
-        presentation: null,
-        cached: false,
-        errorMessage: TAROT_ACTION_ERROR_MESSAGE,
-      };
-    }
-
     const profileContext = {
       userData: formatUserDataForPrompt(userProfile),
       partnerData: formatPartnerDataForPrompt(userProfile),
@@ -198,22 +168,26 @@ export async function interpretTarotSpread(input: {
     const { question, cards } = parsed.data;
     const cardIds = cards.map((card) => card.id);
 
-    if (userId) {
-      const cached = await getCachedPresentation(userId, cardIds);
-      if (cached) {
-        return { presentation: cached, cached: true };
-      }
+    const cached = await getCachedPresentation(profileId, cardIds);
+    if (cached) {
+      return { presentation: cached, cached: true };
     }
+
+    await consumeTarotStarPoints();
 
     const presentation = await runTarotReadingPipeline({
       question,
       cards,
       profile: profileContext,
       userProfile,
-      logContext: userId ? { profileId: userId } : undefined,
+      logContext: { profileId },
     });
 
     if (!presentation) {
+      if (TAROT_STAR_POINTS_COST > 0) {
+        await creditStarPointsBonus(TAROT_STAR_POINTS_COST);
+      }
+
       console.error(
         "INTERPRET_TAROT_SPREAD_ERROR: Kie pipeline fallback döndü"
       );
@@ -224,9 +198,9 @@ export async function interpretTarotSpread(input: {
       };
     }
 
-    if (userId && cardIds.length === TAROT_SPREAD_SIZE) {
+    if (cardIds.length === TAROT_SPREAD_SIZE) {
       await saveReadingHistory({
-        userId,
+        userId: profileId,
         question,
         cardIds,
         presentation,
@@ -238,6 +212,14 @@ export async function interpretTarotSpread(input: {
       cached: false,
     };
   } catch (error) {
+    if (error instanceof SupabaseActionError) {
+      return {
+        presentation: null,
+        cached: false,
+        errorMessage: error.message,
+      };
+    }
+
     logInterpretError(error, "interpretTarotSpread");
     return {
       presentation: null,

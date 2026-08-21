@@ -551,6 +551,47 @@ export async function consumeStarPoints(
   }
 }
 
+export async function creditStarPointsBonus(amount: number): Promise<number> {
+  try {
+    if (amount <= 0) {
+      throw new SupabaseActionError("Geçersiz yıldız iadesi miktarı.");
+    }
+
+    const userId = await requireAuthUserId();
+    const supabase = getServiceClient();
+
+    const { data, error: readError } = await supabase
+      .from(PROFILE_TABLE)
+      .select("star_points, star_points_bonus")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (readError || !data) {
+      mapSupabaseError(readError, "Yıldız iadesi sırasında profil okunamadı.");
+    }
+
+    const starPoints = data.star_points ?? 0;
+    const starPointsBonus = (data.star_points_bonus ?? 0) + amount;
+
+    const { error } = await supabase
+      .from(PROFILE_TABLE)
+      .update({ star_points_bonus: starPointsBonus })
+      .eq("id", userId);
+
+    if (error) {
+      mapSupabaseError(error, "Yıldız iadesi uygulanamadı.");
+    }
+
+    return starPoints + starPointsBonus;
+  } catch (error) {
+    if (error instanceof SupabaseActionError) {
+      throw error;
+    }
+
+    throw new SupabaseActionError("Yıldız iadesi sırasında bir hata oluştu.");
+  }
+}
+
 /** @deprecated Use consumeStarPoints */
 export const consumeCosmicEnergy = consumeStarPoints;
 
@@ -743,12 +784,36 @@ export async function insertHoraryQuestion(question: string): Promise<HoraryQues
   return submitHoraryQuestion(question);
 }
 
+async function fetchHoraryQuestionForOwner(
+  profileId: string,
+  id: string
+): Promise<HoraryQuestion | null> {
+  if (!id?.trim()) {
+    throw new SupabaseActionError("Geçersiz soru kimliği.");
+  }
+
+  const supabase = getServiceClient();
+  const { data, error } = await supabase
+    .from(HORARY_QUESTIONS_TABLE)
+    .select("*")
+    .eq("id", id)
+    .eq("user_id", profileId)
+    .maybeSingle();
+
+  if (error) {
+    mapSupabaseError(error, "Soru getirilemedi.");
+  }
+
+  return (data as HoraryQuestion | null) ?? null;
+}
+
 export async function updateHoraryAnswer(
   id: string,
   aiAnswer: string,
   planetPositions?: CosmicAnalysisContext | Record<string, unknown> | null
 ): Promise<HoraryQuestion> {
   try {
+    const profileId = await requireAuthUserId();
     const trimmed = aiAnswer.trim();
     if (!id?.trim() || !trimmed) {
       throw new SupabaseActionError("Cevap güncellenemedi.");
@@ -762,11 +827,16 @@ export async function updateHoraryAnswer(
         ...(planetPositions ? { planet_positions: planetPositions } : {}),
       })
       .eq("id", id)
+      .eq("user_id", profileId)
       .select("*")
-      .single();
+      .maybeSingle();
 
-    if (error || !data) {
+    if (error) {
       mapSupabaseError(error, "Cevap kaydedilemedi.");
+    }
+
+    if (!data) {
+      throw new SupabaseActionError("Soru bulunamadı veya erişim yetkiniz yok.");
     }
 
     return data as HoraryQuestion;
@@ -781,22 +851,8 @@ export async function updateHoraryAnswer(
 
 export async function getHoraryQuestion(id: string): Promise<HoraryQuestion | null> {
   try {
-    if (!id?.trim()) {
-      throw new SupabaseActionError("Geçersiz soru kimliği.");
-    }
-
-    const supabase = getServiceClient();
-    const { data, error } = await supabase
-      .from(HORARY_QUESTIONS_TABLE)
-      .select("*")
-      .eq("id", id)
-      .maybeSingle();
-
-    if (error) {
-      mapSupabaseError(error, "Soru getirilemedi.");
-    }
-
-    return (data as HoraryQuestion | null) ?? null;
+    const profileId = await requireAuthUserId();
+    return await fetchHoraryQuestionForOwner(profileId, id);
   } catch (error) {
     if (error instanceof SupabaseActionError) {
       throw error;
@@ -810,11 +866,12 @@ export async function waitForHoraryAnswer(
   id: string,
   options?: { maxAttempts?: number; intervalMs?: number }
 ): Promise<HoraryQuestion> {
+  const profileId = await requireAuthUserId();
   const maxAttempts = options?.maxAttempts ?? 20;
   const intervalMs = options?.intervalMs ?? 1000;
 
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-    const record = await getHoraryQuestion(id);
+    const record = await fetchHoraryQuestionForOwner(profileId, id);
 
     if (record?.ai_answer?.trim()) {
       return record;
