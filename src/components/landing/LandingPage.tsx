@@ -10,7 +10,7 @@ import TrustFooter from "@/components/landing/TrustFooter";
 
 export default function LandingPage() {
   return (
-    <main className="astrotag-landing relative min-h-dvh overflow-x-hidden bg-[#030614] text-white">
+    <main className="astrotag-landing relative min-h-dvh overflow-x-hidden bg-[#030614] pb-[env(safe-area-inset-bottom,0px)] text-white">
       <Starfield variant="sales" />
       <SalesNebulaBackdrop />
       <LandingNav />

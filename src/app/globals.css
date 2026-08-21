@@ -69,6 +69,7 @@ body {
   scroll-behavior: smooth;
   overscroll-behavior-y: contain;
   touch-action: pan-y;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .dashboard-tab-bar {
@@ -80,7 +81,8 @@ body {
 }
 
 :root {
-  --dashboard-tab-bar-height: calc(env(safe-area-inset-top, 0px) + 2.75rem);
+  --dashboard-tab-bar-height: calc(env(safe-area-inset-top, 0px) + 3.5rem);
+  --page-safe-area-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .nexus-tab-root {

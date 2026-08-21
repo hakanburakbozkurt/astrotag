@@ -1,7 +1,7 @@
 export default function TabPageSkeleton() {
   return (
     <div
-      className="relative mx-auto flex w-full max-w-xl animate-pulse flex-col px-3 pb-6 pt-4 sm:px-5 sm:pt-5 touch-pan-y"
+      className="relative mx-auto flex w-full max-w-xl animate-pulse flex-col px-3 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] pt-4 sm:px-5 sm:pt-5 touch-pan-y"
       aria-busy="true"
       aria-label="Kozmik Terminal yükleniyor"
     >

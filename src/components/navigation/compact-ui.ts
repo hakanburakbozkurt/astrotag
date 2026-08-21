@@ -19,7 +19,7 @@ export const compactEyebrowClass =
   "text-[9px] font-medium uppercase tracking-[0.28em] text-amber-400/70";
 
 export const compactPageClass =
-  "relative mx-auto w-full max-w-xl px-3 pb-6 pt-4 sm:px-5 sm:pt-5";
+  "relative mx-auto w-full max-w-xl px-3 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] pt-4 sm:px-5 sm:pt-5";
 
 export const compactPageTitleClass =
   "mt-1.5 bg-gradient-to-b from-white to-amber-200/80 bg-clip-text text-xl font-bold tracking-tight text-transparent sm:text-2xl";

@@ -1,8 +1,15 @@
 import type { NextConfig } from "next";
+import { buildSecurityHeaders } from "./src/lib/security/security-headers";
+
+const securityHeaders = buildSecurityHeaders();
 
 const nextConfig: NextConfig = {
   async headers() {
     return [
+      {
+        source: "/:path*",
+        headers: securityHeaders,
+      },
       {
         source: "/.well-known/apple-app-site-association",
         headers: [
