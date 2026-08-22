@@ -60,6 +60,11 @@ const AdminExpertApprovalPanel = dynamic(
   { loading: () => <SectionSkeleton title="Admin · Uzman Onayları" /> }
 );
 
+const DeleteAccountSection = dynamic(
+  () => import("@/components/settings/DeleteAccountSection"),
+  { loading: () => <SectionSkeleton title="Hesap Silme" /> }
+);
+
 function ProfileSectionHeading({ title }: { title: string }) {
   return (
     <p className="text-[10px] uppercase tracking-[0.32em] text-white/35">
@@ -185,6 +190,8 @@ export default function ProfileTabContent() {
         <AdminExpertApprovalPanel />
 
         <AdminUserBanPanel />
+
+        <DeleteAccountSection />
 
         <motion.section
           initial={{ opacity: 0, y: 8 }}
