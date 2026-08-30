@@ -10,6 +10,8 @@ import {
 } from "@/lib/actions/expert-panel";
 import { EXPERT_APPROVAL_PENDING } from "@/lib/expert/expert-approval.shared";
 import ExpertPendingApprovalScreen from "@/components/expert/ExpertPendingApprovalScreen";
+import ExpertProfileEditForm from "@/components/expert/ExpertProfileEditForm";
+import Link from "next/link";
 
 const inputClass =
   "mt-1 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-white/90 outline-none focus:border-amber-400/30";
@@ -44,7 +46,14 @@ export default function ExpertPanelSection() {
   }
 
   if (data.approvalStatus === EXPERT_APPROVAL_PENDING) {
-    return <ExpertPendingApprovalScreen displayName={data.displayName} />;
+    return (
+      <>
+        <ExpertPendingApprovalScreen displayName={data.displayName} />
+        <section className="mt-4 rounded-[28px] border border-white/10 bg-[#0f172a]/80 p-5 backdrop-blur-2xl sm:p-6">
+          <ExpertProfileEditForm />
+        </section>
+      </>
+    );
   }
 
   const saveProfile = async () => {
@@ -113,6 +122,15 @@ export default function ExpertPanelSection() {
       <p className="mt-2 font-mono text-xs text-emerald-200/70">
         Hakediş: ₺{data.earningsBalanceTry.toLocaleString("tr-TR")}
       </p>
+
+      <ExpertProfileEditForm />
+
+      <Link
+        href="/dashboard/expert-requests"
+        className="mt-3 inline-flex text-[11px] uppercase tracking-wider text-emerald-300/80 underline decoration-emerald-400/30 underline-offset-2"
+      >
+        Danışmanlık talepleri →
+      </Link>
 
       <div className="mt-4 space-y-3">
         <label className="block text-[10px] uppercase tracking-wider text-white/40">

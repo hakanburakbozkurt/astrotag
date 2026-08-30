@@ -205,6 +205,7 @@ export async function saveExpertProfileAction(input: {
       tradition: input.tradition.trim(),
       experience_years: Math.max(0, input.experienceYears),
       about_text: input.aboutText.trim(),
+      about: input.aboutText.trim(),
       philosophy_text: input.philosophyText.trim(),
       is_published: canPublish,
       updated_at: new Date().toISOString(),

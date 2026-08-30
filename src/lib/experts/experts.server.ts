@@ -5,8 +5,16 @@ import {
   computeCommissionSplit,
   DEFAULT_CRYSTAL_UNIT_TRY,
 } from "@/lib/payments/commission.shared";
+import { notifyExpertOfServicePayment } from "@/lib/expert/expert-payment-notify.server";
 import { EXPERT_APPROVAL_APPROVED } from "@/lib/expert/expert-approval.shared";
 import { createServiceRoleClient } from "@/lib/supabase/service";
+
+function resolveExpertAbout(row: {
+  about?: string | null;
+  about_text?: string | null;
+}): string {
+  return row.about?.trim() || row.about_text?.trim() || "";
+}
 
 export type WalletBalances = {
   starPoints: number;
@@ -46,6 +54,7 @@ export type ExpertPublicProfile = {
   tradition: string;
   experienceYears: number;
   aboutText: string;
+  experienceText: string;
   philosophyText: string;
   avatarUrl: string | null;
   services: ExpertServiceRow[];
@@ -108,7 +117,7 @@ export async function getExpertPublicProfile(
   const { data: expert, error } = await admin
     .from("expert_profiles")
     .select(
-      "id, profile_id, display_name, title, tradition, experience_years, about_text, philosophy_text, avatar_url"
+      "id, profile_id, display_name, title, tradition, experience_years, about_text, about, experience_text, philosophy_text, avatar_url"
     )
     .eq("id", expertProfileId)
     .eq("is_published", true)
@@ -141,7 +150,8 @@ export async function getExpertPublicProfile(
     title: expert.title,
     tradition: expert.tradition,
     experienceYears: expert.experience_years,
-    aboutText: expert.about_text,
+    aboutText: resolveExpertAbout(expert),
+    experienceText: expert.experience_text?.trim() ?? "",
     philosophyText: expert.philosophy_text,
     avatarUrl: expert.avatar_url,
     services: (services ?? []).map((s) => ({
@@ -230,7 +240,7 @@ export async function recordExpertServicePurchase(input: {
     .update({ earnings_balance_try: nextEarnings })
     .eq("id", input.expertProfileId);
 
-  await admin.from("expert_earnings_ledger").insert({
+  const { error: ledgerError } = await admin.from("expert_earnings_ledger").insert({
     expert_profile_id: input.expertProfileId,
     user_profile_id: input.userProfileId,
     service_id: input.serviceId,
@@ -240,6 +250,14 @@ export async function recordExpertServicePurchase(input: {
     expert_payout_try: split.expertPayoutTry,
     commission_rate: split.commissionRate,
     status: "completed",
+  });
+
+  if (ledgerError) {
+    return { ok: false, error: "Ödeme kaydı oluşturulamadı." };
+  }
+
+  void notifyExpertOfServicePayment(input.expertProfileId).catch((notifyError) => {
+    console.error("[recordExpertServicePurchase] WhatsApp notify failed", notifyError);
   });
 
   return { ok: true };
