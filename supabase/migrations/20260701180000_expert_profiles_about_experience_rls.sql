@@ -56,7 +56,9 @@ grant select (
 -- phone_number bilinçli olarak grant listesinde yok — service_role tam erişim
 
 -- ---------------------------------------------------------------------------
--- Supabase Storage — uzman avatarları (herkese açık okuma)
+-- Supabase Storage — expert-avatars bucket (public read, write = service_role)
+-- NOT: storage.objects üzerinde ALTER yapılmaz (Supabase sistem tablosu).
+-- Yükleme uploadExpertAvatarAction → createServiceRoleClient (RLS bypass).
 -- ---------------------------------------------------------------------------
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
@@ -64,7 +66,7 @@ values (
   'expert-avatars',
   true,
   5242880,
-  array['image/jpeg', 'image/png', 'image/webp']
+  array['image/jpeg', 'image/png', 'image/webp']::text[]
 )
 on conflict (id) do update
 set
@@ -72,11 +74,20 @@ set
   file_size_limit = excluded.file_size_limit,
   allowed_mime_types = excluded.allowed_mime_types;
 
+-- Public bucket metadata (opsiyonel listeleme / SDK)
+drop policy if exists expert_avatars_bucket_public_read on storage.buckets;
+create policy expert_avatars_bucket_public_read
+  on storage.buckets
+  for select
+  to anon, authenticated
+  using (id = 'expert-avatars');
+
+-- Herkes avatar URL ile okuyabilir (public bucket)
 drop policy if exists expert_avatars_public_read on storage.objects;
 create policy expert_avatars_public_read
   on storage.objects
   for select
-  to public
+  to anon, authenticated
   using (bucket_id = 'expert-avatars');
 
--- Yükleme/silme yalnızca service_role (server action) üzerinden
+-- INSERT/UPDATE/DELETE policy yok — yalnızca service_role (server action) yazar.

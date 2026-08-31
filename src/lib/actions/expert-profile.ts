@@ -1,17 +1,17 @@
 "use server";
 
 import { randomUUID } from "crypto";
+import {
+  EXPERT_AVATARS_BUCKET,
+  EXPERT_AVATAR_MAX_BYTES,
+  isExpertAvatarMimeType,
+} from "@/lib/storage/expert-avatars.shared";
 import { requireAuthUserId } from "@/lib/supabase-actions";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import { normalizeWhatsAppAdminNumber } from "@/lib/support/whatsapp-recovery.config";
 
-const AVATAR_BUCKET = "expert-avatars";
-const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
-const ALLOWED_AVATAR_TYPES = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-]);
+const AVATAR_BUCKET = EXPERT_AVATARS_BUCKET;
+const MAX_AVATAR_BYTES = EXPERT_AVATAR_MAX_BYTES;
 
 export type ExpertProfileEditData = {
   expertProfileId: string;
@@ -148,7 +148,7 @@ export async function uploadExpertAvatarAction(
       return { ok: false, error: "Görsel en fazla 5 MB olabilir." };
     }
 
-    if (!ALLOWED_AVATAR_TYPES.has(file.type)) {
+    if (!isExpertAvatarMimeType(file.type)) {
       return { ok: false, error: "Yalnızca JPEG, PNG veya WebP yükleyebilirsiniz." };
     }
 
