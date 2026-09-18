@@ -29,7 +29,7 @@ export default function CompactWallet() {
         <div className="mt-2 space-y-1.5">
           <div className="flex items-center justify-between gap-2 text-sm">
             <span className="text-white/55">🌟 Yıldız</span>
-            <span className="font-mono font-medium text-amber-100">
+            <span className="font-mono font-medium text-stone-300">
               {starsLoading ? "…" : totalStarPoints}
             </span>
           </div>
@@ -37,14 +37,14 @@ export default function CompactWallet() {
           <div className="flex items-center justify-between gap-2 text-sm">
             <span className="text-white/55">🔮 Kristal</span>
             <div className="flex items-center gap-1.5">
-              <span className="font-mono font-medium text-violet-200">
+              <span className="font-mono font-medium text-stone-300">
                 {wallet === undefined ? "…" : crystalBalance}
               </span>
               <button
                 type="button"
                 aria-label="Kristal satın al"
                 onClick={() => setPurchaseOpen(true)}
-                className="flex h-6 w-6 items-center justify-center rounded-md border border-violet-400/30 bg-violet-500/15 text-violet-200 transition hover:bg-violet-500/25"
+                className="flex h-6 w-6 items-center justify-center rounded-md border border-zinc-700 bg-zinc-900 text-stone-300 transition hover:bg-zinc-900"
               >
                 <Plus className="h-3.5 w-3.5" />
               </button>

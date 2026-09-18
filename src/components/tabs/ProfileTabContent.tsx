@@ -80,7 +80,7 @@ function UserInfoSection({ user }: { user: UserData }) {
       animate={{ opacity: 1, y: 0 }}
       className="rounded-[28px] border border-white/10 bg-[#0f172a]/80 p-5 backdrop-blur-2xl sm:p-6"
     >
-      <p className="text-[10px] uppercase tracking-[0.3em] text-amber-400/70">
+      <p className="text-[10px] uppercase tracking-[0.3em] text-stone-300">
         Kişisel Bilgiler
       </p>
 
@@ -113,7 +113,7 @@ function UserInfoSection({ user }: { user: UserData }) {
 
       <Link
         href="/profile-setup?mode=edit"
-        className="mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-4 text-xs uppercase tracking-[0.18em] text-amber-300/85 transition hover:border-amber-400/25 hover:bg-white/[0.06]"
+        className="mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-4 text-xs uppercase tracking-[0.18em] text-stone-300 transition hover:border-zinc-700 hover:bg-white/[0.06]"
       >
         Profili Düzenle · PIN Yönetimi
       </Link>
@@ -198,7 +198,7 @@ export default function ProfileTabContent() {
           animate={{ opacity: 1, y: 0 }}
           className="rounded-[28px] border border-white/10 bg-[#0f172a]/80 p-5 backdrop-blur-2xl sm:p-6"
         >
-          <p className="text-[10px] uppercase tracking-[0.3em] text-amber-400/70">
+          <p className="text-[10px] uppercase tracking-[0.3em] text-stone-300">
             Oturum
           </p>
           <p className="mt-2 text-xs text-white/45">

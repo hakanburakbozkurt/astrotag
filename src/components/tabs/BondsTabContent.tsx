@@ -29,8 +29,8 @@ const SynastryVisualizerSection = dynamic(
 const SCORE_CACHE_PREFIX = "compatibility_score_";
 
 const fieldClass =
-  "mt-1.5 box-border block min-h-[140px] w-full min-w-0 resize-y rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm leading-relaxed text-white outline-none transition placeholder:text-white/25 focus:border-amber-400/30";
-const tapButtonClass = `${compactTapButtonClass} w-full text-left text-white/80 hover:border-amber-400/30 hover:bg-white/[0.06]`;
+  "mt-1.5 box-border block min-h-[140px] w-full min-w-0 resize-y rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm leading-relaxed text-white outline-none transition placeholder:text-white/25 focus:border-zinc-700";
+const tapButtonClass = `${compactTapButtonClass} w-full text-left text-white/80 hover:border-zinc-700 hover:bg-white/[0.06]`;
 
 function readCachedScore(dateKey: string): SynastryScoreResponse | null {
   if (typeof window === "undefined") return null;
@@ -122,6 +122,7 @@ export default function BondsTabContent() {
 
   return (
     <TabPageScaffold
+      embedded
       eyebrow="Cosmic Bonds"
       title={hasPartner ? "Uyumluluk Modeli" : "Partner Bağlantısı"}
       description={
@@ -132,21 +133,21 @@ export default function BondsTabContent() {
       headerExtra={
         <Link
           href="/dashboard/profile#bond-partner"
-          className="mt-3 inline-flex min-h-11 items-center text-xs uppercase tracking-[0.2em] text-amber-300/80"
+          className="mt-3 inline-flex min-h-11 items-center text-xs uppercase tracking-[0.2em] text-stone-300"
         >
           {hasPartner ? "Partneri Düzenle →" : "Profile Git →"}
         </Link>
       }
     >
       {!hasPartner ? (
-        <section className="rounded-[28px] border border-amber-400/15 bg-amber-400/[0.04] p-5 text-center">
+        <section className="rounded-[28px] border border-zinc-700 bg-zinc-900/0.04 p-5 text-center">
           <p className="text-sm leading-relaxed text-white/55">
             Partner ve Astro-Bağ bilgilerini Profil sekmesinden kaydettikten sonra
             günlük uyum skoru ve synastry analizi burada açılır.
           </p>
           <Link
             href="/dashboard/profile#bond-partner"
-            className="mt-4 inline-flex min-h-11 items-center justify-center rounded-xl border border-amber-400/30 bg-amber-400/10 px-5 text-xs font-medium uppercase tracking-[0.16em] text-amber-100"
+            className="mt-4 inline-flex min-h-11 items-center justify-center rounded-xl border border-zinc-700 bg-zinc-900 px-5 text-xs font-medium uppercase tracking-[0.16em] text-stone-300"
           >
             Partner Ekle
           </Link>
@@ -174,7 +175,7 @@ export default function BondsTabContent() {
           </div>
 
           <section className="rounded-[28px] border border-white/10 bg-[#0f172a]/80 p-5 backdrop-blur-2xl sm:p-6">
-            <p className="text-[10px] uppercase tracking-[0.25em] text-amber-400/70">
+            <p className="text-[10px] uppercase tracking-[0.25em] text-stone-300">
               Hazır Sorular
             </p>
             <p className="mt-2 text-xs text-white/40">
@@ -198,7 +199,7 @@ export default function BondsTabContent() {
           </section>
 
           <section className="rounded-[28px] border border-white/10 bg-[#0f172a]/80 p-5 backdrop-blur-2xl sm:p-6">
-            <p className="text-[10px] uppercase tracking-[0.25em] text-amber-400/70">
+            <p className="text-[10px] uppercase tracking-[0.25em] text-stone-300">
               Kendi Sorunu Yaz
             </p>
 
@@ -214,7 +215,7 @@ export default function BondsTabContent() {
               <button
                 type="submit"
                 disabled={analysisStatus === "loading" || !customQuestion.trim()}
-                className="min-h-11 w-full rounded-xl border border-amber-400/30 bg-amber-400/10 py-3 text-sm font-medium text-amber-100 disabled:opacity-60"
+                className="min-h-11 w-full rounded-xl border border-zinc-700 bg-zinc-900 py-3 text-sm font-medium text-stone-300 disabled:opacity-60"
               >
                 Synastry Analizi Al (−{STAR_POINTS_COST_PER_ACTION} Yıldız)
               </button>

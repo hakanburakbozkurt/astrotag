@@ -79,7 +79,7 @@ const ICONS: Record<PlanetId, (size: number) => ReactNode> = {
 export default function PlanetIcon({
   id,
   size = 24,
-  className = "text-amber-200",
+  className = "text-stone-300",
 }: PlanetIconProps) {
   return (
     <svg

@@ -43,7 +43,7 @@ function ModulePlaceholder({
         onClick={(event) => event.stopPropagation()}
         className="max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-t-[28px] border border-white/10 bg-[#0f172a]/90 p-6 backdrop-blur-2xl sm:rounded-[28px] sm:p-8"
       >
-        <p className="text-[10px] uppercase tracking-[0.3em] text-amber-400/70">
+        <p className="text-[10px] uppercase tracking-[0.3em] text-stone-300">
           {module.subtitle}
         </p>
         <h2 className="mt-2 text-2xl font-bold text-white">{module.title}</h2>
@@ -53,7 +53,7 @@ function ModulePlaceholder({
         <button
           type="button"
           onClick={onClose}
-          className="mt-6 w-full rounded-xl border border-amber-400/25 px-6 py-2.5 text-sm text-amber-200/90 hover:bg-amber-400/10"
+          className="mt-6 w-full rounded-xl border border-zinc-700 px-6 py-2.5 text-sm text-stone-300 hover:bg-zinc-900"
         >
           Kapat
         </button>
@@ -117,8 +117,8 @@ export default function OracleHub({ user }: OracleHubProps) {
           </div>
         </section>
 
-        <section className="rounded-[28px] border border-amber-400/15 bg-amber-400/[0.04] p-5">
-          <p className="text-[10px] uppercase tracking-[0.25em] text-amber-400/60">
+        <section className="rounded-[28px] border border-zinc-700 bg-zinc-900/0.04 p-5">
+          <p className="text-[10px] uppercase tracking-[0.25em] text-stone-300">
             Nasıl Çalışır?
           </p>
           <ul className="mt-3 space-y-2 text-sm leading-relaxed text-white/55">

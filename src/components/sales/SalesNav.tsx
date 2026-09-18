@@ -39,11 +39,11 @@ export default function SalesNav() {
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-white/8 bg-[#070b14]/90 backdrop-blur-xl">
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-white/8 bg-zinc-950/90 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:h-16 sm:px-6">
           <Link
             href="/"
-            className="bg-gradient-to-r from-amber-100 via-amber-300 to-amber-500 bg-clip-text text-base font-bold tracking-tight text-transparent sm:text-lg"
+            className="bg-gradient-to-r from-zinc-800 via-zinc-800 to-zinc-900 bg-clip-text text-base font-bold tracking-tight text-transparent sm:text-lg"
           >
             AstroTag
           </Link>
@@ -53,7 +53,7 @@ export default function SalesNav() {
             aria-label={open ? "Menüyü kapat" : "Menüyü aç"}
             aria-expanded={open}
             onClick={() => setOpen((current) => !current)}
-            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-white/12 bg-white/[0.04] text-white/80 transition hover:border-amber-400/30 hover:text-amber-100"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-white/12 bg-white/[0.04] text-white/80 transition hover:border-zinc-700 hover:text-stone-300"
           >
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
@@ -69,7 +69,7 @@ export default function SalesNav() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40 bg-[#070b14]/75 backdrop-blur-sm"
+              className="fixed inset-0 z-40 bg-zinc-950/75 backdrop-blur-sm"
               onClick={close}
             />
             <motion.nav
@@ -77,11 +77,11 @@ export default function SalesNav() {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 28, stiffness: 320 }}
-              className="fixed inset-y-0 right-0 z-50 flex w-[min(100%,320px)] flex-col border-l border-white/10 bg-[#0a1020]/98 shadow-2xl"
+              className="fixed inset-y-0 right-0 z-50 flex w-[min(100%,320px)] flex-col border-l border-white/10 bg-zinc-950/98 shadow-2xl"
               aria-label="Ana menü"
             >
               <div className="flex items-center justify-between border-b border-white/8 px-4 py-4">
-                <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-amber-400/70">
+                <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-stone-300">
                   Menü
                 </p>
                 <button
@@ -117,7 +117,7 @@ export default function SalesNav() {
                     <Link
                       href={item.href}
                       onClick={close}
-                      className="block rounded-xl border border-transparent px-4 py-3.5 transition hover:border-amber-400/20 hover:bg-amber-400/[0.06]"
+                      className="block rounded-xl border border-transparent px-4 py-3.5 transition hover:border-zinc-700 hover:bg-zinc-900/0.06"
                     >
                       <span className="block text-sm font-semibold text-white">{item.label}</span>
                       {item.description ? (

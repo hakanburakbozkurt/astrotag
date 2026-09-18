@@ -27,10 +27,10 @@ export default function FormToast({
 
   const styles =
     variant === "success"
-      ? "border-emerald-400/30 bg-emerald-950/50 text-emerald-100"
+      ? "border-zinc-700 bg-zinc-900 text-stone-300"
       : variant === "info"
-        ? "border-amber-400/30 bg-amber-950/40 text-amber-100"
-        : "border-red-400/30 bg-red-950/45 text-red-100";
+        ? "border-zinc-700 bg-zinc-900 text-stone-300"
+        : "border-zinc-700 bg-zinc-900 text-stone-400";
 
   return (
     <motion.div

@@ -102,26 +102,26 @@ function ProductCard({
       transition={{ duration: 0.5, ease: SALES_MOTION_EASE, delay: index * 0.05 }}
       className={`flex flex-col overflow-hidden rounded-2xl border shadow-lg backdrop-blur-xl ${className} ${
         spotlight
-          ? "col-span-2 border-amber-300/40 bg-gradient-to-br from-amber-400/[0.12] via-[#0f172a]/85 to-violet-950/30 shadow-[0_12px_40px_rgba(245,158,11,0.18)] lg:col-span-full"
+          ? "col-span-2 border-zinc-700 bg-gradient-to-br from-zinc-800/0.12 via-[#0f172a]/85 to-zinc-900 shadow-[0_12px_40px_rgba(255,255,255,0.06)] lg:col-span-full"
           : vip || featured
-            ? "border-amber-400/35 bg-amber-400/[0.06] shadow-[0_10px_32px_rgba(245,158,11,0.14)]"
+            ? "border-zinc-700 bg-zinc-900/0.06 shadow-[0_10px_32px_rgba(255,255,255,0.06)]"
             : selected
-              ? "border-amber-400/45 bg-amber-400/[0.07] shadow-[0_10px_28px_rgba(245,158,11,0.12)]"
+              ? "border-zinc-700 bg-zinc-900/0.07 shadow-[0_10px_28px_rgba(255,255,255,0.06)]"
               : "border-white/10 bg-[#0f172a]/60 shadow-[0_8px_24px_rgba(0,0,0,0.35)] hover:border-white/18"
       }`}
     >
       <div
-        className="relative w-full overflow-hidden bg-[#070b14]"
+        className="relative w-full overflow-hidden bg-zinc-950"
         style={{
           aspectRatio: imageAspectRatio ?? LUXURY_SHOWCASE_CARD_ASPECT_RATIO,
         }}
       >
         <div
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_50%,rgba(245,158,11,0.22),transparent_72%)]"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_50%,rgba(255,255,255,0.06),transparent_72%)]"
           aria-hidden
         />
         <div
-          className="pointer-events-none absolute inset-2 rounded-xl bg-[radial-gradient(circle_at_50%_40%,rgba(251,191,36,0.12),transparent_65%)] blur-sm"
+          className="pointer-events-none absolute inset-2 rounded-xl bg-[radial-gradient(circle_at_50%_40%,rgba(255,255,255,0.08),transparent_65%)] blur-sm"
           aria-hidden
         />
         <Image
@@ -135,32 +135,32 @@ function ProductCard({
         />
 
         {showStarBadge ? (
-          <span className="absolute left-2 top-2 z-10 max-w-[calc(100%-1rem)] truncate rounded-full border border-amber-300/40 bg-[#070b14]/88 px-2 py-1 text-[8px] font-bold uppercase tracking-[0.12em] text-amber-50 backdrop-blur-md sm:left-3 sm:top-3 sm:px-2.5 sm:text-[9px]">
+          <span className="absolute left-2 top-2 z-10 max-w-[calc(100%-1rem)] truncate rounded-full border border-zinc-700 bg-zinc-950/88 px-2 py-1 text-[8px] font-bold uppercase tracking-[0.12em] text-stone-300 backdrop-blur-md sm:left-3 sm:top-3 sm:px-2.5 sm:text-[9px]">
             {badge}
           </span>
         ) : null}
 
         {!isStar && vip && badge ? (
-          <span className="absolute right-2 top-2 z-10 rounded-full border border-amber-300/45 bg-amber-400/20 px-2 py-1 text-[8px] font-bold uppercase tracking-[0.12em] text-amber-50 backdrop-blur-md sm:right-3 sm:top-3 sm:px-2.5 sm:text-[9px]">
+          <span className="absolute right-2 top-2 z-10 rounded-full border border-zinc-700 bg-zinc-900 px-2 py-1 text-[8px] font-bold uppercase tracking-[0.12em] text-stone-300 backdrop-blur-md sm:right-3 sm:top-3 sm:px-2.5 sm:text-[9px]">
             {badge}
           </span>
         ) : null}
       </div>
 
       {!isStar && kitQuantity ? (
-        <div className="mx-2.5 mt-2.5 rounded-xl border border-amber-400/20 bg-amber-400/[0.07] px-2.5 py-2 sm:mx-3 sm:mt-3 sm:px-3">
-          <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-200/90 sm:text-[11px]">
-            <Package className="h-3 w-3 shrink-0 text-amber-400/80" aria-hidden />
+        <div className="mx-2.5 mt-2.5 rounded-xl border border-zinc-700 bg-zinc-900/0.07 px-2.5 py-2 sm:mx-3 sm:mt-3 sm:px-3">
+          <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-stone-300 sm:text-[11px]">
+            <Package className="h-3 w-3 shrink-0 text-stone-300" aria-hidden />
             <span>{kitQuantity} Adet Kit</span>
           </div>
           {giftStars ? (
-            <div className="mt-1.5 flex items-center gap-1.5 text-[10px] font-medium text-emerald-300/95 sm:text-[11px]">
-              <Gift className="h-3 w-3 shrink-0 text-emerald-400/80" aria-hidden />
+            <div className="mt-1.5 flex items-center gap-1.5 text-[10px] font-medium text-stone-300 sm:text-[11px]">
+              <Gift className="h-3 w-3 shrink-0 text-stone-300" aria-hidden />
               <span>+{giftStars.toLocaleString("tr-TR")} Hediye Yıldız</span>
             </div>
           ) : null}
           {freeShipping ? (
-            <p className="mt-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-emerald-400/85 sm:text-[10px]">
+            <p className="mt-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-stone-300 sm:text-[10px]">
               Ücretsiz Kargo
             </p>
           ) : null}
@@ -178,7 +178,7 @@ function ProductCard({
         <button
           type="button"
           onClick={onSelect}
-          className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-gradient-to-r from-amber-400 to-[#F59E0B] px-3 py-2.5 text-xs font-semibold text-[#0f172a] shadow-[0_0_20px_rgba(245,158,11,0.22)] transition-[transform,opacity] duration-200 ease-out hover:from-amber-300 hover:to-amber-400 active:scale-[0.98] sm:min-h-12 sm:text-sm"
+          className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-gradient-to-r from-zinc-800 to-[#F59E0B] px-3 py-2.5 text-xs font-semibold text-[#0f172a] shadow-[0_0_20px_rgba(255,255,255,0.06)] transition-[transform,opacity] duration-200 ease-out hover:from-zinc-800 hover:to-zinc-900 active:scale-[0.98] sm:min-h-12 sm:text-sm"
         >
           Hemen Seç
         </button>
@@ -247,7 +247,7 @@ function KeychainShowcase({
                   <button
                     type="button"
                     onClick={() => onPurchase(bundle)}
-                    className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-amber-400/35 bg-amber-400/10 text-xs font-semibold text-amber-100 transition hover:bg-amber-400/18 sm:min-h-12 sm:text-sm"
+                    className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-zinc-700 bg-zinc-900 text-xs font-semibold text-stone-300 transition hover:bg-zinc-900 sm:min-h-12 sm:text-sm"
                   >
                     Siparişi Tamamla
                   </button>
@@ -372,7 +372,7 @@ export default function ProductSection() {
   return (
     <section id="paketler" className={`${SALES_SECTION_CLASS} border-b border-white/[0.06]`}>
       <div className="mx-auto max-w-5xl">
-        <p className="sales-kicker text-[10px] uppercase tracking-[0.3em] text-amber-400/70">
+        <p className="sales-kicker text-[10px] uppercase tracking-[0.3em] text-stone-300">
           Paketler
         </p>
         <h2 className="mt-2 text-2xl font-bold tracking-tight text-white sm:text-3xl">
@@ -399,7 +399,7 @@ export default function ProductSection() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex min-h-12 flex-col items-center justify-center rounded-xl px-3 py-3 text-center transition-[background-color,border-color,box-shadow,color] duration-200 ease-out sm:min-h-14 sm:px-4 ${
                   isActive
-                    ? "border border-[#F59E0B]/40 bg-[#F59E0B]/15 text-amber-50 shadow-[0_0_24px_rgba(245,158,11,0.12)]"
+                    ? "border border-[#F59E0B]/40 bg-[#F59E0B]/15 text-stone-300 shadow-[0_0_24px_rgba(255,255,255,0.06)]"
                     : "border border-transparent text-white/55 hover:bg-white/[0.04] hover:text-white/80"
                 }`}
               >

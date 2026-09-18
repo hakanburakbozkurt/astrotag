@@ -31,7 +31,7 @@ export default function NatalChartViewToggle({
             onClick={() => onChange(item.id)}
             className={`min-h-9 rounded-lg px-4 py-1.5 text-xs font-medium uppercase tracking-[0.16em] transition ${
               active
-                ? "bg-amber-400/20 text-amber-100 shadow-[0_0_16px_rgba(251,191,36,0.15)]"
+                ? "bg-zinc-900 text-stone-300 shadow-[0_0_16px_rgba(255,255,255,0.08)]"
                 : "text-white/45 hover:text-white/70"
             }`}
           >

@@ -46,18 +46,18 @@ function StarPackageCarouselCard({
         spotlight={isFeatured}
         className={`relative flex h-full flex-col overflow-hidden ${
           isSpotlight
-            ? "border-violet-300/30 bg-gradient-to-br from-violet-400/[0.1] via-white/[0.03] to-amber-400/[0.08]"
+            ? "border-zinc-700 bg-gradient-to-br from-zinc-800/0.1 via-white/[0.03] to-zinc-900/0.08"
             : ""
         }`}
       >
         {isFeatured ? (
           <>
             <div
-              className="pointer-events-none absolute -left-16 top-1/2 h-40 w-40 -translate-y-1/2 rounded-full bg-amber-400/15 blur-3xl"
+              className="pointer-events-none absolute -left-16 top-1/2 h-40 w-40 -translate-y-1/2 rounded-full bg-zinc-900 blur-3xl"
               aria-hidden
             />
             <div
-              className="pointer-events-none absolute -right-10 -top-8 h-32 w-32 rounded-full bg-violet-400/10 blur-3xl"
+              className="pointer-events-none absolute -right-10 -top-8 h-32 w-32 rounded-full bg-zinc-900 blur-3xl"
               aria-hidden
             />
           </>
@@ -68,8 +68,8 @@ function StarPackageCarouselCard({
             <span
               className={`mb-3 inline-flex w-fit rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.14em] ${
                 isFeatured
-                  ? "border-amber-200/40 bg-amber-300/15 text-amber-50"
-                  : "border-amber-400/30 bg-amber-400/10 text-amber-100"
+                  ? "border-zinc-700 bg-zinc-900 text-stone-300"
+                  : "border-zinc-700 bg-zinc-900 text-stone-300"
               }`}
             >
               {product.badge}
@@ -85,7 +85,7 @@ function StarPackageCarouselCard({
             {product.title}
           </h3>
           <p
-            className={`mt-2 font-semibold tabular-nums text-amber-200/90 ${isHighlight ? "text-2xl" : "text-lg"}`}
+            className={`mt-2 font-semibold tabular-nums text-stone-300 ${isHighlight ? "text-2xl" : "text-lg"}`}
           >
             {product.priceLabel}
           </p>
@@ -101,8 +101,8 @@ function StarPackageCarouselCard({
             onClick={() => onPurchase(product)}
             className={`${SALES_CTA_PRIMARY_CLASS} ${
               isFeatured
-                ? "bg-gradient-to-r from-amber-300 to-amber-400 text-[#0a1020] shadow-[0_0_28px_rgba(251,191,36,0.3)]"
-                : "border border-amber-400/25 bg-amber-400/10 text-amber-100 hover:bg-amber-400/18"
+                ? "bg-gradient-to-r from-zinc-800 to-zinc-900 text-[#0a1020] shadow-[0_0_28px_rgba(255,255,255,0.08)]"
+                : "border border-zinc-700 bg-zinc-900 text-stone-300 hover:bg-zinc-900"
             }`}
           >
             {SALES_CTA_LABEL}

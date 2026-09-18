@@ -70,7 +70,7 @@ function StarRatingInput({
             <Star
               className={`h-9 w-9 transition sm:h-10 sm:w-10 ${
                 filled
-                  ? "fill-amber-300 text-amber-300 drop-shadow-[0_0_12px_rgba(251,191,36,0.45)]"
+                  ? "fill-stone-300 text-stone-300 drop-shadow-[0_0_12px_rgba(255,255,255,0.08)]"
                   : "fill-transparent text-white/25"
               } ${disabled ? "" : "hover:scale-110"}`}
               aria-hidden
@@ -171,11 +171,11 @@ export default function FeedbackButton({
       className={`rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.04] to-[#0f172a]/60 p-4 sm:p-5 ${className}`}
     >
       <div className="flex items-start gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-amber-400/25 bg-amber-400/10 text-amber-200/90">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900 text-stone-300">
           <MessageCircleHeart className="h-5 w-5" aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] uppercase tracking-[0.22em] text-amber-400/65">
+          <p className="text-[10px] uppercase tracking-[0.22em] text-stone-300">
             Kozmik Geri Bildirim
           </p>
           <p className="mt-1 text-sm text-white/78">
@@ -208,16 +208,16 @@ export default function FeedbackButton({
             key="thanks"
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-4 flex items-start gap-2 rounded-xl border border-emerald-400/20 bg-emerald-400/[0.08] px-3.5 py-3"
+            className="mt-4 flex items-start gap-2 rounded-xl border border-zinc-700 bg-zinc-900/0.08 px-3.5 py-3"
           >
-            <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300/80" aria-hidden />
-            <p className="text-sm leading-relaxed text-emerald-100/90">{message}</p>
+            <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-stone-300" aria-hidden />
+            <p className="text-sm leading-relaxed text-stone-300">{message}</p>
           </motion.div>
         </AnimatePresence>
       )}
 
       {error ? (
-        <p className="mt-3 text-xs text-red-300/85" role="alert">
+        <p className="mt-3 text-xs text-stone-400" role="alert">
           {error}
         </p>
       ) : null}

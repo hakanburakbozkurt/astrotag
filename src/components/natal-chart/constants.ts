@@ -11,7 +11,7 @@ export const ASPECT_LEGEND = [
   { type: "trine", label: "Üçgen", color: "rgba(59,130,246,0.85)" },
   { type: "square", label: "Kare", color: "rgba(239,68,68,0.85)" },
   { type: "opposition", label: "Karşıt", color: "rgba(168,85,247,0.85)" },
-  { type: "conjunction", label: "Kavuşum", color: "rgba(251,191,36,0.9)" },
+  { type: "conjunction", label: "Kavuşum", color: "rgba(255,255,255,0.08)" },
 ] as const;
 
 export { EXTENDED_ASPECT_LEGEND } from "@/lib/astrology/natal-extended-aspects";

@@ -20,7 +20,7 @@ function EnergyInfoButton() {
         aria-expanded={open}
         aria-haspopup="dialog"
         onClick={() => setOpen((value) => !value)}
-        className="flex h-11 w-11 items-center justify-center rounded-full border border-white/15 text-sm text-white/50 transition hover:border-amber-400/30 hover:text-amber-200/80"
+        className="flex h-11 w-11 items-center justify-center rounded-full border border-white/15 text-sm text-white/50 transition hover:border-zinc-700 hover:text-stone-300"
       >
         ?
       </button>
@@ -55,7 +55,7 @@ export default function SessionCounter() {
       className="mb-6 rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-xl sm:mb-8 sm:p-5"
     >
       <div className="flex items-center justify-between gap-3">
-        <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-amber-400/70">
+        <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-stone-300">
           Kullanılabilir Yıldız
         </p>
         <EnergyInfoButton />
@@ -68,12 +68,12 @@ export default function SessionCounter() {
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
             <p className="text-sm font-medium text-white/80">
               Yıldız:{" "}
-              <span className="font-mono text-amber-100">
+              <span className="font-mono text-stone-300">
                 {starPoints}/{MAX_STAR_POINTS}
               </span>
             </p>
             {starPointsBonus > 0 ? (
-              <p className="text-xs text-emerald-300/80">
+              <p className="text-xs text-stone-300">
                 Bonus +{starPointsBonus} · Toplam {totalStarPoints}
               </p>
             ) : null}
@@ -91,7 +91,7 @@ export default function SessionCounter() {
               initial={false}
               animate={{ width: `${fillPercent}%` }}
               transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-              className="h-full rounded-full bg-gradient-to-r from-amber-500/70 via-amber-400 to-amber-200/90 shadow-[0_0_12px_rgba(251,191,36,0.35)]"
+              className="h-full rounded-full bg-gradient-to-r from-zinc-800 via-zinc-800 to-zinc-900 shadow-[0_0_12px_rgba(255,255,255,0.08)]"
             />
           </div>
 
@@ -99,14 +99,14 @@ export default function SessionCounter() {
             type="button"
             onClick={() => void claimStars()}
             disabled={isClaiming || !canCharge}
-            className="min-h-11 w-full rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm font-medium text-amber-100 transition hover:bg-amber-400/20 disabled:cursor-not-allowed disabled:opacity-60"
+            className="min-h-11 w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm font-medium text-stone-300 transition hover:bg-zinc-900 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {buttonLabel}
           </button>
         </div>
       )}
 
-      {error ? <p className="mt-3 text-xs text-red-300/80">{error}</p> : null}
+      {error ? <p className="mt-3 text-xs text-stone-400">{error}</p> : null}
     </motion.section>
   );
 }

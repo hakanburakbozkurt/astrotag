@@ -96,10 +96,10 @@ export default function LegalDocumentModal({ slug, onClose }: LegalDocumentModal
             role="dialog"
             aria-modal="true"
             aria-labelledby="legal-document-title"
-            className="flex max-h-[min(85vh,720px)] w-full max-w-lg flex-col overflow-hidden rounded-[20px] border border-violet-400/25 bg-[#0b1220] shadow-2xl"
+            className="flex max-h-[min(85vh,720px)] w-full max-w-lg flex-col overflow-hidden rounded-[20px] border border-zinc-700 bg-[#0b1220] shadow-2xl"
           >
             <header className="shrink-0 border-b border-white/10 px-5 py-4">
-              <p className="text-[10px] uppercase tracking-[0.28em] text-violet-300/70">
+              <p className="text-[10px] uppercase tracking-[0.28em] text-stone-300">
                 Yasal Metin
               </p>
               <h2
@@ -114,7 +114,7 @@ export default function LegalDocumentModal({ slug, onClose }: LegalDocumentModal
               {loading ? (
                 <p className="text-sm text-white/45">Metin yükleniyor…</p>
               ) : error ? (
-                <p className="text-sm text-red-300/85">{error}</p>
+                <p className="text-sm text-stone-400">{error}</p>
               ) : document ? (
                 <LegalMarkdownContent markdown={document.markdown} />
               ) : null}
@@ -124,7 +124,7 @@ export default function LegalDocumentModal({ slug, onClose }: LegalDocumentModal
               <button
                 type="button"
                 onClick={onClose}
-                className="w-full rounded-xl bg-violet-500/20 py-3 text-xs font-medium uppercase tracking-[0.2em] text-violet-100 transition hover:bg-violet-500/30"
+                className="w-full rounded-xl bg-zinc-900 py-3 text-xs font-medium uppercase tracking-[0.2em] text-stone-300 transition hover:bg-zinc-900"
               >
                 Kapat
               </button>

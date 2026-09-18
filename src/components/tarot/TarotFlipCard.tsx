@@ -28,7 +28,7 @@ function CardGlow({ active }: { active: boolean }) {
   return (
     <span
       aria-hidden
-      className="pointer-events-none absolute -inset-px rounded-xl bg-amber-400/12 ring-1 ring-amber-400/25"
+      className="pointer-events-none absolute -inset-px rounded-xl bg-zinc-900 ring-1 ring-zinc-700"
       style={{ willChange: "transform", transform: "translateZ(0)" }}
     />
   );
@@ -44,7 +44,7 @@ function CardFace({
   return (
     <div
       className={`absolute inset-0 overflow-hidden rounded-xl border bg-[#0f172a] ${
-        selected ? "border-amber-400/40" : "border-amber-400/15"
+        selected ? "border-zinc-700" : "border-zinc-700"
       }`}
     >
       <CardGlow active={selected} />

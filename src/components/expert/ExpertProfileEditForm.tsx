@@ -10,7 +10,7 @@ import {
 import ExpertAvatar from "@/components/experts/ExpertAvatar";
 
 const inputClass =
-  "mt-1 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-white/90 outline-none focus:border-emerald-400/30";
+  "mt-1 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-white/90 outline-none focus:border-zinc-700";
 
 export default function ExpertProfileEditForm() {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -120,7 +120,7 @@ export default function ExpertProfileEditForm() {
             type="button"
             disabled={uploading}
             onClick={() => fileInputRef.current?.click()}
-            className="rounded-xl border border-white/10 px-4 py-2 text-[11px] uppercase tracking-wider text-white/60 transition hover:border-emerald-400/25 disabled:opacity-50"
+            className="rounded-xl border border-white/10 px-4 py-2 text-[11px] uppercase tracking-wider text-white/60 transition hover:border-zinc-700 disabled:opacity-50"
           >
             {uploading ? "Yükleniyor…" : "Fotoğraf Yükle"}
           </button>
@@ -183,13 +183,13 @@ export default function ExpertProfileEditForm() {
         type="button"
         disabled={saving}
         onClick={() => void handleSave()}
-        className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-2.5 text-xs uppercase tracking-wider text-emerald-100 disabled:opacity-50"
+        className="rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-xs uppercase tracking-wider text-stone-300 disabled:opacity-50"
       >
         {saving ? "Kaydediliyor…" : "Profil Bilgilerini Kaydet"}
       </button>
 
-      {message ? <p className="text-xs text-emerald-300/85">{message}</p> : null}
-      {error ? <p className="text-xs text-red-300/85">{error}</p> : null}
+      {message ? <p className="text-xs text-stone-300">{message}</p> : null}
+      {error ? <p className="text-xs text-stone-400">{error}</p> : null}
     </div>
   );
 }

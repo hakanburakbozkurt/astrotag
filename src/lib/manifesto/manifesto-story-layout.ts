@@ -150,7 +150,7 @@ export function drawManifestoStoryContent(
   }
 
   headerY += MANIFESTO_STORY_LAYOUT.dividerGap;
-  ctx.strokeStyle = "rgba(251,191,36,0.32)";
+  ctx.strokeStyle = "rgba(255,255,255,0.08)";
   ctx.lineWidth = 1.5;
   ctx.beginPath();
   ctx.moveTo(horizontalPad + 24, headerY);

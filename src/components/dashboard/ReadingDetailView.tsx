@@ -97,7 +97,7 @@ function ReadingDetailContent({ reading }: { reading: CosmicReadingRecord }) {
                 key={`${card.id}-${card.position ?? "card"}`}
                 className="rounded-lg border border-white/[0.06] bg-white/[0.03] px-3 py-2 font-mono text-xs text-white/65"
               >
-                <span className="text-amber-400/70">{card.position ?? "—"}</span>
+                <span className="text-stone-300">{card.position ?? "—"}</span>
                 {" · "}
                 {card.name}
               </li>
@@ -112,8 +112,8 @@ function ReadingDetailContent({ reading }: { reading: CosmicReadingRecord }) {
             Synastry Özeti
           </p>
           <div className="mt-3 flex flex-col gap-3 rounded-xl border border-white/[0.06] bg-white/[0.03] p-4 sm:flex-row sm:items-center">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center self-start rounded-full border border-emerald-400/30 bg-emerald-400/10 sm:self-center">
-              <span className="text-xl font-bold text-emerald-100">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center self-start rounded-full border border-zinc-700 bg-zinc-900 sm:self-center">
+              <span className="text-xl font-bold text-stone-300">
                 {reading.synastry.compatibility_score}
               </span>
             </div>
@@ -124,7 +124,7 @@ function ReadingDetailContent({ reading }: { reading: CosmicReadingRecord }) {
               <p className="mt-1 text-sm text-white/85">
                 {reading.synastry.partner_name}
               </p>
-              <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.18em] text-emerald-400/60">
+              <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.18em] text-stone-300">
                 Uyum Skoru
               </p>
             </div>
@@ -218,7 +218,7 @@ export default function ReadingDetailView({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="shrink-0 rounded-lg border border-white/10 px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-white/50 transition hover:border-amber-400/25 hover:text-amber-100"
+                  className="shrink-0 rounded-lg border border-white/10 px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-white/50 transition hover:border-zinc-700 hover:text-stone-300"
                 >
                   Kapat
                 </button>

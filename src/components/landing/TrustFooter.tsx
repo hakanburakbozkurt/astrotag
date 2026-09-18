@@ -30,7 +30,7 @@ export default function TrustFooter() {
             return (
               <SalesMotion key={item.id} transition={{ delay: index * 0.05 }}>
                 <GlassCard className="flex items-start gap-3 py-4">
-                  <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-400/15 bg-amber-400/[0.06] text-amber-200/80">
+                  <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-zinc-700 bg-zinc-900/0.06 text-stone-300">
                     <Icon className="h-4 w-4" aria-hidden />
                   </span>
                   <div>
@@ -56,7 +56,7 @@ export default function TrustFooter() {
           Soruların için{" "}
           <a
             href="mailto:destek@astrotag.app"
-            className="font-medium text-amber-200/90 underline-offset-2 hover:underline"
+            className="font-medium text-stone-300 underline-offset-2 hover:underline"
           >
             destek@astrotag.app
           </a>

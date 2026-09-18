@@ -12,7 +12,7 @@ export default function BottomTabBar() {
   return (
     <nav
       aria-label="Ana navigasyon"
-      className="dashboard-tab-bar border-b border-white/10 bg-[#070b14]/88 backdrop-blur-xl backdrop-saturate-150"
+      className="dashboard-tab-bar border-b border-zinc-800 bg-zinc-950"
       style={{
         paddingTop: "env(safe-area-inset-top, 0px)",
       }}
@@ -26,14 +26,14 @@ export default function BottomTabBar() {
               key={tab.id}
               href={tab.href}
               prefetch
-              className="group flex min-h-11 min-w-11 flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-1.5 transition active:scale-[0.98]"
+              className="group flex min-h-11 min-w-11 flex-col items-center justify-center gap-0.5 rounded-sm px-1 py-1.5 transition active:scale-[0.98]"
               aria-current={isActive ? "page" : undefined}
             >
               <span
                 className={
                   isActive
-                    ? "flex min-h-8 min-w-8 items-center justify-center rounded-md bg-amber-400/10 text-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.28)]"
-                    : "flex min-h-8 min-w-8 items-center justify-center rounded-md text-white/38 transition group-hover:text-white/60"
+                    ? "flex min-h-8 min-w-8 items-center justify-center rounded-sm border border-zinc-700 bg-zinc-900 text-stone-300"
+                    : "flex min-h-8 min-w-8 items-center justify-center rounded-sm text-stone-600 transition group-hover:text-stone-400"
                 }
               >
                 <TabIcon tab={tab.id} className="h-4 w-4" aria-hidden />
@@ -41,8 +41,8 @@ export default function BottomTabBar() {
               <span
                 className={
                   isActive
-                    ? "text-[10px] font-medium leading-none tracking-wide text-amber-200/90"
-                    : "text-[10px] leading-none tracking-wide text-white/32 transition group-hover:text-white/50"
+                    ? "text-[10px] font-medium leading-none tracking-wide text-stone-300"
+                    : "text-[10px] leading-none tracking-wide text-stone-600 transition group-hover:text-stone-400"
                 }
               >
                 {tab.shortLabel}

@@ -10,7 +10,7 @@ const CARD_WIDTH = 64;
 const CARD_HEIGHT = 112;
 
 const DECK_CARD_GLOW =
-  "ring-amber-400/25 shadow-[0_0_12px_rgba(251,191,36,0.18)]";
+  "ring-zinc-700 shadow-[0_0_12px_rgba(255,255,255,0.08)]";
 
 function useDeckLayoutMetrics(cardCount: number) {
   const [viewportWidth, setViewportWidth] = useState(390);
@@ -116,7 +116,7 @@ export default function TarotDeck({
                 ease: "easeOut",
               }}
               className={`pointer-events-auto absolute cursor-pointer overflow-hidden rounded-xl border bg-[#0f172a] will-change-transform transform-gpu ${
-                isSelected ? "border-amber-400/50" : "border-white/10"
+                isSelected ? "border-zinc-700" : "border-white/10"
               } ${DECK_CARD_GLOW} ${disabled ? "cursor-not-allowed opacity-70" : ""}`}
               style={{
                 left: deckWidth / 2 - CARD_WIDTH / 2,

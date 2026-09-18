@@ -59,7 +59,7 @@ export default function LandingNav() {
         <div className="mx-auto flex h-14 max-w-lg items-center justify-between px-4 sm:px-6">
           <Link
             href="/"
-            className="landing-serif text-xl font-light tracking-wide text-amber-100/95"
+            className="landing-serif text-xl font-light tracking-wide text-stone-300"
           >
             AstroTag
           </Link>
@@ -69,7 +69,7 @@ export default function LandingNav() {
             aria-label={open ? "Menüyü kapat" : "Menüyü aç"}
             aria-expanded={open}
             onClick={() => setOpen((current) => !current)}
-            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-amber-400/20 bg-white/[0.04] text-white/80 transition hover:border-amber-400/35 hover:text-amber-100"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-zinc-700 bg-white/[0.04] text-white/80 transition hover:border-zinc-700 hover:text-stone-300"
           >
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
@@ -93,7 +93,7 @@ export default function LandingNav() {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 28, stiffness: 320 }}
-              className="fixed inset-y-0 right-0 z-50 flex w-[min(100%,320px)] flex-col border-l border-white/10 bg-[#0a1020]/98 shadow-2xl"
+              className="fixed inset-y-0 right-0 z-50 flex w-[min(100%,320px)] flex-col border-l border-white/10 bg-zinc-950/98 shadow-2xl"
               style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
               aria-label="Ana menü"
             >
@@ -156,7 +156,7 @@ export default function LandingNav() {
                     <Link
                       href={item.href}
                       onClick={close}
-                      className="block rounded-xl border border-transparent px-4 py-3.5 transition hover:border-amber-400/20 hover:bg-amber-400/[0.06]"
+                      className="block rounded-xl border border-transparent px-4 py-3.5 transition hover:border-zinc-700 hover:bg-zinc-900/0.06"
                     >
                       <span className="block text-sm font-semibold text-white">{item.label}</span>
                       {item.description ? (

@@ -20,6 +20,7 @@ import AspectLines from "./AspectLines";
 import PlanetMarkers from "./PlanetMarkers";
 import MinorPointMarkers from "./MinorPointMarkers";
 import { NatalChartDataGridFromData } from "./NatalChartDataGrid";
+import NatalAspectExplainRow from "@/components/astrology/NatalAspectExplainRow";
 import CollapsiblePanel from "@/components/ui/CollapsiblePanel";
 
 const TOOLTIP_DURATION_MS = 2000;
@@ -117,7 +118,7 @@ export default function NatalChart({ userData, viewMode }: NatalChartProps) {
 
   if (status === "error" || !data) {
     return (
-      <div className="flex min-h-[280px] items-center justify-center text-sm text-rose-300/80">
+      <div className="flex min-h-[280px] items-center justify-center text-sm text-stone-300">
         {error ?? ORACLE_COSMIC_DATA_ERROR}
       </div>
     );
@@ -183,11 +184,11 @@ export default function NatalChart({ userData, viewMode }: NatalChartProps) {
         ))}
       </div>
 
-      <div className="w-full max-w-md rounded-2xl border border-amber-400/15 bg-amber-400/[0.04] px-4 py-3 text-center">
-        <p className="text-[10px] uppercase tracking-[0.25em] text-amber-400/60">
+      <div className="w-full max-w-md rounded-2xl border border-zinc-700 bg-zinc-900/0.04 px-4 py-3 text-center">
+        <p className="text-[10px] uppercase tracking-[0.25em] text-stone-300">
           Yükselen
         </p>
-        <p className="mt-1 text-sm font-medium text-amber-100/90">
+        <p className="mt-1 text-sm font-medium text-stone-300">
           {data.ascendant.label}
         </p>
       </div>
@@ -195,7 +196,7 @@ export default function NatalChart({ userData, viewMode }: NatalChartProps) {
       <div className="w-full max-w-md">
         {interpretationStatus === "idle" ? (
           <div className="pt-1">
-            <p className="mb-3 text-[10px] uppercase tracking-[0.25em] text-amber-400/55">
+            <p className="mb-3 text-[10px] uppercase tracking-[0.25em] text-stone-300">
               Açıların Kozmik Mesajı
             </p>
             <div className="mb-3 flex justify-center">
@@ -204,7 +205,7 @@ export default function NatalChart({ userData, viewMode }: NatalChartProps) {
             <button
               type="button"
               onClick={handleRequestInterpretation}
-              className="min-h-11 w-full rounded-xl border border-amber-400/30 bg-amber-400/10 py-2.5 text-sm font-medium text-amber-100 transition hover:bg-amber-400/20"
+              className="min-h-11 w-full rounded-xl border border-zinc-700 bg-zinc-900 py-2.5 text-sm font-medium text-stone-300 transition hover:bg-zinc-900"
             >
               Kozmik Mesajı Al (−{STAR_POINTS_COST_PER_ACTION} Yıldız)
             </button>
@@ -248,7 +249,7 @@ export default function NatalChart({ userData, viewMode }: NatalChartProps) {
                   key={planet.id}
                   className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2"
                 >
-                  <span className="text-amber-200/90">{planet.symbol}</span>{" "}
+                  <span className="text-stone-300">{planet.symbol}</span>{" "}
                   <span className="font-medium text-white/85">{planet.name}</span>
                   <span className="mt-0.5 block text-[11px] text-white/45">
                     {planet.cardLabel}
@@ -264,15 +265,17 @@ export default function NatalChart({ userData, viewMode }: NatalChartProps) {
                 {data.aspects.slice(0, 8).map((aspect) => {
                   const planetA = data.planets.find((p) => p.id === aspect.planetA);
                   const planetB = data.planets.find((p) => p.id === aspect.planetB);
+                  if (!planetA || !planetB) {
+                    return null;
+                  }
                   return (
-                    <li
+                    <NatalAspectExplainRow
                       key={aspect.id}
-                      className="rounded-lg border border-white/8 bg-white/[0.02] px-3 py-1.5"
-                    >
-                      {planetA?.name} — {planetB?.name}:{" "}
-                      <span className="text-white/75">{aspect.typeLabel}</span>{" "}
-                      <span className="text-white/35">(orb {aspect.orb}°)</span>
-                    </li>
+                      planetA={planetA.name}
+                      planetB={planetB.name}
+                      aspectType={aspect.typeLabel}
+                      orb={aspect.orb}
+                    />
                   );
                 })}
               </ul>

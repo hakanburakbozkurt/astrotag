@@ -219,7 +219,7 @@ export default function ProfileSetupForm() {
       </FormField>
 
       {error ? (
-        <p className="rounded-xl border border-red-400/30 bg-red-950/40 px-4 py-3 text-sm text-red-100">
+        <p className="rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-stone-400">
           {error}
         </p>
       ) : null}

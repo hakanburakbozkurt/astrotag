@@ -32,7 +32,7 @@ export default function LegalConsentRow({
         <button
           type="button"
           onClick={() => onOpenDocument(documentSlug)}
-          className="text-left font-medium text-violet-300/90 underline decoration-violet-400/40 underline-offset-2 transition hover:text-violet-200 hover:decoration-violet-300/70"
+          className="text-left font-medium text-stone-300 underline decoration-violet-400/40 underline-offset-2 transition hover:text-stone-300 hover:decoration-violet-300/70"
         >
           {linkLabel}
         </button>

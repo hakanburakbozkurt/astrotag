@@ -32,7 +32,7 @@ export default function NatalChartPanel({ user, onClose }: NatalChartPanelProps)
       >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[10px] uppercase tracking-[0.3em] text-amber-400/70">
+            <p className="text-[10px] uppercase tracking-[0.3em] text-stone-300">
               Natal Chart
             </p>
             <h2 className="mt-2 text-2xl font-bold text-white">Doğum Haritası</h2>
@@ -46,7 +46,7 @@ export default function NatalChartPanel({ user, onClose }: NatalChartPanelProps)
             <button
               type="button"
               onClick={onClose}
-              className="min-h-10 rounded-xl border border-white/10 px-4 py-2 text-xs font-medium uppercase tracking-[0.16em] text-white/65 transition hover:border-amber-400/25 hover:text-amber-100"
+              className="min-h-10 rounded-xl border border-white/10 px-4 py-2 text-xs font-medium uppercase tracking-[0.16em] text-white/65 transition hover:border-zinc-700 hover:text-stone-300"
             >
               Kapat
             </button>

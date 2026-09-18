@@ -139,10 +139,10 @@ function VerifyOtpContent() {
       </form>
 
       {info ? (
-        <p className="mt-4 text-center text-sm text-amber-200/80">{info}</p>
+        <p className="mt-4 text-center text-sm text-stone-300">{info}</p>
       ) : null}
       {error ? (
-        <p className="mt-4 text-center text-sm text-red-300/90">{error}</p>
+        <p className="mt-4 text-center text-sm text-stone-400">{error}</p>
       ) : null}
     </AuthMobileShell>
   );

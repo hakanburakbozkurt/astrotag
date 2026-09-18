@@ -47,17 +47,17 @@ export default function CosmicHero() {
 
   return (
     <section
-      className="relative flex min-h-[calc(100dvh-env(safe-area-inset-top,0px)-3.5rem)] flex-col items-center justify-center px-4 pb-10 pt-[calc(env(safe-area-inset-top,0px)+4.5rem)] sm:px-6"
+      className="relative flex min-h-[calc(100dvh-env(safe-area-inset-top,0px)-3.5rem)] flex-col items-center justify-center px-4 pb-10 pt-6 sm:px-6"
       aria-label="Karşılama"
     >
       <div
         className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden"
         aria-hidden
       >
-        <div className="landing-hero-ring relative h-[min(72vw,320px)] w-[min(72vw,320px)] rounded-full border border-amber-400/15 opacity-70">
-          <div className="absolute inset-3 rounded-full border border-amber-400/10" />
-          <div className="absolute inset-8 rounded-full border border-indigo-400/10" />
-          <div className="absolute inset-[18%] rounded-full bg-[radial-gradient(circle,rgba(251,191,36,0.08)_0%,transparent_70%)]" />
+        <div className="landing-hero-ring relative h-[min(72vw,320px)] w-[min(72vw,320px)] rounded-full border border-zinc-700 opacity-70">
+          <div className="absolute inset-3 rounded-full border border-zinc-700" />
+          <div className="absolute inset-8 rounded-full border border-zinc-700" />
+          <div className="absolute inset-[18%] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.08)_0%,transparent_70%)]" />
         </div>
       </div>
 
@@ -71,7 +71,7 @@ export default function CosmicHero() {
 
         <h1 className="landing-serif mt-4 text-[2rem] leading-[1.12] text-white sm:text-[2.35rem]">
           Evrenin gizli haritası,
-          <span className="mt-1 block text-amber-100/90">dijital rehberin</span>
+          <span className="mt-1 block text-stone-300">dijital rehberin</span>
         </h1>
 
         <p className="mt-4 max-w-sm text-sm leading-relaxed text-white/55">
@@ -90,7 +90,7 @@ export default function CosmicHero() {
 
       <SalesMotion className="relative z-10 mt-10 flex flex-col items-center gap-1">
         <span className="text-[10px] uppercase tracking-[0.28em] text-white/30">Keşfet</span>
-        <div className="h-8 w-px bg-gradient-to-b from-amber-400/40 to-transparent" aria-hidden />
+        <div className="h-8 w-px bg-gradient-to-b from-zinc-800 to-transparent" aria-hidden />
       </SalesMotion>
     </section>
   );

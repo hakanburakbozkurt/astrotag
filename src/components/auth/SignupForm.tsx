@@ -156,8 +156,8 @@ export default function SignupForm({ optionalNfcId = "" }: SignupFormProps) {
           role="alert"
           className={`mb-4 rounded-xl border px-4 py-3 text-sm ${
             toast.variant === "error"
-              ? "border-red-400/35 bg-red-950/50 text-red-100"
-              : "border-amber-400/35 bg-amber-950/40 text-amber-100"
+              ? "border-zinc-700 bg-zinc-900 text-stone-400"
+              : "border-zinc-700 bg-zinc-900 text-stone-300"
           }`}
         >
           {toast.message}
@@ -215,11 +215,11 @@ export default function SignupForm({ optionalNfcId = "" }: SignupFormProps) {
           placeholder="Şifrenizi tekrar girin"
           aria-invalid={passwordsMismatch}
           className={`${authInputClassName}${
-            passwordsMismatch ? " border-red-400/50 ring-1 ring-red-400/30" : ""
+            passwordsMismatch ? " border-zinc-700 ring-1 ring-red-400/30" : ""
           }`}
         />
         {passwordsMismatch ? (
-          <p className="-mt-2 text-xs text-red-300/90" role="alert">
+          <p className="-mt-2 text-xs text-stone-400" role="alert">
             Şifreler eşleşmiyor. Lütfen aynı şifreyi iki alana da girin.
           </p>
         ) : null}
@@ -268,7 +268,7 @@ export default function SignupForm({ optionalNfcId = "" }: SignupFormProps) {
       <p className="mt-3 text-center text-[11px]">
         <Link
           href={loginHref}
-          className="font-medium text-amber-200/90 underline-offset-2 hover:underline"
+          className="font-medium text-stone-300 underline-offset-2 hover:underline"
         >
           Hesabın var mı? Giriş Yap
         </Link>

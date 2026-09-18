@@ -59,7 +59,7 @@ export default function ManifestoStoryShare({
 
   return (
     <div className="space-y-3">
-      <div className="relative mx-auto aspect-[9/16] w-full max-w-[240px] overflow-hidden rounded-2xl border border-violet-400/25 bg-[#0a0f1a] shadow-[0_0_40px_rgba(139,92,246,0.18)]">
+      <div className="relative mx-auto aspect-[9/16] w-full max-w-[240px] overflow-hidden rounded-2xl border border-zinc-700 bg-[#0a0f1a] shadow-[0_0_40px_rgba(255,255,255,0.06)]">
         <ManifestoStoryPreview ref={previewRef} input={cardInput} />
         <div
           className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-white/10"
@@ -71,7 +71,7 @@ export default function ManifestoStoryShare({
         type="button"
         disabled={busy}
         onClick={() => void handleDownloadSnapshot()}
-        className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-amber-400/30 bg-gradient-to-r from-amber-500/12 via-violet-500/10 to-amber-500/12 px-4 py-3 text-sm font-medium text-amber-100 transition hover:from-amber-500/20 hover:to-violet-500/16 disabled:opacity-50"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-700 bg-gradient-to-r from-zinc-800 via-violet-500/10 to-zinc-900 px-4 py-3 text-sm font-medium text-stone-300 transition hover:from-zinc-800 hover:to-zinc-900 disabled:opacity-50"
       >
         {busy ? (
           <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
@@ -86,7 +86,7 @@ export default function ManifestoStoryShare({
       </p>
 
       {busy ? (
-        <p className="text-center text-[10px] text-violet-200/60">
+        <p className="text-center text-[10px] text-stone-300">
           Yüksek kaliteli görsel hazırlanıyor…
         </p>
       ) : null}
@@ -96,8 +96,8 @@ export default function ManifestoStoryShare({
           role="status"
           className={`flex items-start gap-2.5 rounded-xl border px-3.5 py-3 text-left ${
             isSuccess
-              ? "border-amber-400/30 bg-gradient-to-br from-amber-500/14 to-violet-500/10 text-amber-50/95"
-              : "border-red-400/25 bg-red-500/10 text-red-200/90"
+              ? "border-zinc-700 bg-gradient-to-br from-zinc-800 to-zinc-900 text-stone-300"
+              : "border-zinc-700 bg-zinc-900 text-stone-400"
           }`}
         >
           {isSuccess ? (

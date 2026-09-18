@@ -23,7 +23,7 @@ export default function CosmicDashboard({ user }: CosmicDashboardProps) {
         aria-hidden="true"
         style={{
           background:
-            "radial-gradient(ellipse at 50% 0%, rgba(251,191,36,0.05) 0%, transparent 50%)",
+            "radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.08) 0%, transparent 50%)",
         }}
       />
 

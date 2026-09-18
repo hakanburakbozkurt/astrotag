@@ -63,9 +63,9 @@ export default function GuestSessionGuard({
   }
 
   return (
-    <div className="mx-4 mb-3 mt-2 rounded-2xl border border-amber-400/25 bg-amber-950/30 px-4 py-3 text-center text-xs text-amber-100/90">
+    <div className="mx-4 mb-3 mt-2 rounded-2xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-center text-xs text-stone-300">
       Misafir oturumu — kalan süre:{" "}
-      <span className="font-semibold text-amber-200">{remainingLabel}</span>
+      <span className="font-semibold text-stone-300">{remainingLabel}</span>
       . Süre bitince kayıt olmanız istenecektir.
     </div>
   );

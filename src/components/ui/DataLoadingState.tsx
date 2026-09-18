@@ -11,7 +11,7 @@ export default function DataLoadingState({
 }: DataLoadingStateProps) {
   return (
     <div
-      className={`flex items-center justify-center gap-2.5 text-amber-200/75 ${
+      className={`flex items-center justify-center gap-2.5 text-stone-300 ${
         compact ? "py-4 text-xs" : "py-8 text-sm"
       } ${className}`}
       role="status"
@@ -19,7 +19,7 @@ export default function DataLoadingState({
       aria-busy="true"
     >
       <span
-        className={`inline-block animate-spin rounded-full border-2 border-amber-400/20 border-t-amber-400/85 ${
+        className={`inline-block animate-spin rounded-full border-2 border-zinc-700 border-t-amber-400/85 ${
           compact ? "h-4 w-4" : "h-5 w-5"
         }`}
         aria-hidden

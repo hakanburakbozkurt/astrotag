@@ -7,7 +7,7 @@ import ProfileEditModeBootstrap from "@/components/profile/ProfileEditModeBootst
 
 export default function ProfileSetupPage() {
   return (
-    <main className="relative min-h-dvh overflow-x-hidden bg-[#070b14]">
+    <main className="relative min-h-dvh overflow-x-hidden bg-zinc-950">
       <Starfield />
       <ProfileEditModeBootstrap />
 
@@ -15,7 +15,7 @@ export default function ProfileSetupPage() {
         className="pointer-events-none absolute inset-0 opacity-40"
         style={{
           background:
-            "radial-gradient(ellipse 80% 50% at 50% 0%, rgba(251,191,36,0.12) 0%, transparent 65%)",
+            "radial-gradient(ellipse 80% 50% at 50% 0%, rgba(255,255,255,0.08) 0%, transparent 65%)",
         }}
       />
 
@@ -27,10 +27,10 @@ export default function ProfileSetupPage() {
           className="profile-setup-glass w-full min-w-0 overflow-hidden rounded-[28px] p-6 sm:p-8"
         >
           <div className="text-center">
-            <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-amber-400/70">
+            <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-stone-300">
               Profil Kurulumu
             </p>
-            <h1 className="mt-2 bg-gradient-to-b from-white to-amber-200/80 bg-clip-text text-2xl font-bold tracking-tight text-transparent sm:text-3xl">
+            <h1 className="mt-2 bg-gradient-to-b from-white to-zinc-900 bg-clip-text text-2xl font-bold tracking-tight text-transparent sm:text-3xl">
               AstroTag
             </h1>
             <p className="mt-3 text-sm leading-relaxed text-white/45">

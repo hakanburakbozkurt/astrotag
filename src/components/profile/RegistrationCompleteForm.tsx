@@ -135,7 +135,7 @@ export default function RegistrationCompleteForm() {
       </label>
 
       {error ? (
-        <p className="rounded-xl border border-red-400/30 bg-red-950/40 px-4 py-3 text-sm text-red-100">
+        <p className="rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-stone-400">
           {error}
         </p>
       ) : null}
@@ -143,7 +143,7 @@ export default function RegistrationCompleteForm() {
       <button
         type="submit"
         disabled={isSubmitting}
-        className="min-h-[52px] w-full rounded-2xl border border-amber-400/35 bg-gradient-to-b from-amber-400/20 to-amber-500/10 py-3 text-sm font-semibold text-amber-50 transition hover:from-amber-400/30 hover:to-amber-500/15 disabled:opacity-60"
+        className="min-h-[52px] w-full rounded-2xl border border-zinc-700 bg-gradient-to-b from-zinc-800 to-zinc-900 py-3 text-sm font-semibold text-stone-300 transition hover:from-zinc-800 hover:to-zinc-900 disabled:opacity-60"
       >
         {isSubmitting ? "Kaydediliyor..." : "Kaydı Tamamla"}
       </button>

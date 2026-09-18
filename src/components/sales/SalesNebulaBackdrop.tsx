@@ -20,9 +20,9 @@ export default function SalesNebulaBackdrop() {
             : { transform: `translate3d(0, ${offsetY}px, 0)` }
         }
       >
-        <div className="absolute -left-1/4 top-[8%] h-[55vmin] w-[55vmin] rounded-full bg-violet-700/10 blur-3xl" />
-        <div className="absolute -right-1/4 top-[32%] h-[48vmin] w-[48vmin] rounded-full bg-indigo-500/10 blur-3xl" />
-        <div className="absolute left-1/3 top-[58%] h-[42vmin] w-[42vmin] -translate-x-1/2 rounded-full bg-amber-500/[0.07] blur-3xl" />
+        <div className="absolute -left-1/4 top-[8%] h-[55vmin] w-[55vmin] rounded-full bg-zinc-900 blur-3xl" />
+        <div className="absolute -right-1/4 top-[32%] h-[48vmin] w-[48vmin] rounded-full bg-zinc-900 blur-3xl" />
+        <div className="absolute left-1/3 top-[58%] h-[42vmin] w-[42vmin] -translate-x-1/2 rounded-full bg-zinc-900/0.07 blur-3xl" />
       </div>
     </div>
   );

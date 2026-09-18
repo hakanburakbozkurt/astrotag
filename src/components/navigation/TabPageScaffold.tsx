@@ -14,6 +14,9 @@ interface TabPageScaffoldProps {
   description?: string;
   children: ReactNode;
   headerExtra?: ReactNode;
+  topNav?: ReactNode;
+  /** ModulePageShell içinde — dış padding/max-width tekrarlanmasın */
+  embedded?: boolean;
 }
 
 export default function TabPageScaffold({
@@ -22,15 +25,18 @@ export default function TabPageScaffold({
   description,
   children,
   headerExtra,
+  topNav,
+  embedded = false,
 }: TabPageScaffoldProps) {
   return (
-    <div className={compactPageClass}>
+    <div className={embedded ? "relative w-full min-w-0" : compactPageClass}>
+      {topNav ? <div className="mb-4">{topNav}</div> : null}
       <div
         className="pointer-events-none absolute inset-x-0 top-0 h-28"
         aria-hidden="true"
         style={{
           background:
-            "radial-gradient(ellipse at 50% 0%, rgba(251,191,36,0.07) 0%, transparent 70%)",
+            "radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.08) 0%, transparent 70%)",
         }}
       />
 

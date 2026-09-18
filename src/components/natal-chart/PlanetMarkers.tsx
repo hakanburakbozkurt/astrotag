@@ -57,7 +57,7 @@ export default function PlanetMarkers({
               damping: 20,
             }}
             whileTap={{ scale: 1.12 }}
-            className="pointer-events-auto absolute flex -translate-x-1/2 -translate-y-1/2 touch-manipulation flex-col items-center justify-center rounded-full border-0 bg-transparent p-0 outline-none focus-visible:ring-2 focus-visible:ring-amber-400/60"
+            className="pointer-events-auto absolute flex -translate-x-1/2 -translate-y-1/2 touch-manipulation flex-col items-center justify-center rounded-full border-0 bg-transparent p-0 outline-none focus-visible:ring-2 focus-visible:ring-zinc-700"
             style={{
               left: `${leftPct}%`,
               top: `${topPct}%`,
@@ -75,12 +75,12 @@ export default function PlanetMarkers({
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 4, scale: 0.95 }}
                   transition={{ duration: 0.18 }}
-                  className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-[min(11rem,42vw)] -translate-x-1/2 rounded-xl border border-amber-400/25 bg-[#0f172a]/95 px-3 py-2 text-left shadow-[0_8px_24px_rgba(0,0,0,0.45)] backdrop-blur-md"
+                  className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-[min(11rem,42vw)] -translate-x-1/2 rounded-xl border border-zinc-700 bg-[#0f172a]/95 px-3 py-2 text-left shadow-[0_8px_24px_rgba(0,0,0,0.45)] backdrop-blur-md"
                 >
-                  <p className="text-[11px] font-semibold text-amber-100">
+                  <p className="text-[11px] font-semibold text-stone-300">
                     {planet.symbol} {planet.name}
                   </p>
-                  <p className="mt-0.5 text-[10px] text-amber-200/70">
+                  <p className="mt-0.5 text-[10px] text-stone-300">
                     {planet.cardLabel}
                   </p>
                   <p className="mt-1.5 text-[10px] leading-snug text-white/65">
@@ -91,7 +91,7 @@ export default function PlanetMarkers({
             </AnimatePresence>
 
             <PlanetIcon id={planet.id} size={PLANET_ICON_SIZE} />
-            <span className="mt-0.5 text-[7px] font-medium text-amber-100/85 sm:text-[8px]">
+            <span className="mt-0.5 text-[7px] font-medium text-stone-300 sm:text-[8px]">
               {planet.symbol}
             </span>
           </motion.button>

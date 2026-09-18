@@ -16,7 +16,7 @@ import { SupabaseActionError } from "@/lib/supabase-action-error";
 import { useUserProfile } from "@/lib/auth";
 
 const fieldClass =
-  "box-border block h-10 w-full min-w-0 rounded-lg border border-white/10 bg-white/[0.04] px-3 text-sm text-white outline-none transition focus:border-amber-400/30 [color-scheme:dark]";
+  "box-border block h-10 w-full min-w-0 rounded-lg border border-white/10 bg-white/[0.04] px-3 text-sm text-white outline-none transition focus:border-zinc-700 [color-scheme:dark]";
 
 export default function AdditionalInfoForm() {
   const { userData, refreshProfile, isLoading: isProfileLoading } = useUserProfile();
@@ -88,10 +88,10 @@ export default function AdditionalInfoForm() {
 
       {toast ? <FormToast message={toast} onDismiss={() => setToast(null)} /> : null}
       {error && !toast ? (
-        <p className="mt-3 text-xs text-red-300/80">{error}</p>
+        <p className="mt-3 text-xs text-stone-400">{error}</p>
       ) : null}
       {message ? (
-        <p className="mt-3 text-xs text-emerald-300/80">{message}</p>
+        <p className="mt-3 text-xs text-stone-300">{message}</p>
       ) : null}
 
       <form onSubmit={handleSubmit} className="mt-4 space-y-3">
@@ -129,7 +129,7 @@ export default function AdditionalInfoForm() {
         <button
           type="submit"
           disabled={isSaving || isProfileLoading}
-          className="min-h-9 w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-medium text-amber-100 transition hover:border-amber-400/30 hover:bg-white/[0.06] disabled:opacity-50"
+          className="min-h-9 w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-medium text-stone-300 transition hover:border-zinc-700 hover:bg-white/[0.06] disabled:opacity-50"
         >
           {isSaving ? "Kaydediliyor..." : "Astro-Bağ Bilgilerini Kaydet"}
         </button>

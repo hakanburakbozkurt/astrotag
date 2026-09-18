@@ -12,7 +12,7 @@ type WhatsAppRecoveryLinkProps = {
 export default function WhatsAppRecoveryLink({
   context,
   label = "PIN'imi Unuttum",
-  className = "text-center text-[11px] font-medium text-emerald-300/90 underline-offset-2 hover:underline",
+  className = "text-center text-[11px] font-medium text-stone-300 underline-offset-2 hover:underline",
 }: WhatsAppRecoveryLinkProps) {
   return (
     <button

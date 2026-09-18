@@ -16,7 +16,7 @@ const CosmicRadarShareCard = forwardRef<HTMLDivElement, CosmicRadarShareCardProp
     return (
       <div
         ref={ref}
-        className="relative flex h-[520px] w-[390px] flex-col overflow-hidden rounded-[24px] border border-amber-400/25 bg-[#0a0f1a] p-7 text-left"
+        className="relative flex h-[520px] w-[390px] flex-col overflow-hidden rounded-[24px] border border-zinc-700 bg-[#0a0f1a] p-7 text-left"
         style={{
           fontFamily:
             'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace',
@@ -34,7 +34,7 @@ const CosmicRadarShareCard = forwardRef<HTMLDivElement, CosmicRadarShareCardProp
 
         <div className="relative flex items-start justify-between gap-3">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.35em] text-amber-400/85">
+            <p className="text-[10px] uppercase tracking-[0.35em] text-stone-300">
               ASTROTAG
             </p>
             <p className="mt-1 text-[9px] uppercase tracking-[0.22em] text-white/35">
@@ -47,18 +47,18 @@ const CosmicRadarShareCard = forwardRef<HTMLDivElement, CosmicRadarShareCardProp
             alt=""
             width={72}
             height={72}
-            className="rounded-lg border border-amber-400/20"
+            className="rounded-lg border border-zinc-700"
           />
         </div>
 
         <p className="relative mt-5 text-[10px] uppercase tracking-[0.18em] text-white/40">
           {payload.weekLabel}
         </p>
-        <p className="relative mt-2 text-xs text-amber-200/75">
+        <p className="relative mt-2 text-xs text-stone-300">
           {glyph} {payload.sign}
         </p>
 
-        <p className="relative mt-6 text-[10px] uppercase tracking-[0.22em] text-amber-400/65">
+        <p className="relative mt-6 text-[10px] uppercase tracking-[0.22em] text-stone-300">
           {payload.cardTitle}
         </p>
         <p className="relative mt-3 flex-1 whitespace-pre-wrap text-sm leading-relaxed text-white/78">

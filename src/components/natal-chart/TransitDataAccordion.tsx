@@ -31,7 +31,7 @@ export default function TransitDataAccordion({
           Gezegen Konumları ve Teknik Veriler
         </span>
         <ChevronDown
-          className={`h-4 w-4 shrink-0 text-amber-300/70 transition-transform duration-300 ${
+          className={`h-4 w-4 shrink-0 text-stone-300 transition-transform duration-300 ${
             open ? "rotate-180" : ""
           }`}
           aria-hidden

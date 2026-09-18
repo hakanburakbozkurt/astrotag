@@ -11,7 +11,7 @@ const markdownComponents: Components = {
     </h1>
   ),
   h2: ({ children }) => (
-    <h2 className="mb-3 mt-6 text-base font-semibold text-violet-200/95 first:mt-0">
+    <h2 className="mb-3 mt-6 text-base font-semibold text-stone-300 first:mt-0">
       {children}
     </h2>
   ),
@@ -37,7 +37,7 @@ const markdownComponents: Components = {
   ),
   em: ({ children }) => <em className="text-white/75 italic">{children}</em>,
   blockquote: ({ children }) => (
-    <blockquote className="mb-3 border-l-2 border-violet-400/40 pl-3 text-sm text-white/60 italic">
+    <blockquote className="mb-3 border-l-2 border-zinc-700 pl-3 text-sm text-white/60 italic">
       {children}
     </blockquote>
   ),
@@ -47,7 +47,7 @@ const markdownComponents: Components = {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="text-violet-300 underline decoration-violet-400/40 underline-offset-2 hover:text-violet-200"
+      className="text-stone-300 underline decoration-violet-400/40 underline-offset-2 hover:text-stone-300"
     >
       {children}
     </a>
@@ -71,7 +71,7 @@ const markdownComponents: Components = {
     <td className="border-b border-white/5 px-3 py-2 align-top">{children}</td>
   ),
   code: ({ children }) => (
-    <code className="rounded bg-white/10 px-1 py-0.5 font-mono text-[11px] text-violet-200/90">
+    <code className="rounded bg-white/10 px-1 py-0.5 font-mono text-[11px] text-stone-300">
       {children}
     </code>
   ),

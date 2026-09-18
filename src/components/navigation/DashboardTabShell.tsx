@@ -3,7 +3,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import Starfield from "@/components/Starfield";
-import BottomTabBar from "./BottomTabBar";
+import AppShellHeader from "./AppShellHeader";
 import ActiveTabOutlet from "./ActiveTabOutlet";
 
 interface DashboardTabShellProps {
@@ -24,9 +24,9 @@ export default function DashboardTabShell({ children }: DashboardTabShellProps) 
   }, [pathname]);
 
   return (
-    <div className="dashboard-container relative flex flex-col bg-[#070b14]">
+    <div className="dashboard-container relative flex flex-col bg-zinc-950">
       <Starfield />
-      <BottomTabBar />
+      <AppShellHeader />
 
       <main ref={mainRef} className="dashboard-main relative flex flex-col">
         <ActiveTabOutlet>{children}</ActiveTabOutlet>

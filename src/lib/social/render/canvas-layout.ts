@@ -36,8 +36,8 @@ export function drawSocialBackground(ctx: CanvasRenderingContext2D): void {
   }
 
   const glow = ctx.createRadialGradient(820, 180, 20, 820, 180, 260);
-  glow.addColorStop(0, "rgba(251,191,36,0.12)");
-  glow.addColorStop(1, "rgba(251,191,36,0)");
+  glow.addColorStop(0, "rgba(255,255,255,0.08)");
+  glow.addColorStop(1, "rgba(255,255,255,0.08)");
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, SOCIAL_CANVAS_WIDTH, SOCIAL_CANVAS_HEIGHT);
 }
@@ -105,9 +105,9 @@ export function drawScoreBadge(
   const radius = 88;
   ctx.beginPath();
   ctx.arc(x + radius, y + radius, radius, 0, Math.PI * 2);
-  ctx.fillStyle = "rgba(251,191,36,0.08)";
+  ctx.fillStyle = "rgba(255,255,255,0.08)";
   ctx.fill();
-  ctx.strokeStyle = "rgba(251,191,36,0.45)";
+  ctx.strokeStyle = "rgba(255,255,255,0.08)";
   ctx.lineWidth = 4;
   ctx.stroke();
 
@@ -163,7 +163,7 @@ export async function drawChartImage(
 
   ctx.beginPath();
   ctx.arc(centerX, centerY, size / 2, 0, Math.PI * 2);
-  ctx.strokeStyle = "rgba(251,191,36,0.35)";
+  ctx.strokeStyle = "rgba(255,255,255,0.08)";
   ctx.lineWidth = 3;
   ctx.stroke();
 }

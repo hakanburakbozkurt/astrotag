@@ -5,18 +5,21 @@ import {
   COSMIC_PROFILE_PIPELINE_FALLBACK,
   runCosmicProfilePipeline,
 } from "@/lib/ai/cosmic-profile-pipeline";
-import {
-  requireVerifiedUserProfileForAi,
-  type VerifiedProfileSubject,
-} from "@/lib/ai/verified-profile.server";
 import { resolveBirthPlace } from "@/lib/astrology/geocode";
 import { submitFeedback } from "@/lib/actions/feedback";
 import type { GrantedBadgePayload } from "@/lib/badges/badge-definitions";
 import {
+  DEFAULT_COSMIC_PROFILE_TIER,
   getCosmicProfileTier,
   type CosmicProfileMeta,
+  type CosmicProfilePersonInput,
   type CosmicProfileTierId,
 } from "@/lib/cosmic-profile/types";
+import { getServerUserProfile } from "@/lib/tarot/tarot-profile-server";
+import {
+  resolveVerifiedSubjectProfile,
+  type VerifiedProfileSubject,
+} from "@/lib/ai/verified-profile.server";
 import {
   COSMIC_PROFILE_REFUND_STARS,
   STAR_PACKAGES_PATH,
@@ -34,6 +37,7 @@ import {
   requireAuthUserId,
 } from "@/lib/supabase-actions";
 import { SupabaseActionError } from "@/lib/supabase-action-error";
+import type { UserData } from "@/types/user";
 
 const COSMIC_READINGS_TABLE = "cosmic_readings";
 
@@ -54,19 +58,74 @@ export type RunCosmicProfileResult =
     };
 
 export type CosmicProfileAnalysisInput = {
-  tier: CosmicProfileTierId;
+  tier?: CosmicProfileTierId;
   subject?: VerifiedProfileSubject;
   relationshipType?: string;
+  question?: string;
+  self?: CosmicProfilePersonInput;
+  partner?: CosmicProfilePersonInput;
 };
+
+function applyPersonOverride(
+  profile: UserData,
+  person: CosmicProfilePersonInput,
+  target: "self" | "partner"
+): void {
+  const name = person.name.trim();
+  const birthDate = person.birthDate.trim();
+  const birthTime = person.birthTime.trim();
+  const birthPlace = person.birthPlace.trim();
+
+  if (target === "self") {
+    profile.name = name;
+    profile.birthDate = birthDate;
+    profile.birthTime = birthTime;
+    profile.birthPlace = birthPlace;
+    return;
+  }
+
+  profile.partnerName = name;
+  profile.partnerBirthDate = birthDate;
+  profile.partnerBirthTime = birthTime;
+  profile.partnerBirthPlace = birthPlace;
+}
+
+function mergeCosmicProfileInput(
+  ownerProfile: UserData,
+  input: CosmicProfileAnalysisInput
+): UserData {
+  const merged = { ...ownerProfile };
+
+  if (input.self) {
+    applyPersonOverride(merged, input.self, "self");
+  }
+
+  if (input.partner) {
+    applyPersonOverride(merged, input.partner, "partner");
+  }
+
+  if (input.relationshipType?.trim()) {
+    merged.relationshipStatus = input.relationshipType.trim();
+  }
+
+  return merged;
+}
 
 export async function runCosmicProfileAnalysis(
   input: CosmicProfileAnalysisInput
 ): Promise<RunCosmicProfileResult> {
   try {
     const subject = input.subject ?? "self";
-    const { profileId, profile: userData } =
-      await requireVerifiedUserProfileForAi(subject);
-    const tier = getCosmicProfileTier(input.tier);
+    const profileId = await requireAuthUserId();
+    const ownerProfile = await getServerUserProfile(profileId);
+
+    if (!ownerProfile) {
+      throw new SupabaseActionError("Kullanıcı profili alınamadı.");
+    }
+
+    const mergedProfile = mergeCosmicProfileInput(ownerProfile, input);
+    const userData = resolveVerifiedSubjectProfile(mergedProfile, subject);
+    const tier = getCosmicProfileTier(input.tier ?? DEFAULT_COSMIC_PROFILE_TIER);
     const subjectName = userData.name.trim();
     const birthPlace = userData.birthPlace.trim();
 
@@ -86,10 +145,16 @@ export async function runCosmicProfileAnalysis(
         tier: tier.id,
         subject,
         relationshipType: input.relationshipType?.trim() || null,
+        question: input.question?.trim() || null,
       },
     });
 
-    const reading = await runCosmicProfilePipeline(userData, subjectName, tier.id);
+    const reading = await runCosmicProfilePipeline(
+      userData,
+      subjectName,
+      tier.id,
+      input.question?.trim() || undefined
+    );
 
     if (!reading) {
       await creditStarPointsBonus(tier.stars);

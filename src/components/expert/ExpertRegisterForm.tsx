@@ -81,7 +81,7 @@ export default function ExpertRegisterForm() {
   if (sent) {
     return (
       <div className="flex flex-col gap-4 text-center">
-        <p className="rounded-xl border border-emerald-400/30 bg-emerald-950/30 px-4 py-4 text-sm text-emerald-100">
+        <p className="rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-4 text-sm text-stone-300">
           Doğrulama bağlantısı{" "}
           <span className="font-medium text-white">{normalizedEmail}</span>{" "}
           adresine gönderildi. Bağlantıyı onayladığınızda başvurunuz incelenmek üzere
@@ -93,7 +93,7 @@ export default function ExpertRegisterForm() {
         <button
           type="button"
           onClick={() => setSent(false)}
-          className="text-[11px] font-medium text-amber-200/90 underline-offset-2 hover:underline"
+          className="text-[11px] font-medium text-stone-300 underline-offset-2 hover:underline"
         >
           Bilgileri düzenle
         </button>
@@ -217,7 +217,7 @@ export default function ExpertRegisterForm() {
       {error ? (
         <p
           role="alert"
-          className="rounded-xl border border-red-400/30 bg-red-950/40 px-4 py-3 text-sm text-red-100"
+          className="rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-stone-400"
         >
           {error}
         </p>
@@ -239,7 +239,7 @@ export default function ExpertRegisterForm() {
       <p className="mt-2 text-center text-[11px]">
         <Link
           href={EXPERT_LOGIN_PATH}
-          className="font-medium text-amber-200/90 underline-offset-2 hover:underline"
+          className="font-medium text-stone-300 underline-offset-2 hover:underline"
         >
           Zaten kayıtlı mısınız? Giriş Yap
         </Link>

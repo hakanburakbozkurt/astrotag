@@ -51,7 +51,7 @@ export default function BadgeEarnedModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 16 }}
             transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-            className="fixed left-1/2 top-1/2 z-[110] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[28px] border border-amber-400/25 bg-[#0a0f1a]/95 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.55)] backdrop-blur-2xl sm:p-8"
+            className="fixed left-1/2 top-1/2 z-[110] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[28px] border border-zinc-700 bg-[#0a0f1a]/95 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.55)] backdrop-blur-2xl sm:p-8"
             onClick={(event) => event.stopPropagation()}
           >
             <ConfettiBurst />
@@ -70,24 +70,24 @@ export default function BadgeEarnedModal({
                 initial={{ scale: 0.7, rotate: -8 }}
                 animate={{ scale: 1, rotate: 0 }}
                 transition={{ type: "spring", stiffness: 220, damping: 16, delay: 0.08 }}
-                className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border border-amber-400/35 bg-gradient-to-br from-amber-400/20 to-amber-500/5"
+                className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border border-zinc-700 bg-gradient-to-br from-zinc-800 to-zinc-900"
               >
-                <BadgeIcon icon={badge.icon} className="h-9 w-9 text-amber-200" />
+                <BadgeIcon icon={badge.icon} className="h-9 w-9 text-stone-300" />
               </motion.div>
 
-              <p className="mt-5 text-[10px] uppercase tracking-[0.32em] text-amber-400/75">
+              <p className="mt-5 text-[10px] uppercase tracking-[0.32em] text-stone-300">
                 {variant === "milestone" ? "Seviye Atladın!" : "Yeni Rozet Kazandın!"}
               </p>
               <h2 id="badge-earned-title" className="mt-2 text-2xl font-bold text-white">
                 {badge.name}
               </h2>
-              <p className="mt-1 text-xs uppercase tracking-[0.2em] text-amber-300/60">
+              <p className="mt-1 text-xs uppercase tracking-[0.2em] text-stone-300">
                 Rozet Kazandın
               </p>
               <p className="mt-3 text-sm leading-relaxed text-white/65">{badge.description}</p>
 
-              <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-amber-400/25 bg-amber-400/10 px-4 py-2 text-sm text-amber-100">
-                <Star className="h-4 w-4 fill-amber-300/80 text-amber-300/80" aria-hidden />
+              <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm text-stone-300">
+                <Star className="h-4 w-4 fill-stone-300 text-stone-300" aria-hidden />
                 +{badge.starReward} hediye yıldız
               </div>
 
@@ -100,7 +100,7 @@ export default function BadgeEarnedModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="mt-6 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 text-sm font-medium text-amber-100 transition hover:bg-amber-400/18"
+                className="mt-6 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900 px-4 text-sm font-medium text-stone-300 transition hover:bg-zinc-900"
               >
                 <Award className="h-4 w-4" aria-hidden />
                 Harika!

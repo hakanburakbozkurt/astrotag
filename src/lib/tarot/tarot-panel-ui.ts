@@ -1,0 +1,2 @@
+export const TAROT_RITUAL_GAP_MS = 1750;
+export const TAROT_QUICK_RITUAL_GAP_MS = 520;

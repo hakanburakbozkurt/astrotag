@@ -37,9 +37,9 @@ export default class OracleModuleErrorBoundary extends Component<
       return (
         <div
           role="alert"
-          className="rounded-xl border border-amber-400/20 bg-amber-400/[0.06] px-4 py-5 text-center"
+          className="rounded-xl border border-zinc-700 bg-zinc-900/0.06 px-4 py-5 text-center"
         >
-          <p className="text-sm leading-relaxed text-amber-100/85">
+          <p className="text-sm leading-relaxed text-stone-300">
             {ORACLE_COSMIC_DATA_ERROR}
           </p>
         </div>

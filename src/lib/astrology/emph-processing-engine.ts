@@ -334,7 +334,8 @@ export async function processHoraryThroughEmph(
 export async function processCosmicProfileThroughEmph(
   userData: UserData,
   subjectName: string,
-  complexity: EmphComplexity = "entry"
+  complexity: EmphComplexity = "entry",
+  questionOverride?: string
 ): Promise<EmphEnrichedPackage> {
   const askedAt = new Date();
   const { context, natal } = await buildEmphBase(userData, askedAt);
@@ -349,7 +350,9 @@ export async function processCosmicProfileThroughEmph(
     mode: "cosmic-profile",
     complexity,
     askedAt: askedAt.toISOString(),
-    question: `${subjectName.trim()} — Kozmik Profil (${complexity})`,
+    question:
+      questionOverride?.trim() ||
+      `${subjectName.trim()} — Kozmik Profil (${complexity})`,
     profile: {
       userSummary: formatUserDataForPrompt(userData),
       partnerSummary: limits.includeSynastry && hasPartnerData(userData)
@@ -361,11 +364,21 @@ export async function processCosmicProfileThroughEmph(
     transitsToNatal,
     synastry: limits.includeSynastry ? context.synastry : null,
     cosmicTensions,
-    narrativeSeeds: buildCosmicProfileNarrativeSeeds(
-      subjectName,
-      complexity,
-      cosmicTensions,
-      transitsToNatal
-    ),
+    narrativeSeeds: (() => {
+      const userIntent = questionOverride?.trim();
+      const baseSeeds = buildCosmicProfileNarrativeSeeds(
+        subjectName,
+        complexity,
+        cosmicTensions,
+        transitsToNatal
+      );
+      if (!userIntent) {
+        return baseSeeds;
+      }
+      return [
+        ...baseSeeds.slice(0, Math.max(0, limits.seeds - 1)),
+        `Kullanıcı niyeti: "${userIntent}"`,
+      ];
+    })(),
   };
 }

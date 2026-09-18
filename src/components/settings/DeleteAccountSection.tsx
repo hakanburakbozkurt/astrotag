@@ -109,21 +109,21 @@ function DeleteAccountModal({ open, onClose }: DeleteAccountModalProps) {
             aria-modal="true"
             aria-labelledby="delete-account-title"
             aria-describedby="delete-account-description"
-            className="w-full max-w-md overflow-hidden rounded-[20px] border border-red-500/30 bg-[#0b1220] shadow-2xl"
+            className="w-full max-w-md overflow-hidden rounded-[20px] border border-zinc-700 bg-[#0b1220] shadow-2xl"
           >
-            <div className="border-b border-red-500/20 bg-red-950/30 px-5 py-4">
+            <div className="border-b border-zinc-700 bg-zinc-900 px-5 py-4">
               <div className="flex items-start gap-3">
                 <AlertTriangle
-                  className="mt-0.5 h-5 w-5 shrink-0 text-red-400"
+                  className="mt-0.5 h-5 w-5 shrink-0 text-stone-400"
                   aria-hidden
                 />
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.28em] text-red-300/70">
+                  <p className="text-[10px] uppercase tracking-[0.28em] text-stone-400">
                     KVKK · Unutulma Hakkı
                   </p>
                   <h2
                     id="delete-account-title"
-                    className="mt-1 text-base font-semibold text-red-100"
+                    className="mt-1 text-base font-semibold text-stone-400"
                   >
                     Hesabınız kalıcı olarak silinecek
                   </h2>
@@ -140,9 +140,9 @@ function DeleteAccountModal({ open, onClose }: DeleteAccountModalProps) {
                 Onayladığınızda hesabınıza bir daha giriş yapamazsınız.
               </p>
 
-              <div className="rounded-xl border border-red-500/20 bg-red-950/20 p-3 text-xs text-red-100/85">
-                <p className="font-medium text-red-200/95">Kalıcı olarak silinecek:</p>
-                <ul className="mt-2 list-disc space-y-1 pl-4 text-red-100/75">
+              <div className="rounded-xl border border-zinc-700 bg-zinc-900 p-3 text-xs text-stone-400">
+                <p className="font-medium text-stone-400">Kalıcı olarak silinecek:</p>
+                <ul className="mt-2 list-disc space-y-1 pl-4 text-stone-400">
                   <li>Tarot geçmişi ve okuma kayıtları</li>
                   <li>Manifesto ve horary soruları</li>
                   <li>Kozmik günlük, rozetler ve profil bilgileriniz</li>
@@ -176,7 +176,7 @@ function DeleteAccountModal({ open, onClose }: DeleteAccountModalProps) {
                   className="text-[10px] uppercase tracking-[0.2em] text-white/45"
                 >
                   Onaylamak için{" "}
-                  <span className="font-mono text-red-300/90">{CONFIRMATION_PHRASE}</span>{" "}
+                  <span className="font-mono text-stone-400">{CONFIRMATION_PHRASE}</span>{" "}
                   yazın
                 </label>
                 <input
@@ -188,12 +188,12 @@ function DeleteAccountModal({ open, onClose }: DeleteAccountModalProps) {
                   autoComplete="off"
                   spellCheck={false}
                   placeholder={CONFIRMATION_PHRASE}
-                  className="mt-2 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 font-mono text-sm text-white/90 outline-none transition focus:border-red-400/40 disabled:opacity-60"
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 font-mono text-sm text-white/90 outline-none transition focus:border-zinc-700 disabled:opacity-60"
                 />
               </div>
 
               {error ? (
-                <p className="text-xs text-red-300/90" role="alert">
+                <p className="text-xs text-stone-400" role="alert">
                   {error}
                 </p>
               ) : null}
@@ -204,7 +204,7 @@ function DeleteAccountModal({ open, onClose }: DeleteAccountModalProps) {
                 type="button"
                 onClick={() => void handleDelete()}
                 disabled={!canDelete}
-                className="min-h-11 flex-1 rounded-xl bg-red-600/90 px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-45"
+                className="min-h-11 flex-1 rounded-xl bg-zinc-900 px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-zinc-900 disabled:cursor-not-allowed disabled:opacity-45"
               >
                 {busy ? "Siliniyor…" : "Hesabımı Kalıcı Olarak Sil"}
               </button>
@@ -232,9 +232,9 @@ export default function DeleteAccountSection() {
       <motion.section
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rounded-[28px] border border-red-500/20 bg-red-950/10 p-5 backdrop-blur-2xl sm:p-6"
+        className="rounded-[28px] border border-zinc-700 bg-zinc-900 p-5 backdrop-blur-2xl sm:p-6"
       >
-        <p className="text-[10px] uppercase tracking-[0.3em] text-red-400/80">
+        <p className="text-[10px] uppercase tracking-[0.3em] text-stone-400">
           Tehlikeli Bölge
         </p>
         <p className="mt-2 text-xs leading-relaxed text-white/50">
@@ -244,7 +244,7 @@ export default function DeleteAccountSection() {
         <button
           type="button"
           onClick={() => setModalOpen(true)}
-          className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-red-500/35 bg-red-600/15 px-4 text-xs font-semibold uppercase tracking-[0.16em] text-red-200 transition hover:border-red-400/50 hover:bg-red-600/25"
+          className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-zinc-700 bg-zinc-900 px-4 text-xs font-semibold uppercase tracking-[0.16em] text-stone-400 transition hover:border-zinc-700 hover:bg-zinc-900"
         >
           Hesabımı Kalıcı Olarak Sil
         </button>

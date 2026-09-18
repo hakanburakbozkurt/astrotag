@@ -53,7 +53,7 @@ export default function GiftOrderModal({
           exit={{ opacity: 0 }}
           transition={SALES_IN_VIEW_TRANSITION}
           style={{ willChange: "transform" }}
-          className="fixed inset-0 z-50 flex items-end justify-center bg-[#070b14]/80 p-4 backdrop-blur-sm sm:items-center"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-zinc-950/80 p-4 backdrop-blur-sm sm:items-center"
           onClick={onClose}
         >
           <motion.div
@@ -70,7 +70,7 @@ export default function GiftOrderModal({
           >
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-3">
-                <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-emerald-400/25 bg-emerald-400/10 text-emerald-300">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900 text-stone-300">
                   <Gift className="h-5 w-5" aria-hidden />
                 </span>
                 <div>
@@ -100,7 +100,7 @@ export default function GiftOrderModal({
                   value={recipientName}
                   onChange={(event) => setRecipientName(event.target.value)}
                   placeholder="Kime hediye ediyorsunuz?"
-                  className="min-h-11 rounded-xl border border-white/12 bg-[#070b14]/80 px-3 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-amber-400/40 focus:ring-2 focus:ring-amber-400/15"
+                  className="min-h-11 rounded-xl border border-white/12 bg-zinc-950/80 px-3 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-zinc-700 focus:ring-2 focus:ring-zinc-700"
                 />
               </label>
 
@@ -111,7 +111,7 @@ export default function GiftOrderModal({
                   onChange={(event) => setNote(event.target.value)}
                   rows={3}
                   placeholder="Kozmik bir mesaj bırakın (isteğe bağlı)"
-                  className="rounded-xl border border-white/12 bg-[#070b14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-amber-400/40 focus:ring-2 focus:ring-amber-400/15"
+                  className="rounded-xl border border-white/12 bg-zinc-950/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-zinc-700 focus:ring-2 focus:ring-zinc-700"
                 />
               </label>
             </div>
@@ -133,7 +133,7 @@ export default function GiftOrderModal({
                     note: note.trim(),
                   })
                 }
-                className="min-h-11 flex-1 rounded-xl bg-emerald-400/90 px-4 text-sm font-semibold text-[#052e1a] transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-45"
+                className="min-h-11 flex-1 rounded-xl bg-zinc-900 px-4 text-sm font-semibold text-[#052e1a] transition hover:bg-zinc-900 disabled:cursor-not-allowed disabled:opacity-45"
               >
                 Hediye Olarak Gönder
               </button>

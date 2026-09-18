@@ -46,9 +46,9 @@ function AnalysisLoadingState({ label }: { label: string }) {
       <motion.div
         animate={{ rotate: 360 }}
         transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }}
-        className="h-9 w-9 rounded-full border-2 border-amber-400/15 border-t-amber-400/80"
+        className="h-9 w-9 rounded-full border-2 border-zinc-700 border-t-amber-400/80"
       />
-      <p className="text-sm text-amber-200/70">{label}</p>
+      <p className="text-sm text-stone-300">{label}</p>
     </div>
   );
 }
@@ -75,7 +75,7 @@ export default function AnalysisResults({
 
   return (
     <section className="rounded-[28px] border border-white/10 bg-[#0f172a]/80 p-5 backdrop-blur-2xl sm:p-6">
-      <p className="text-[10px] uppercase tracking-[0.25em] text-amber-400/70">
+      <p className="text-[10px] uppercase tracking-[0.25em] text-stone-300">
         {moduleLabel}
       </p>
 
@@ -86,7 +86,7 @@ export default function AnalysisResults({
       {status === "loading" ? <AnalysisLoadingState label={loadingLabel} /> : null}
 
       {status === "error" && error ? (
-        <p className="mt-4 text-sm text-red-300/80" role="alert">
+        <p className="mt-4 text-sm text-stone-400" role="alert">
           {error}
         </p>
       ) : null}

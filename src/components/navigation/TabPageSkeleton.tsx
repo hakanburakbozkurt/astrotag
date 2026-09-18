@@ -6,8 +6,8 @@ export default function TabPageSkeleton() {
       aria-label="Kozmik Terminal yükleniyor"
     >
       <div className="mb-5 flex flex-col items-center gap-2 text-center">
-        <div className="h-7 w-7 rounded-full border-2 border-amber-400/15 border-t-amber-400/70" />
-        <p className="text-xs font-medium tracking-wide text-amber-200/80">
+        <div className="h-7 w-7 rounded-full border-2 border-zinc-700 border-t-amber-400/70" />
+        <p className="text-xs font-medium tracking-wide text-stone-300">
           Yükleniyor...
         </p>
       </div>
@@ -43,8 +43,8 @@ export function SectionSkeleton({ title }: { title?: string }) {
       aria-label={title ?? "Kozmik Terminal yükleniyor"}
     >
       <div className="mb-3 flex items-center gap-1.5">
-        <div className="h-1.5 w-1.5 rounded-full bg-amber-400/50" />
-        <p className="text-[9px] uppercase tracking-[0.2em] text-amber-200/60">
+        <div className="h-1.5 w-1.5 rounded-full bg-zinc-900" />
+        <p className="text-[9px] uppercase tracking-[0.2em] text-stone-300">
           Yükleniyor...
         </p>
       </div>

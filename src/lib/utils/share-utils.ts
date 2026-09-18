@@ -125,8 +125,8 @@ function drawBackground(ctx: CanvasRenderingContext2D): void {
   }
 
   const glow = ctx.createRadialGradient(540, 320, 20, 540, 320, 420);
-  glow.addColorStop(0, "rgba(251,191,36,0.14)");
-  glow.addColorStop(1, "rgba(251,191,36,0)");
+  glow.addColorStop(0, "rgba(255,255,255,0.08)");
+  glow.addColorStop(1, "rgba(255,255,255,0.08)");
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, SOCIAL_CANVAS_WIDTH, SOCIAL_CANVAS_HEIGHT);
 }
@@ -176,8 +176,8 @@ function drawTarotCards(
 
   for (const card of cards.slice(0, 3)) {
     const label = card.position ? `${card.position} · ${card.name}` : card.name;
-    ctx.fillStyle = "rgba(251,191,36,0.08)";
-    ctx.strokeStyle = "rgba(251,191,36,0.28)";
+    ctx.fillStyle = "rgba(255,255,255,0.08)";
+    ctx.strokeStyle = "rgba(255,255,255,0.08)";
     ctx.lineWidth = 2;
     const pillHeight = 52;
     const pillWidth = maxWidth;
@@ -274,7 +274,7 @@ async function drawFooter(
   ctx.fillStyle = "rgba(255,255,255,0.05)";
   ctx.fillRect(0, footerTop, SOCIAL_CANVAS_WIDTH, SOCIAL_LAYOUT.footerHeight);
 
-  ctx.strokeStyle = "rgba(251,191,36,0.18)";
+  ctx.strokeStyle = "rgba(255,255,255,0.08)";
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(SOCIAL_LAYOUT.paddingX, footerTop);

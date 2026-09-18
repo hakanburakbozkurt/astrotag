@@ -65,7 +65,7 @@ export default function NexusVisualizer({ userData }: NexusVisualizerProps) {
       animate={{ opacity: 1, y: 0 }}
       className={`rounded-[20px] border bg-[#0f172a]/80 p-4 backdrop-blur-2xl sm:p-5 ${borderClass}`}
     >
-      <p className="text-[10px] uppercase tracking-[0.24em] text-amber-400/70">
+      <p className="text-[10px] uppercase tracking-[0.24em] text-stone-300">
         Gök Yüzü Baskısı
       </p>
       <p className="mt-2 text-sm font-medium text-white/85">{stress.skySummary}</p>

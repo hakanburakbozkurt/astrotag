@@ -11,7 +11,7 @@ import { EXPERT_REGISTER_PATH } from "@/lib/expert/expert-paths";
 const tabClass = (active: boolean) =>
   `flex-1 rounded-xl px-3 py-2.5 text-center text-[11px] font-semibold uppercase tracking-widest transition ${
     active
-      ? "bg-amber-400/15 text-amber-200 border border-amber-400/30"
+      ? "bg-zinc-900 text-stone-300 border border-zinc-700"
       : "text-white/45 hover:text-white/70"
   }`;
 
@@ -39,7 +39,7 @@ export function AuthAlternatePaths() {
       </p>
       <Link
         href={EXPERT_REGISTER_PATH}
-        className="flex min-h-[48px] items-center justify-center rounded-2xl border border-violet-400/25 bg-violet-950/20 text-xs font-medium uppercase tracking-widest text-violet-200/90 transition hover:border-violet-400/40"
+        className="flex min-h-[48px] items-center justify-center rounded-2xl border border-zinc-700 bg-zinc-900 text-xs font-medium uppercase tracking-widest text-stone-300 transition hover:border-zinc-700"
       >
         Uzman / Astrolog Başvurusu
       </Link>

@@ -73,7 +73,7 @@ function aspectStrokeStyle(type: AspectType): {
   }
 
   return {
-    stroke: "rgba(251,191,36,0.9)",
+    stroke: "rgba(255,255,255,0.08)",
     strokeWidth: 2,
     opacity: 0.9,
   };
@@ -94,17 +94,17 @@ function SynastryWheel({
       className="relative flex w-[46%] max-w-[150px] flex-col items-center"
     >
       <div className="relative aspect-square w-full">
-        <div className="absolute inset-0 rounded-full border border-amber-400/20 bg-[#0f172a]/55 shadow-[inset_0_0_40px_rgba(251,191,36,0.06)] backdrop-blur-md" />
+        <div className="absolute inset-0 rounded-full border border-zinc-700 bg-[#0f172a]/55 shadow-[inset_0_0_40px_rgba(255,255,255,0.08)] backdrop-blur-md" />
         <div className="absolute inset-[10%] rounded-full border border-white/10 bg-white/[0.03]" />
         <div
           className="pointer-events-none absolute inset-0 rounded-full"
           style={{
             background:
-              "radial-gradient(circle at 50% 35%, rgba(251,191,36,0.12) 0%, transparent 62%)",
+              "radial-gradient(circle at 50% 35%, rgba(255,255,255,0.08) 0%, transparent 62%)",
           }}
         />
       </div>
-      <p className="mt-3 text-center text-[10px] uppercase tracking-[0.22em] text-amber-200/75">
+      <p className="mt-3 text-center text-[10px] uppercase tracking-[0.22em] text-stone-300">
         {label}
       </p>
     </motion.div>
@@ -203,22 +203,22 @@ const SynastryVisualizer = forwardRef<HTMLDivElement, SynastryVisualizerProps>(
   return (
     <section className="overflow-hidden rounded-[28px] border border-white/10 bg-[#0f172a]/80 p-4 backdrop-blur-2xl sm:p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <p className="text-[10px] uppercase tracking-[0.28em] text-amber-400/70">
+        <p className="text-[10px] uppercase tracking-[0.28em] text-stone-300">
           Sinastri Haritası
         </p>
         {typeof score === "number" ? (
-          <span className="rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 text-xs font-semibold text-amber-100 shadow-[0_0_16px_rgba(251,191,36,0.2)]">
+          <span className="rounded-full border border-zinc-700 bg-zinc-900 px-3 py-1 text-xs font-semibold text-stone-300 shadow-[0_0_16px_rgba(255,255,255,0.08)]">
             {score}/100
           </span>
         ) : null}
       </div>
 
       <div className="mb-3 flex flex-wrap gap-2 text-[9px] uppercase tracking-[0.16em]">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-[#991b1b]/40 bg-[#991b1b]/15 px-2 py-0.5 text-red-200/90">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-[#991b1b]/40 bg-[#991b1b]/15 px-2 py-0.5 text-stone-400">
           <span className="h-1.5 w-4 rounded-full bg-[#991b1b]" />
           Gerilim (Kare)
         </span>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-[#ca8a04]/35 bg-[#ca8a04]/10 px-2 py-0.5 text-amber-100/90">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-[#ca8a04]/35 bg-[#ca8a04]/10 px-2 py-0.5 text-stone-300">
           <span className="h-1.5 w-4 rounded-full bg-gradient-to-r from-[#ca8a04] to-[#84cc16]" />
           Üçgen Uyumu
         </span>

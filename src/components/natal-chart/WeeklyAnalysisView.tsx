@@ -59,7 +59,7 @@ function WeeklyAnalysisView({ user }: WeeklyAnalysisViewProps) {
           <WeeklyAnalysisContentPanel content={content} selectedSign={selectedSign} />
         ) : status === "error" ? (
           <div className={`${compactSectionClass} text-center`}>
-            <p className="text-sm text-red-200/80">{error}</p>
+            <p className="text-sm text-stone-400">{error}</p>
           </div>
         ) : (
           <div className={`${compactSectionClass} py-8 text-center`}>

@@ -44,7 +44,7 @@ function KozmikBaslangicContent() {
         </p>
         <Link
           href="/"
-          className="mt-6 inline-flex min-h-11 items-center justify-center rounded-xl bg-amber-400/90 px-6 text-sm font-semibold text-[#0f172a]"
+          className="mt-6 inline-flex min-h-11 items-center justify-center rounded-xl bg-zinc-900 px-6 text-sm font-semibold text-[#0f172a]"
         >
           Mağazaya Dön
         </Link>
@@ -66,18 +66,18 @@ function KozmikBaslangicContent() {
         initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-        className="rounded-[28px] border border-amber-400/25 bg-[#0f172a]/85 p-6 text-center backdrop-blur-2xl sm:p-8"
+        className="rounded-[28px] border border-zinc-700 bg-[#0f172a]/85 p-6 text-center backdrop-blur-2xl sm:p-8"
       >
-        <p className="text-[10px] uppercase tracking-[0.28em] text-amber-400/75">
+        <p className="text-[10px] uppercase tracking-[0.28em] text-stone-300">
           Kozmik Başlangıç
         </p>
         <h1 className="mt-3 text-2xl font-bold text-white">Hoş geldiniz ✨</h1>
         <p className="mt-3 text-sm leading-relaxed text-white/60">
-          <span className="text-amber-100/90">{productLabel}</span> siparişiniz alındı.
+          <span className="text-stone-300">{productLabel}</span> siparişiniz alındı.
           {giftTo ? (
             <>
               {" "}
-              Hediye alıcısı: <span className="text-emerald-300/90">{giftTo}</span>.
+              Hediye alıcısı: <span className="text-stone-300">{giftTo}</span>.
             </>
           ) : null}
           {isKeychain
@@ -112,7 +112,7 @@ function KozmikBaslangicContent() {
 
         <Link
           href={NFC_LOGIN_PATH}
-          className="mt-8 inline-flex min-h-12 w-full items-center justify-center rounded-2xl bg-amber-400/95 px-6 text-sm font-semibold text-[#0f172a] transition hover:bg-amber-300"
+          className="mt-8 inline-flex min-h-12 w-full items-center justify-center rounded-2xl bg-zinc-900 px-6 text-sm font-semibold text-[#0f172a] transition hover:bg-zinc-900"
         >
           Anahtarlığı Aktive Et
         </Link>
@@ -130,7 +130,7 @@ function KozmikBaslangicContent() {
 
 export default function KozmikBaslangicPage() {
   return (
-    <main className="astrotag-sales relative min-h-dvh bg-[#070b14] text-white">
+    <main className="astrotag-sales relative min-h-dvh bg-zinc-950 text-white">
       <Starfield />
       <SalesNav />
       <Suspense

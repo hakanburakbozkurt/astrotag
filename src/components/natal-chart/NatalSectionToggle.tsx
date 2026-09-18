@@ -31,7 +31,7 @@ export default function NatalSectionToggle({
             onClick={() => onChange(item.id)}
             className={`min-h-9 flex-1 rounded-lg px-3 py-1.5 text-xs font-medium tracking-wide transition sm:flex-none sm:px-4 ${
               active
-                ? "bg-amber-400/20 text-amber-100 shadow-[0_0_16px_rgba(251,191,36,0.12)]"
+                ? "bg-zinc-900 text-stone-300 shadow-[0_0_16px_rgba(255,255,255,0.08)]"
                 : "text-white/45 hover:text-white/70"
             }`}
           >

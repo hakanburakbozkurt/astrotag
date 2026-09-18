@@ -30,13 +30,13 @@ function ExpertDetailView({
       className="space-y-5"
     >
       <header className="rounded-[28px] border border-white/10 bg-[#0f172a]/80 p-5">
-        <p className="text-[10px] uppercase tracking-[0.28em] text-amber-400/70">
+        <p className="text-[10px] uppercase tracking-[0.28em] text-stone-300">
           {expert.tradition}
         </p>
         <h2 className="mt-2 text-xl font-semibold text-white/95">
           {expert.displayName}
         </h2>
-        <p className="mt-1 text-sm text-amber-200/80">{expert.title}</p>
+        <p className="mt-1 text-sm text-stone-300">{expert.title}</p>
         <p className="mt-2 text-xs text-white/45">
           {expert.experienceYears} yıl deneyim
         </p>
@@ -68,14 +68,14 @@ function ExpertDetailView({
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="font-mono text-sm text-violet-200">
+                    <p className="font-mono text-sm text-stone-300">
                       {service.crystalPrice} 🔮
                     </p>
                     <button
                       type="button"
                       disabled={bookingBusy !== null}
                       onClick={() => onBook(service.id)}
-                      className="mt-2 rounded-lg border border-violet-400/30 bg-violet-500/10 px-3 py-1.5 text-[10px] uppercase tracking-wider text-violet-100 disabled:opacity-50"
+                      className="mt-2 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-[10px] uppercase tracking-wider text-stone-300 disabled:opacity-50"
                     >
                       {bookingBusy === service.id ? "…" : "Rezerve Et"}
                     </button>
@@ -86,7 +86,7 @@ function ExpertDetailView({
           )}
         </ul>
         {bookingError ? (
-          <p className="mt-3 text-xs text-red-300/85">{bookingError}</p>
+          <p className="mt-3 text-xs text-stone-400">{bookingError}</p>
         ) : null}
       </section>
 
@@ -181,6 +181,7 @@ export default function ExpertsTabContent() {
 
   return (
     <TabPageScaffold
+      embedded
       eyebrow="Uzmanlar"
       title="Kozmik Uzmanlar"
       description="Gerçek uzman seansları — kristal ile rezervasyon."

@@ -21,10 +21,10 @@ export default function WeeklyTransitGrid({
           <li
             key={row.id}
             className={`grid grid-cols-[auto_1fr_auto] items-center gap-x-3 px-3 py-2.5 text-xs ${
-              row.inSelectedSign ? "bg-cyan-400/[0.06]" : ""
+              row.inSelectedSign ? "bg-zinc-900/0.06" : ""
             }`}
           >
-            <span className="flex items-center gap-1.5 font-medium text-amber-100/90">
+            <span className="flex items-center gap-1.5 font-medium text-stone-300">
               <span className="text-sm">{row.symbol}</span>
               {row.name}
             </span>

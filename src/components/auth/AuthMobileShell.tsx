@@ -16,14 +16,14 @@ export default function AuthMobileShell({
   children,
 }: AuthMobileShellProps) {
   return (
-    <main className="relative min-h-dvh overflow-hidden bg-[#070b14]">
+    <main className="relative min-h-dvh overflow-hidden bg-zinc-950">
       <Starfield />
 
       <div
         className="pointer-events-none absolute inset-0 opacity-50"
         style={{
           background:
-            "radial-gradient(ellipse 70% 45% at 50% 20%, rgba(251,191,36,0.14) 0%, transparent 70%)",
+            "radial-gradient(ellipse 70% 45% at 50% 20%, rgba(255,255,255,0.08) 0%, transparent 70%)",
         }}
       />
 
@@ -34,7 +34,7 @@ export default function AuthMobileShell({
           transition={{ duration: 0.45 }}
           className="mx-auto w-full max-w-[400px]"
         >
-          <p className="text-center font-mono text-[10px] uppercase tracking-[0.32em] text-amber-400/75">
+          <p className="text-center font-mono text-[10px] uppercase tracking-[0.32em] text-stone-300">
             AstroTag
           </p>
           <h1 className="mt-2 text-center text-2xl font-bold tracking-tight text-white">

@@ -9,6 +9,9 @@ export interface CosmicProfileTier {
   description: string;
 }
 
+/** Tek standart analiz — UI'da seviye seçimi yok; her zaman kapsamlı paket. */
+export const DEFAULT_COSMIC_PROFILE_TIER: CosmicProfileTierId = "master";
+
 export const COSMIC_PROFILE_TIERS: CosmicProfileTier[] = [
   {
     id: "entry",
@@ -38,10 +41,24 @@ export function getCosmicProfileTier(id: CosmicProfileTierId): CosmicProfileTier
   return tier;
 }
 
+export function getDefaultCosmicProfileTier(): CosmicProfileTier {
+  return getCosmicProfileTier(DEFAULT_COSMIC_PROFILE_TIER);
+}
+
+export interface CosmicProfilePersonInput {
+  name: string;
+  birthDate: string;
+  birthTime: string;
+  birthPlace: string;
+}
+
 export interface CosmicProfileFormInput {
-  tier: CosmicProfileTierId;
+  tier?: CosmicProfileTierId;
   subject?: "self" | "partner";
   relationshipType?: string;
+  question?: string;
+  self?: CosmicProfilePersonInput;
+  partner?: CosmicProfilePersonInput;
 }
 
 /** @deprecated Client doğum alanları kaldırıldı; CosmicProfileAnalysisInput kullanın. */

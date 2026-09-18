@@ -78,7 +78,7 @@ export default function KozmicShareButton({
         disabled={disabled || isSharing || !executiveSummary.trim()}
         aria-label="Kozmik Mesajı paylaş"
         title="Kozmik Paylaşım"
-        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-amber-400/25 bg-amber-400/10 text-amber-100/90 transition hover:border-amber-400/45 hover:bg-amber-400/18 disabled:cursor-not-allowed disabled:opacity-45"
+        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900 text-stone-300 transition hover:border-zinc-700 hover:bg-zinc-900 disabled:cursor-not-allowed disabled:opacity-45"
       >
         {isSharing ? (
           <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
@@ -87,7 +87,7 @@ export default function KozmicShareButton({
         )}
       </button>
       {status ? (
-        <p className="max-w-[160px] text-right text-[10px] leading-snug text-amber-200/65">
+        <p className="max-w-[160px] text-right text-[10px] leading-snug text-stone-300">
           {status}
         </p>
       ) : null}

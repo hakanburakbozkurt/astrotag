@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import dynamic from "next/dynamic";
+import ModulePageShell from "@/components/navigation/ModulePageShell";
 import TabPageSkeleton from "@/components/navigation/TabPageSkeleton";
 import { useRequireAuth, useUserProfile } from "@/lib/auth";
 import { PROFILE_SETUP_PATH } from "@/lib/nfc/constants";
@@ -26,7 +27,7 @@ export default function BondsTabPage() {
         <p className="text-xs text-white/55">Bonds için profil bilgisi gerekli.</p>
         <Link
           href={`${PROFILE_SETUP_PATH}?mode=edit`}
-          className="mt-4 rounded-lg border border-amber-400/30 px-4 py-2 text-xs text-amber-100"
+          className="mt-4 rounded-lg border border-zinc-700 px-4 py-2 text-xs text-stone-300"
         >
           Profili Tamamla
         </Link>
@@ -35,8 +36,10 @@ export default function BondsTabPage() {
   }
 
   return (
-    <Suspense fallback={<TabPageSkeleton />}>
-      <BondsTabContent />
-    </Suspense>
+    <ModulePageShell>
+      <Suspense fallback={<TabPageSkeleton />}>
+        <BondsTabContent />
+      </Suspense>
+    </ModulePageShell>
   );
 }

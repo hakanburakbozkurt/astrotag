@@ -17,10 +17,10 @@ export default async function NfcSuspendedPage({ searchParams }: PageProps) {
       <Starfield />
       <div className="relative flex min-h-dvh items-center justify-center px-6 py-12">
         <div className="max-w-sm text-center">
-          <p className="text-[10px] uppercase tracking-[0.28em] text-red-300/80">
+          <p className="text-[10px] uppercase tracking-[0.28em] text-stone-400">
             Erişim Engellendi
           </p>
-          <p className="mt-4 text-sm text-red-200">{ACCOUNT_SUSPENDED_MESSAGE}</p>
+          <p className="mt-4 text-sm text-stone-400">{ACCOUNT_SUSPENDED_MESSAGE}</p>
           {uniqueId ? (
             <p className="mt-3 font-mono text-[11px] text-white/30">{uniqueId}</p>
           ) : null}

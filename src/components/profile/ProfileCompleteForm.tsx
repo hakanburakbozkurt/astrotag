@@ -5,7 +5,7 @@ import { clientRedirect } from "@/lib/auth/client-redirect.client";
 import { completeUserProfile } from "@/lib/actions/profile-complete";
 
 const fieldClass =
-  "mt-2 h-12 w-full min-w-0 rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-amber-400/30 [color-scheme:dark]";
+  "mt-2 h-12 w-full min-w-0 rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-zinc-700 [color-scheme:dark]";
 
 type ProfileCompleteFormProps = {
   submitLabel?: string;
@@ -129,12 +129,12 @@ export default function ProfileCompleteForm({
         </select>
       </label>
 
-      {error ? <p className="text-sm text-red-300/80">{error}</p> : null}
+      {error ? <p className="text-sm text-stone-400">{error}</p> : null}
 
       <button
         type="submit"
         disabled={isSubmitting}
-        className="min-h-12 w-full rounded-xl border border-amber-400/30 bg-amber-400/10 py-3 text-sm font-medium text-amber-100 transition hover:bg-amber-400/20 disabled:opacity-60"
+        className="min-h-12 w-full rounded-xl border border-zinc-700 bg-zinc-900 py-3 text-sm font-medium text-stone-300 transition hover:bg-zinc-900 disabled:opacity-60"
       >
         {isSubmitting ? "Kaydediliyor..." : submitLabel}
       </button>

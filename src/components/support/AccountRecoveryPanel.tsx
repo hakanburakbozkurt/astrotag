@@ -12,8 +12,8 @@ export default function AccountRecoveryPanel({
   initialEmail,
 }: AccountRecoveryPanelProps) {
   return (
-    <div className="rounded-xl border border-amber-400/20 bg-amber-950/15 px-4 py-4">
-      <p className="text-[10px] uppercase tracking-[0.2em] text-amber-300/80">
+    <div className="rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-4">
+      <p className="text-[10px] uppercase tracking-[0.2em] text-stone-300">
         Şifremi Unuttum
       </p>
       <p className="mt-2 text-sm leading-relaxed text-white/55">
@@ -26,7 +26,7 @@ export default function AccountRecoveryPanel({
       <p className="mt-3 text-center text-[11px]">
         <Link
           href={AUTH_FORGOT_PASSWORD_PATH}
-          className="font-medium text-amber-200/90 underline-offset-2 hover:underline"
+          className="font-medium text-stone-300 underline-offset-2 hover:underline"
         >
           Tam ekran sıfırlama sayfası
         </Link>

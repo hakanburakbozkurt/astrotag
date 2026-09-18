@@ -44,7 +44,7 @@ export default function ForgotPasswordForm({
   if (sent) {
     return (
       <div className={compact ? "space-y-3 text-center" : "space-y-4 text-center"}>
-        <p className="rounded-xl border border-emerald-400/30 bg-emerald-950/30 px-4 py-3 text-sm text-emerald-100">
+        <p className="rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-stone-300">
           Şifre sıfırlama bağlantısı{" "}
           <span className="font-medium text-white">{email.trim().toLowerCase()}</span>{" "}
           adresine gönderildi. Bağlantı kısa süre içinde geçerliliğini yitirir.
@@ -86,7 +86,7 @@ export default function ForgotPasswordForm({
       {error ? (
         <p
           role="alert"
-          className="rounded-xl border border-red-400/30 bg-red-950/40 px-4 py-3 text-sm text-red-100"
+          className="rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-stone-400"
         >
           {error}
         </p>

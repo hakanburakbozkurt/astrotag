@@ -52,7 +52,7 @@ export default function ExpertRequestsPageClient() {
       <div className="mb-4">
         <Link
           href="/dashboard/profile"
-          className="text-xs uppercase tracking-wider text-emerald-300/80 underline decoration-emerald-400/30 underline-offset-2"
+          className="text-xs uppercase tracking-wider text-stone-300 underline decoration-emerald-400/30 underline-offset-2"
         >
           ← Profile dön
         </Link>
@@ -62,7 +62,7 @@ export default function ExpertRequestsPageClient() {
         <p className="text-sm text-white/45">Talepler yükleniyor…</p>
       ) : null}
 
-      {error ? <p className="text-sm text-red-300/85">{error}</p> : null}
+      {error ? <p className="text-sm text-stone-400">{error}</p> : null}
 
       {!loading && !error && requests.length === 0 ? (
         <p className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm text-white/45">
@@ -74,7 +74,7 @@ export default function ExpertRequestsPageClient() {
         {requests.map((request) => (
           <li
             key={request.id}
-            className="rounded-2xl border border-emerald-400/15 bg-emerald-950/10 p-4"
+            className="rounded-2xl border border-zinc-700 bg-zinc-900 p-4"
           >
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
@@ -84,7 +84,7 @@ export default function ExpertRequestsPageClient() {
                 <p className="mt-1 text-xs text-white/50">
                   {formatDate(request.createdAt)}
                 </p>
-                <p className="mt-2 text-xs text-emerald-200/75">
+                <p className="mt-2 text-xs text-stone-300">
                   {request.crystalsSpent} 🔮 kristal · Hakediş ₺
                   {request.expertPayoutTry.toLocaleString("tr-TR")}
                 </p>

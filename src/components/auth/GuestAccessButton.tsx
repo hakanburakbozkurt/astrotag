@@ -49,7 +49,7 @@ export default function GuestAccessButton() {
         12 saatlik geçici oturum. Süre bitince kayıt olmanız istenecektir.
       </p>
       {error ? (
-        <p className="text-center text-xs text-red-300/90" role="alert">
+        <p className="text-center text-xs text-stone-400" role="alert">
           {error}
         </p>
       ) : null}

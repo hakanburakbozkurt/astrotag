@@ -89,6 +89,7 @@ export default function NexusTabContent() {
   return (
     <div className="nexus-tab-root">
       <TabPageScaffold
+        embedded
         eyebrow="Nexus"
         title="Günlük Burç Akışı"
         description="Senin ve partnerinin Güneş burçlarına göre bugünkü kozmik sinyaller ve gökyüzü baskısı."
@@ -111,7 +112,7 @@ export default function NexusTabContent() {
             </p>
             <Link
               href={`${PROFILE_SETUP_PATH}?mode=edit`}
-              className="mt-4 inline-flex rounded-lg border border-amber-400/30 px-4 py-2 text-xs text-amber-100"
+              className="mt-4 inline-flex rounded-lg border border-zinc-700 px-4 py-2 text-xs text-stone-300"
             >
               Profili Düzenle
             </Link>
@@ -127,7 +128,7 @@ export default function NexusTabContent() {
 
         {showNexusError && nexusError ? (
           <div className={`${compactSectionClass} text-center`}>
-            <p className="text-sm text-red-200/80">
+            <p className="text-sm text-stone-400">
               {nexusError instanceof Error
                 ? nexusError.message
                 : "Nexus yorumları yüklenemedi."}
@@ -160,7 +161,7 @@ export default function NexusTabContent() {
                   </p>
                   <Link
                     href="/dashboard/profile#bond-partner"
-                    className="mt-3 text-xs text-amber-200/80 underline-offset-2 hover:underline"
+                    className="mt-3 text-xs text-stone-300 underline-offset-2 hover:underline"
                   >
                     Profilden partner ekle
                   </Link>

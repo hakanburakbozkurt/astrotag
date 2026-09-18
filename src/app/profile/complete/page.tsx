@@ -104,10 +104,10 @@ export default function ProfileCompletePage() {
           className="w-full min-w-0 rounded-[28px] border border-white/10 bg-[#0f172a]/85 p-6 backdrop-blur-2xl sm:p-8"
         >
           <div className="text-center">
-            <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-amber-400/70">
+            <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-stone-300">
               Profil Tamamlama
             </p>
-            <h1 className="mt-2 bg-gradient-to-b from-white to-amber-200/80 bg-clip-text text-2xl font-bold tracking-tight text-transparent sm:text-3xl">
+            <h1 className="mt-2 bg-gradient-to-b from-white to-zinc-900 bg-clip-text text-2xl font-bold tracking-tight text-transparent sm:text-3xl">
               AstroTag
             </h1>
             <p className="mt-3 text-sm leading-relaxed text-white/45">

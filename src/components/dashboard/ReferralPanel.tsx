@@ -11,10 +11,10 @@ import { REFERRAL_STAR_POINTS_BONUS } from "@/lib/constants/cosmic";
 import { SupabaseActionError } from "@/lib/supabase-action-error";
 
 const tapButtonClass =
-  "min-h-11 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm font-medium text-amber-100 transition hover:bg-amber-400/20 disabled:cursor-not-allowed disabled:opacity-60";
+  "min-h-11 rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm font-medium text-stone-300 transition hover:bg-zinc-900 disabled:cursor-not-allowed disabled:opacity-60";
 
 const fieldClass =
-  "min-h-11 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-amber-400/30";
+  "min-h-11 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-zinc-700";
 
 export default function ReferralPanel() {
   const [info, setInfo] = useState<ReferralInfo | null>(null);
@@ -92,7 +92,7 @@ export default function ReferralPanel() {
       transition={{ delay: 0.2, duration: 0.5 }}
       className="mt-8 rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-xl sm:p-5"
     >
-      <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-amber-400/70">
+      <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-stone-300">
         Kozmik Paylaşım
       </p>
 
@@ -103,7 +103,7 @@ export default function ReferralPanel() {
           <div>
             <p className="text-xs text-white/45">Senin kodun</p>
             <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-              <p className="min-h-11 flex flex-1 items-center rounded-xl border border-amber-400/25 bg-amber-400/5 px-4 font-mono text-lg font-semibold tracking-wider text-amber-100">
+              <p className="min-h-11 flex flex-1 items-center rounded-xl border border-zinc-700 bg-zinc-900 px-4 font-mono text-lg font-semibold tracking-wider text-stone-300">
                 {info.referralCode}
               </p>
               <button
@@ -141,11 +141,11 @@ export default function ReferralPanel() {
             </form>
           )}
 
-          {message ? <p className="text-sm text-amber-200/80">{message}</p> : null}
-          {error ? <p className="text-sm text-red-300/80">{error}</p> : null}
+          {message ? <p className="text-sm text-stone-300">{message}</p> : null}
+          {error ? <p className="text-sm text-stone-400">{error}</p> : null}
         </div>
       ) : (
-        <p className="mt-3 text-sm text-red-300/80">{error ?? "Referans bilgisi alınamadı."}</p>
+        <p className="mt-3 text-sm text-stone-400">{error ?? "Referans bilgisi alınamadı."}</p>
       )}
     </motion.section>
   );

@@ -10,7 +10,7 @@ export const SOCIAL_COLORS = {
   background: "#0a0f1a",
   grid: "rgba(255,255,255,0.03)",
   amber: "#fbbf24",
-  amberMuted: "rgba(251,191,36,0.65)",
+  amberMuted: "rgba(255,255,255,0.08)",
   textPrimary: "rgba(255,255,255,0.92)",
   textSecondary: "rgba(255,255,255,0.62)",
   textMuted: "rgba(255,255,255,0.38)",

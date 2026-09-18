@@ -36,10 +36,10 @@ export default function MinorPointMarkers({
             className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center"
             style={{ left: `${leftPct}%`, top: `${topPct}%` }}
           >
-            <span className="flex h-5 w-5 items-center justify-center rounded-full border border-violet-300/35 bg-[#0f172a]/90 text-[9px] text-violet-100/90 shadow-[0_0_8px_rgba(167,139,250,0.25)]">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full border border-zinc-700 bg-[#0f172a]/90 text-[9px] text-stone-300 shadow-[0_0_8px_rgba(167,139,250,0.25)]">
               {point.symbol}
             </span>
-            <span className="mt-0.5 max-w-[3rem] truncate text-[6px] uppercase tracking-wide text-violet-200/55">
+            <span className="mt-0.5 max-w-[3rem] truncate text-[6px] uppercase tracking-wide text-stone-300">
               {point.name.split(" ")[0]}
             </span>
           </motion.div>

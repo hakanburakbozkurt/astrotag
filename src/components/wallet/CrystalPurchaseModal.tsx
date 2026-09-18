@@ -124,9 +124,9 @@ export default function CrystalPurchaseModal({
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 24, opacity: 0 }}
               onClick={(event) => event.stopPropagation()}
-              className="w-full max-w-md rounded-[24px] border border-violet-400/20 bg-[#0f172a] p-5 shadow-2xl"
+              className="w-full max-w-md rounded-[24px] border border-zinc-700 bg-[#0f172a] p-5 shadow-2xl"
             >
-              <p className="text-[10px] uppercase tracking-[0.28em] text-violet-300/70">
+              <p className="text-[10px] uppercase tracking-[0.28em] text-stone-300">
                 Kristal Paketleri
               </p>
               <p className="mt-2 text-sm text-white/55">
@@ -172,13 +172,13 @@ export default function CrystalPurchaseModal({
                           type="button"
                           disabled={busyId !== null || !checkoutConsentsReady}
                           onClick={() => void handlePurchase(pkg.id)}
-                          className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-left transition hover:border-violet-400/25 disabled:cursor-not-allowed disabled:opacity-60"
+                          className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-left transition hover:border-zinc-700 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           <div>
                             <p className="text-sm font-medium text-white/90">
                               {pkg.title}
                               {pkg.badge ? (
-                                <span className="ml-2 text-[10px] uppercase tracking-wider text-violet-300/80">
+                                <span className="ml-2 text-[10px] uppercase tracking-wider text-stone-300">
                                   {pkg.badge}
                                 </span>
                               ) : null}
@@ -187,7 +187,7 @@ export default function CrystalPurchaseModal({
                               {pkg.crystals} 🔮 Kristal
                             </p>
                           </div>
-                          <span className="font-mono text-sm text-violet-200">
+                          <span className="font-mono text-sm text-stone-300">
                             {busyId === pkg.id ? "…" : `₺${pkg.priceTry}`}
                           </span>
                         </button>
@@ -197,7 +197,7 @@ export default function CrystalPurchaseModal({
                 </>
               )}
 
-              {error ? <p className="mt-3 text-xs text-red-300/85">{error}</p> : null}
+              {error ? <p className="mt-3 text-xs text-stone-400">{error}</p> : null}
 
               <button
                 type="button"

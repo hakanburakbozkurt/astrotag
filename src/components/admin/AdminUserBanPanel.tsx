@@ -73,9 +73,9 @@ export default function AdminUserBanPanel() {
     <motion.section
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-[28px] border border-red-400/20 bg-red-950/10 p-5 backdrop-blur-2xl sm:p-6"
+      className="rounded-[28px] border border-zinc-700 bg-zinc-900 p-5 backdrop-blur-2xl sm:p-6"
     >
-      <p className="text-[10px] uppercase tracking-[0.3em] text-red-300/80">
+      <p className="text-[10px] uppercase tracking-[0.3em] text-stone-400">
         Admin · Hesap Yönetimi
       </p>
       <p className="mt-2 text-xs leading-relaxed text-white/45">
@@ -83,7 +83,7 @@ export default function AdminUserBanPanel() {
       </p>
 
       {error ? (
-        <p className="mt-3 rounded-lg border border-red-400/25 bg-red-950/30 px-3 py-2 text-xs text-red-200">
+        <p className="mt-3 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs text-stone-400">
           {error}
         </p>
       ) : null}
@@ -119,8 +119,8 @@ export default function AdminUserBanPanel() {
                   onClick={() => void handleToggle(user)}
                   className={`shrink-0 rounded-lg px-3 py-2 text-[10px] font-medium uppercase tracking-[0.14em] transition disabled:opacity-60 ${
                     suspended
-                      ? "border border-emerald-400/30 bg-emerald-500/10 text-emerald-100"
-                      : "border border-red-400/30 bg-red-500/10 text-red-100"
+                      ? "border border-zinc-700 bg-zinc-900 text-stone-300"
+                      : "border border-zinc-700 bg-zinc-900 text-stone-400"
                   }`}
                 >
                   {busy ? "..." : suspended ? "Aktifleştir" : "Askıya Al"}

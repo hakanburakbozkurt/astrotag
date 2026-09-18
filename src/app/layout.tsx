@@ -48,7 +48,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#070b14",
+  themeColor: "#09090b",
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
@@ -70,7 +70,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
       </head>
-      <body className="flex min-h-dvh flex-col overflow-y-auto bg-[#070b14] pb-[env(safe-area-inset-bottom,0px)] text-white">
+      <body className="flex min-h-dvh flex-col overflow-y-auto bg-black pb-[env(safe-area-inset-bottom,0px)] text-white">
         <RouterReadyProvider>
           <AppProviders>
             <AuthSessionBootstrap />

@@ -97,7 +97,7 @@ export default function ResetPasswordContent() {
         subtitle="Yeni şifrenizle giriş yapabilirsiniz."
       >
         <section className="auth-glass-card w-full p-6 text-center sm:p-8">
-          <p className="text-sm text-emerald-100">
+          <p className="text-sm text-stone-300">
             Şifreniz başarıyla güncellendi.
           </p>
           <Link href={AUTH_LOGIN_PATH} className={`${authPrimaryButtonClassName} mt-6 inline-flex`}>
@@ -149,7 +149,7 @@ export default function ResetPasswordContent() {
             {error ? (
               <p
                 role="alert"
-                className="rounded-xl border border-red-400/30 bg-red-950/40 px-4 py-3 text-sm text-red-100"
+                className="rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-stone-400"
               >
                 {error}
               </p>

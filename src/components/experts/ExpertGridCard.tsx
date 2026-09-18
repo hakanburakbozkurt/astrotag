@@ -21,7 +21,7 @@ export default function ExpertGridCard({
       aria-pressed={selected}
       className={`group flex h-full flex-col rounded-[22px] border p-3.5 text-left transition ${
         selected
-          ? "border-violet-400/35 bg-violet-500/[0.08] shadow-[0_0_24px_rgba(139,92,246,0.12)]"
+          ? "border-zinc-700 bg-zinc-900/0.08 shadow-[0_0_24px_rgba(255,255,255,0.06)]"
           : "border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.05]"
       }`}
     >
@@ -36,14 +36,14 @@ export default function ExpertGridCard({
           <p className="line-clamp-2 text-sm font-semibold leading-snug text-white/95">
             {expert.displayName}
           </p>
-          <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-amber-200/75">
+          <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-stone-300">
             {expert.title}
           </p>
         </div>
       </div>
 
       <div className="mt-3 space-y-1.5 border-t border-white/[0.06] pt-3">
-        <p className="line-clamp-1 text-[10px] uppercase tracking-[0.18em] text-violet-200/55">
+        <p className="line-clamp-1 text-[10px] uppercase tracking-[0.18em] text-stone-300">
           {expert.tradition}
         </p>
         <p className="text-xs text-white/45">

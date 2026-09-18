@@ -20,7 +20,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
   if (isStaleAction && !recoveryFailed) {
     return (
       <html lang="tr">
-        <body className="bg-[#070b14] text-white">
+        <body className="bg-zinc-950 text-white">
           <StaleActionRecovery onGiveUp={() => setRecoveryFailed(true)} />
         </body>
       </html>
@@ -29,9 +29,9 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
 
   return (
     <html lang="tr">
-      <body className="flex min-h-dvh items-center justify-center bg-[#070b14] px-6 text-white">
+      <body className="flex min-h-dvh items-center justify-center bg-zinc-950 px-6 text-white">
         <div className="w-full max-w-md text-center">
-          <p className="text-[10px] uppercase tracking-[0.28em] text-amber-400/70">
+          <p className="text-[10px] uppercase tracking-[0.28em] text-stone-300">
             Kozmik Kesinti
           </p>
           <h1 className="mt-3 text-xl font-semibold">Bir şeyler ters gitti</h1>
@@ -51,7 +51,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
             <button
               type="button"
               onClick={() => window.location.reload()}
-              className="rounded-xl bg-amber-500/95 px-5 py-2.5 text-sm font-medium text-[#0f172a]"
+              className="rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-medium text-[#0f172a]"
             >
               Sayfayı Yenile
             </button>

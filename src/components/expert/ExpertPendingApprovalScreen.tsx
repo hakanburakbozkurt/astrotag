@@ -18,9 +18,9 @@ export default function ExpertPendingApprovalScreen({
       <motion.div
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rounded-[24px] border border-amber-400/20 bg-gradient-to-br from-amber-500/[0.08] to-transparent p-4 backdrop-blur-xl"
+        className="rounded-[24px] border border-zinc-700 bg-gradient-to-br from-zinc-800/0.08 to-transparent p-4 backdrop-blur-xl"
       >
-        <p className="text-[10px] uppercase tracking-[0.28em] text-amber-300/75">
+        <p className="text-[10px] uppercase tracking-[0.28em] text-stone-300">
           Uzman Başvurusu
         </p>
         <p className="mt-2 text-sm text-white/80">
@@ -35,25 +35,25 @@ export default function ExpertPendingApprovalScreen({
     <motion.section
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="relative overflow-hidden rounded-[28px] border border-amber-400/20 bg-[#0f172a]/85 p-6 backdrop-blur-2xl sm:p-8"
+      className="relative overflow-hidden rounded-[28px] border border-zinc-700 bg-[#0f172a]/85 p-6 backdrop-blur-2xl sm:p-8"
     >
       <div
         className="pointer-events-none absolute inset-0 opacity-70"
         aria-hidden="true"
         style={{
           background:
-            "radial-gradient(ellipse at 50% 0%, rgba(251,191,36,0.12) 0%, transparent 55%)",
+            "radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.08) 0%, transparent 55%)",
         }}
       />
 
       <div className="relative text-center">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-amber-400/25 bg-amber-500/10">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900">
           <span className="text-xl" aria-hidden="true">
             ✦
           </span>
         </div>
 
-        <p className="mt-5 text-[10px] uppercase tracking-[0.32em] text-amber-300/80">
+        <p className="mt-5 text-[10px] uppercase tracking-[0.32em] text-stone-300">
           Onay Bekleniyor
         </p>
 

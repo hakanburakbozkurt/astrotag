@@ -56,7 +56,7 @@ export default function TarotTypewriterText({
       {isTyping ? (
         <span
           aria-hidden
-          className="ml-0.5 inline-block w-[2px] animate-pulse bg-amber-300/80 align-middle"
+          className="ml-0.5 inline-block w-[2px] animate-pulse bg-zinc-900 align-middle"
           style={{ height: "1em" }}
         />
       ) : null}

@@ -62,7 +62,7 @@ function WeeklyTransitMarkers({
         <div
           key={marker.id}
           className={`absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-full ${
-            marker.inSelectedSign ? "ring-2 ring-cyan-400/70" : "ring-1 ring-cyan-500/35"
+            marker.inSelectedSign ? "ring-2 ring-zinc-600" : "ring-1 ring-zinc-600"
           }`}
           style={{
             left: `${marker.leftPct}%`,
@@ -72,8 +72,8 @@ function WeeklyTransitMarkers({
           }}
           title={`${marker.zodiacDegree.toFixed(1)}°`}
         >
-          <PlanetIcon id={marker.id} size={PLANET_ICON_SIZE} className="text-cyan-300" />
-          <span className="mt-0.5 text-[7px] font-medium text-cyan-200/90 sm:text-[8px]">
+          <PlanetIcon id={marker.id} size={PLANET_ICON_SIZE} className="text-stone-300" />
+          <span className="mt-0.5 text-[7px] font-medium text-stone-300 sm:text-[8px]">
             {PLANET_SYMBOLS[marker.id]}
           </span>
         </div>

@@ -103,7 +103,7 @@ export default function ZodiacWheel({
         cy={CHART_CENTER}
         r={OUTER_RADIUS}
         fill="none"
-        stroke={isMaster ? "rgba(251,191,36,0.45)" : "rgba(251,191,36,0.35)"}
+        stroke={isMaster ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.08)"}
         strokeWidth={isMaster ? 1.75 : 1.5}
       />
       {isMaster ? (
@@ -121,14 +121,14 @@ export default function ZodiacWheel({
         cy={CHART_CENTER}
         r={INNER_RADIUS}
         fill={isMaster ? "rgba(15,23,42,0.72)" : "rgba(15,23,42,0.55)"}
-        stroke={isMaster ? "rgba(251,191,36,0.28)" : "rgba(251,191,36,0.2)"}
+        stroke={isMaster ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.08)"}
         strokeWidth={1}
       />
       <circle
         cx={CHART_CENTER}
         cy={CHART_CENTER}
         r={4}
-        fill="rgba(251,191,36,0.85)"
+        fill="rgba(255,255,255,0.08)"
       />
 
       {showAscMarker ? (
@@ -138,20 +138,20 @@ export default function ZodiacWheel({
             y1={CHART_CENTER}
             x2={CHART_CENTER + OUTER_RADIUS}
             y2={CHART_CENTER}
-            stroke="rgba(251,191,36,0.55)"
+            stroke="rgba(255,255,255,0.08)"
             strokeWidth={1.25}
             strokeDasharray="5 4"
           />
           <g aria-label="Yükselen burç">
             <polygon
               points={`${ascLeft},${CHART_CENTER} ${ascArrowTip},${CHART_CENTER - 7} ${ascArrowTip},${CHART_CENTER + 7}`}
-              fill="rgba(251,191,36,0.95)"
+              fill="rgba(255,255,255,0.08)"
             />
             <text
               x={ascLeft - 6}
               y={CHART_CENTER - 10}
               textAnchor="end"
-              className="fill-amber-300 text-[11px] font-bold tracking-[0.2em]"
+              className="fill-stone-300 text-[11px] font-bold tracking-[0.2em]"
             >
               ASC
             </text>
@@ -172,7 +172,7 @@ export default function ZodiacWheel({
             y1={CHART_CENTER}
             x2={x}
             y2={y}
-            stroke={isMaster ? "rgba(251,191,36,0.12)" : "rgba(255,255,255,0.08)"}
+            stroke={isMaster ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.08)"}
             strokeWidth={isMaster ? 1.15 : 1}
           />
         );
@@ -202,7 +202,7 @@ export default function ZodiacWheel({
                 y2={y2}
                 stroke={
                   isMajorTick
-                    ? "rgba(251,191,36,0.35)"
+                    ? "rgba(255,255,255,0.08)"
                     : "rgba(255,255,255,0.12)"
                 }
                 strokeWidth={isMajorTick ? 1.1 : 0.65}
@@ -255,7 +255,7 @@ export default function ZodiacWheel({
             y1={y1}
             x2={x2}
             y2={y2}
-            stroke="rgba(251,191,36,0.45)"
+            stroke="rgba(255,255,255,0.08)"
             strokeWidth={1.25}
           />
           <text
@@ -263,7 +263,7 @@ export default function ZodiacWheel({
             y={labelY}
             textAnchor="middle"
             dominantBaseline="middle"
-            className="fill-amber-200/70 text-[8px] font-medium tracking-wide sm:text-[9px]"
+            className="fill-stone-300 text-[8px] font-medium tracking-wide sm:text-[9px]"
           >
             {sign}
           </text>

@@ -59,7 +59,7 @@ export default function SignOutButton({
       type="button"
       onClick={() => void handleSignOut()}
       disabled={isSigningOut}
-      className={`inline-flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-white/55 transition hover:border-amber-400/25 hover:text-amber-100 disabled:opacity-50 ${className}`}
+      className={`inline-flex min-h-10 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-white/55 transition hover:border-zinc-700 hover:text-stone-300 disabled:opacity-50 ${className}`}
     >
       <LogOut className="h-3.5 w-3.5" aria-hidden />
       {isSigningOut ? "..." : compact ? "Çıkış" : "Çıkış Yap"}

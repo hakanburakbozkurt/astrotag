@@ -117,7 +117,7 @@ export default function CosmicRadarShareMenu({ payload }: CosmicRadarShareMenuPr
         aria-label="Paylaş"
         disabled={isBusy}
         onClick={() => setOpen((current) => !current)}
-        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-white/60 transition hover:border-amber-400/30 hover:text-amber-100 disabled:opacity-50"
+        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-white/60 transition hover:border-zinc-700 hover:text-stone-300 disabled:opacity-50"
       >
         <Share2 className="h-4 w-4" />
       </button>
@@ -143,7 +143,7 @@ export default function CosmicRadarShareMenu({ payload }: CosmicRadarShareMenuPr
                 onClick={() => void handleNativeShare()}
                 className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-xs text-white/80 hover:bg-white/[0.06] disabled:opacity-50"
               >
-                <Share2 className="h-3.5 w-3.5 text-amber-300/80" />
+                <Share2 className="h-3.5 w-3.5 text-stone-300" />
                 Paylaş
               </button>
               <button
@@ -152,7 +152,7 @@ export default function CosmicRadarShareMenu({ payload }: CosmicRadarShareMenuPr
                 onClick={() => void handleDownload()}
                 className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-xs text-white/80 hover:bg-white/[0.06] disabled:opacity-50"
               >
-                <Download className="h-3.5 w-3.5 text-amber-300/80" />
+                <Download className="h-3.5 w-3.5 text-stone-300" />
                 Görseli İndir
               </button>
               <button
@@ -160,7 +160,7 @@ export default function CosmicRadarShareMenu({ payload }: CosmicRadarShareMenuPr
                 onClick={() => void handleCopyText()}
                 className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-xs text-white/80 hover:bg-white/[0.06]"
               >
-                <Copy className="h-3.5 w-3.5 text-amber-300/80" />
+                <Copy className="h-3.5 w-3.5 text-stone-300" />
                 Metni Kopyala
               </button>
             </motion.div>
@@ -169,7 +169,7 @@ export default function CosmicRadarShareMenu({ payload }: CosmicRadarShareMenuPr
       </AnimatePresence>
 
       {status ? (
-        <p className="absolute right-0 top-full z-30 mt-1 w-40 text-right text-[9px] text-amber-300/70">
+        <p className="absolute right-0 top-full z-30 mt-1 w-40 text-right text-[9px] text-stone-300">
           {status}
         </p>
       ) : null}

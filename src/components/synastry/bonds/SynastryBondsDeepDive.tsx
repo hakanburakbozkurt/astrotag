@@ -29,7 +29,7 @@ export default function SynastryBondsDeepDive({
               key={aspect.id}
               className="rounded-xl border border-white/8 bg-white/[0.02] px-4 py-4"
             >
-              <h4 className="text-sm font-semibold leading-snug tracking-tight text-amber-50">
+              <h4 className="text-sm font-semibold leading-snug tracking-tight text-stone-300">
                 {aspect.aspectTitle}
               </h4>
               <p className="mt-2 text-sm leading-relaxed text-white/72">{aspect.planetEffect}</p>

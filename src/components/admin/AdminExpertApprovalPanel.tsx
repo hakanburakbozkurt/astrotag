@@ -70,9 +70,9 @@ export default function AdminExpertApprovalPanel() {
     <motion.section
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-[28px] border border-emerald-400/20 bg-emerald-950/10 p-5 backdrop-blur-2xl sm:p-6"
+      className="rounded-[28px] border border-zinc-700 bg-zinc-900 p-5 backdrop-blur-2xl sm:p-6"
     >
-      <p className="text-[10px] uppercase tracking-[0.3em] text-emerald-300/80">
+      <p className="text-[10px] uppercase tracking-[0.3em] text-stone-300">
         Admin · Uzman Onayları
       </p>
       <p className="mt-2 text-xs text-white/45">
@@ -83,8 +83,8 @@ export default function AdminExpertApprovalPanel() {
         <p className="mt-4 text-sm text-white/40">Başvurular yükleniyor…</p>
       ) : null}
 
-      {error ? <p className="mt-4 text-sm text-red-300/85">{error}</p> : null}
-      {message ? <p className="mt-4 text-sm text-emerald-300/85">{message}</p> : null}
+      {error ? <p className="mt-4 text-sm text-stone-400">{error}</p> : null}
+      {message ? <p className="mt-4 text-sm text-stone-300">{message}</p> : null}
 
       {!loading && experts.length === 0 ? (
         <p className="mt-4 text-sm text-white/40">Bekleyen uzman başvurusu yok.</p>
@@ -116,7 +116,7 @@ export default function AdminExpertApprovalPanel() {
                 type="button"
                 disabled={pendingId === expert.expertProfileId}
                 onClick={() => void handleApprove(expert)}
-                className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-2 text-[11px] uppercase tracking-wider text-emerald-100 disabled:opacity-50"
+                className="rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-2 text-[11px] uppercase tracking-wider text-stone-300 disabled:opacity-50"
               >
                 {pendingId === expert.expertProfileId
                   ? "Onaylanıyor…"

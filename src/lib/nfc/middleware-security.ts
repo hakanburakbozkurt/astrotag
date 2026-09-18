@@ -9,12 +9,11 @@ import {
   AUTH_CALLBACK_PATH,
   AUTH_LOGIN_PATH,
   CARD_ENTRY_PREFIX,
-  DASHBOARD_PATH,
   HOME_PATH,
   NFC_ENTER_PATH,
   NFC_LOGIN_PATH,
-  PROFILE_COMPLETE_PATH,
   PROFILE_SETUP_PATH,
+  PROTECTED_PATH_PREFIXES,
   PUBLIC_PATHS,
   PUBLIC_PROFILE_PREFIX,
   REGISTRATION_COMPLETE_PATH,
@@ -84,12 +83,12 @@ export function isProtectedPath(pathname: string): boolean {
     return false;
   }
 
+  if (PROTECTED_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
+    return true;
+  }
+
   return (
-    pathname.startsWith(DASHBOARD_PATH) ||
-    pathname === PROFILE_COMPLETE_PATH ||
-    pathname === PROFILE_SETUP_PATH ||
-    pathname === REGISTRATION_COMPLETE_PATH ||
-    pathname.startsWith("/api/ai")
+    pathname === PROFILE_SETUP_PATH || pathname === REGISTRATION_COMPLETE_PATH
   );
 }
 

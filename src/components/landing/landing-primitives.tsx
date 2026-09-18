@@ -19,7 +19,7 @@ export function LandingSection({
   return (
     <section
       id={id}
-      className={`${LANDING_SECTION_CLASS} ${bordered ? "border-b border-white/[0.06]" : ""} ${className}`.trim()}
+      className={`${LANDING_SECTION_CLASS} ${bordered ? "border-b border-zinc-800" : ""} ${className}`.trim()}
     >
       <div className={LANDING_CONTAINER_CLASS}>{children}</div>
     </section>
@@ -65,8 +65,8 @@ interface GlassCardProps {
 export function GlassCard({ children, className = "", spotlight = false }: GlassCardProps) {
   return (
     <div
-      className={`landing-glass rounded-[28px] p-5 backdrop-blur-xl sm:p-6 ${
-        spotlight ? "landing-spotlight-card border-amber-300/40 bg-gradient-to-br from-amber-400/[0.12] via-white/[0.03] to-violet-950/20" : ""
+      className={`landing-glass p-5 sm:p-6 ${
+        spotlight ? "landing-spotlight-card border-zinc-700 bg-zinc-900" : ""
       } ${className}`.trim()}
     >
       {children}

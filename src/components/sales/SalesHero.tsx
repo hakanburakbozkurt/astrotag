@@ -27,11 +27,11 @@ export default function SalesHero() {
       >
         <div className="relative w-full max-w-2xl">
           <div
-            className="pointer-events-none absolute -inset-3 rounded-3xl bg-[radial-gradient(ellipse_at_center,rgba(245,158,11,0.2),transparent_70%)] blur-md"
+            className="pointer-events-none absolute -inset-3 rounded-3xl bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.06),transparent_70%)] blur-md"
             aria-hidden
           />
           <div
-            className="relative w-full overflow-hidden rounded-2xl border border-amber-400/15 bg-gradient-to-b from-[#0f172a] to-[#070b14] shadow-[0_16px_48px_rgba(0,0,0,0.45)]"
+            className="relative w-full overflow-hidden rounded-2xl border border-zinc-700 bg-gradient-to-b from-[#0f172a] to-[#09090b] shadow-[0_16px_48px_rgba(0,0,0,0.45)]"
             style={{ aspectRatio: LUXURY_SHOWCASE_ASPECT_RATIO }}
           >
             <Image
@@ -47,7 +47,7 @@ export default function SalesHero() {
         </div>
 
         <div className="max-w-xl px-1">
-          <p className="font-mono text-[10px] uppercase tracking-[0.34em] text-amber-400/75">
+          <p className="font-mono text-[10px] uppercase tracking-[0.34em] text-stone-300">
             Journey Beyond Earth
           </p>
           <h1 className="mt-3 text-2xl font-bold leading-tight tracking-tight text-white sm:text-3xl md:text-4xl">

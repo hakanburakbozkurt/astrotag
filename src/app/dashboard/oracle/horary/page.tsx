@@ -14,8 +14,19 @@ import { runHoraryReading } from "@/lib/actions/horary-reading";
 import { getStarPoints } from "@/lib/supabase-actions";
 import { STAR_POINTS_UPDATED_EVENT } from "@/lib/energy-events";
 import OracleModuleErrorBoundary from "@/components/oracle/OracleModuleErrorBoundary";
+import {
+  compactEyebrowClass,
+  compactPageClass,
+  compactPageTitleClass,
+  compactSectionClass,
+} from "@/components/navigation/compact-ui";
 import { ORACLE_COSMIC_DATA_ERROR, logOracleModuleError } from "@/lib/oracle/oracle-errors";
 import { PROFILE_SETUP_PATH } from "@/lib/nfc/constants";
+import {
+  noirBodyClass,
+  noirPrimaryButtonClass,
+  noirSecondaryButtonClass,
+} from "@/lib/theme/noir-tokens";
 
 const ORACLE_ROOT = "/dashboard/oracle";
 const HORARY_ERROR_MESSAGE = ORACLE_COSMIC_DATA_ERROR;
@@ -26,12 +37,12 @@ function HorarySpinner() {
       <motion.div
         animate={{ rotate: 360 }}
         transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }}
-        className="h-10 w-10 rounded-full border-2 border-amber-400/15 border-t-amber-400/80"
+        className="h-10 w-10 rounded-full border-2 border-zinc-800 border-t-stone-400"
       />
       <motion.p
         animate={{ opacity: [0.4, 1, 0.4] }}
         transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-        className="text-sm tracking-wide text-amber-200/70"
+        className="text-sm tracking-wide text-stone-500"
       >
         Yıldızlar hizalanıyor...
       </motion.p>
@@ -130,12 +141,12 @@ export default function HoraryPage() {
   if (profileStatus === "error" || profileStatus === "empty" || !userData) {
     return (
       <div className="relative mx-auto flex max-w-md flex-1 flex-col items-center justify-center px-4 py-16 text-center">
-        <p className="text-sm text-white/60">
+        <p className="text-sm text-stone-500">
           {profileError ?? "Profil bilgileri bulunamadı."}
         </p>
         <Link
           href="/dashboard"
-          className="mt-6 text-xs uppercase tracking-[0.25em] text-amber-400/70"
+          className={`mt-6 ${noirSecondaryButtonClass} w-auto px-5`}
         >
           Ana Sayfa
         </Link>
@@ -145,7 +156,7 @@ export default function HoraryPage() {
 
   return (
     <OracleModuleErrorBoundary module="horary">
-      <div className="relative mx-auto max-w-xl px-4 pb-8 pt-6 sm:px-6 sm:pt-8">
+      <div className={compactPageClass}>
       <SubPageNav backHref="/dashboard" closeHref="/dashboard/natal" />
 
       <motion.header
@@ -154,13 +165,11 @@ export default function HoraryPage() {
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         className="mb-6"
       >
-        <p className="text-[10px] font-medium uppercase tracking-[0.35em] text-amber-400/60">
-          Horary Astrology
-        </p>
-        <h1 className="mt-2 bg-gradient-to-b from-white to-amber-200/80 bg-clip-text text-2xl font-bold tracking-tight text-transparent sm:text-3xl">
+        <p className={compactEyebrowClass}>Horary Astrology</p>
+        <h1 className={`${compactPageTitleClass} text-stone-100`}>
           Anlık Kozmik Soru
         </h1>
-        <p className="mt-3 text-sm text-white/40">
+        <p className="mt-3 text-sm text-stone-500">
           Kullanılabilir Yıldız: {starPoints}
         </p>
       </motion.header>
@@ -169,14 +178,12 @@ export default function HoraryPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-        className="rounded-[28px] border border-white/10 bg-[#0f172a]/80 p-5 backdrop-blur-2xl sm:p-6"
+        className={`${compactSectionClass} p-5 sm:p-6`}
       >
         {!hasSubmitted || (!isLoading && !answer && error) ? (
           <form onSubmit={(event) => void handleSubmit(event)} className="space-y-4">
             <label htmlFor="horary-question" className="block">
-              <span className="text-[10px] uppercase tracking-[0.25em] text-amber-400/70">
-                Sorunuz
-              </span>
+              <span className="text-xs text-stone-300">Sorunuz</span>
               <textarea
                 id="horary-question"
                 value={question}
@@ -184,11 +191,11 @@ export default function HoraryPage() {
                 rows={4}
                 placeholder="Örn: Bu teklif kabul edilmeli mi?"
                 disabled={isLoading}
-                className="mt-2 w-full resize-none rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-white/25 outline-none transition focus:border-amber-400/30"
+                className="mt-2 w-full resize-none rounded-sm border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-stone-300 outline-none transition placeholder:text-stone-500 focus:border-zinc-600"
               />
             </label>
 
-            {error ? <p className="text-sm text-red-300/80">{error}</p> : null}
+            {error ? <p className="text-sm text-stone-500">{error}</p> : null}
 
             <button
               type="submit"
@@ -197,7 +204,7 @@ export default function HoraryPage() {
                 !question.trim() ||
                 starPoints < STAR_POINTS_COST_PER_ACTION
               }
-              className="w-full rounded-xl border border-amber-400/30 bg-amber-400/10 px-5 py-3 text-sm font-medium text-amber-100 transition hover:bg-amber-400/20 disabled:cursor-not-allowed disabled:opacity-60"
+              className={noirPrimaryButtonClass}
             >
               Yıldızlara Sor (−1 Yıldız)
             </button>
@@ -214,9 +221,7 @@ export default function HoraryPage() {
             className="space-y-4"
           >
             <div className="flex items-start justify-between gap-3">
-              <p className="text-[10px] uppercase tracking-[0.25em] text-amber-400/70">
-                Kozmik Yanıt
-              </p>
+              <p className="text-xs text-stone-300">Kozmik Yanıt</p>
               <ShareButton
                 executiveSummary={splitLegacyAnalysisText(answer).executiveSummary}
                 moduleId="horary"
@@ -224,7 +229,7 @@ export default function HoraryPage() {
                 content={{ question: question.trim() || undefined }}
               />
             </div>
-            <p className="whitespace-pre-wrap text-sm leading-relaxed text-white/80">
+            <p className={`whitespace-pre-wrap ${noirBodyClass}`}>
               {answer}
             </p>
             <button
@@ -235,7 +240,7 @@ export default function HoraryPage() {
                 setQuestion("");
                 setError(null);
               }}
-              className="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/70 transition hover:border-amber-400/25 hover:text-amber-100"
+              className={noirSecondaryButtonClass}
             >
               Yeni Soru Sor
             </button>

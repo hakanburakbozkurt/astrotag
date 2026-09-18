@@ -8,6 +8,7 @@ import {
   compactLabelClass,
 } from "@/components/navigation/compact-ui";
 import CosmicRadarShareMenu from "@/components/cosmic-radar/CosmicRadarShareMenu";
+import CautionItemsList from "@/components/astrology/CautionItemsList";
 import TransitDataAccordion from "./TransitDataAccordion";
 
 interface WeeklyAnalysisContentPanelProps {
@@ -44,7 +45,7 @@ export default function WeeklyAnalysisContentPanel({
               <h3 className="break-words text-sm font-semibold text-white">
                 Haftalık Özet
               </h3>
-              <p className="mt-1 text-xs font-medium text-amber-200/75">
+              <p className="mt-1 text-xs font-medium text-stone-300">
                 {content.dateRangeLabel}
               </p>
             </div>
@@ -102,11 +103,9 @@ export default function WeeklyAnalysisContentPanel({
 
         {/* Uyarı alanı */}
         <article
-          className={`rounded-[20px] border p-3 sm:p-4 ${
-            content.caution.highlight
-              ? "border-red-400/30 bg-red-950/25"
-              : "border-amber-400/15 bg-amber-950/10"
-          } min-w-0`}
+          className={`rounded-sm border border-zinc-800 bg-zinc-900 p-3 sm:p-4 min-w-0 ${
+            content.caution.highlight ? "border-zinc-700" : ""
+          }`}
         >
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
@@ -124,9 +123,9 @@ export default function WeeklyAnalysisContentPanel({
               }}
             />
           </div>
-          <p className="mt-3 break-words whitespace-pre-wrap text-sm leading-relaxed text-white/72">
-            {content.caution.body}
-          </p>
+          <div className="mt-3">
+            <CautionItemsList body={content.caution.body} />
+          </div>
         </article>
       </motion.div>
     </AnimatePresence>

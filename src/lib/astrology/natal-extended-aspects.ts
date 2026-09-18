@@ -78,7 +78,7 @@ export function calculateExtendedAspectsForBodies(
 }
 
 export const EXTENDED_ASPECT_COLORS: Record<ExtendedAspectType, string> = {
-  conjunction: "rgba(251,191,36,0.75)",
+  conjunction: "rgba(255,255,255,0.08)",
   trine: "rgba(59,130,246,0.7)",
   square: "rgba(239,68,68,0.72)",
   opposition: "rgba(168,85,247,0.68)",

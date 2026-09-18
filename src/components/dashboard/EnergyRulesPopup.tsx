@@ -101,7 +101,7 @@ export function EnergyRulesPopup({
                 backgroundSize: "100% 3px",
               }}
             >
-              <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-amber-400/80">
+              <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-stone-300">
                 SYS · STAR_POINTS_RULES
               </p>
               <h2
@@ -120,7 +120,7 @@ export function EnergyRulesPopup({
                     className="mb-4 flex gap-3 border-b border-white/[0.05] pb-4 leading-[1.75] last:mb-0 last:border-0 last:pb-0"
                   >
                     <span
-                      className="shrink-0 font-mono text-[10px] tabular-nums text-amber-400/50"
+                      className="shrink-0 font-mono text-[10px] tabular-nums text-stone-300"
                       aria-hidden
                     >
                       {String(index + 1).padStart(2, "0")}
@@ -135,7 +135,7 @@ export function EnergyRulesPopup({
               <button
                 type="button"
                 onClick={onClose}
-                className="w-full rounded-lg border border-white/10 py-2.5 font-mono text-[10px] uppercase tracking-[0.2em] text-white/50 transition hover:border-amber-400/25 hover:text-amber-100"
+                className="w-full rounded-lg border border-white/10 py-2.5 font-mono text-[10px] uppercase tracking-[0.2em] text-white/50 transition hover:border-zinc-700 hover:text-stone-300"
               >
                 Kapat
               </button>

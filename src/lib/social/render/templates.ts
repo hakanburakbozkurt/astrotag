@@ -41,7 +41,7 @@ export async function renderShareTemplate(
 export async function renderBrandCardFrame(ctx: CanvasRenderingContext2D): Promise<void> {
   drawSocialBackground(ctx);
 
-  ctx.fillStyle = "rgba(251,191,36,0.95)";
+  ctx.fillStyle = "rgba(255,255,255,0.08)";
   ctx.font = "700 72px ui-monospace, monospace";
   ctx.textAlign = "center";
   ctx.fillText("astrotag.app", SOCIAL_CANVAS_WIDTH / 2, SOCIAL_CANVAS_HEIGHT / 2 - 24);

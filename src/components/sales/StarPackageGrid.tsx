@@ -34,20 +34,20 @@ function StarPackageCard({ product, index, onPurchase, onGift }: StarPackageCard
   return (
     <SalesMotion transition={{ delay: index * 0.04 }} className={`relative flex flex-col rounded-[24px] border p-5 backdrop-blur-xl sm:p-6 ${
         isSpotlight
-          ? "sales-spotlight-card col-span-full overflow-hidden border-amber-300/45 bg-gradient-to-br from-amber-400/[0.14] via-[#0f172a]/90 to-violet-950/40 shadow-[0_0_80px_rgba(251,191,36,0.22)] sm:p-8 lg:flex-row lg:items-stretch lg:gap-8"
+          ? "sales-spotlight-card col-span-full overflow-hidden border-zinc-700 bg-gradient-to-br from-zinc-800/0.14 via-[#0f172a]/90 to-zinc-900 shadow-[0_0_80px_rgba(255,255,255,0.08)] sm:p-8 lg:flex-row lg:items-stretch lg:gap-8"
           : isFeatured
-            ? "border-amber-400/35 bg-amber-400/[0.08] shadow-[0_0_40px_rgba(251,191,36,0.12)]"
+            ? "border-zinc-700 bg-zinc-900/0.08 shadow-[0_0_40px_rgba(255,255,255,0.08)]"
             : "border-white/10 bg-[#0f172a]/72"
       }`}
     >
       {isSpotlight ? (
         <>
           <div
-            className="pointer-events-none absolute -left-20 top-1/2 h-56 w-56 -translate-y-1/2 rounded-full bg-amber-400/20 blur-3xl"
+            className="pointer-events-none absolute -left-20 top-1/2 h-56 w-56 -translate-y-1/2 rounded-full bg-zinc-900 blur-3xl"
             aria-hidden
           />
           <div
-            className="pointer-events-none absolute -right-16 -top-10 h-48 w-48 rounded-full bg-violet-400/15 blur-3xl"
+            className="pointer-events-none absolute -right-16 -top-10 h-48 w-48 rounded-full bg-zinc-900 blur-3xl"
             aria-hidden
           />
         </>
@@ -58,8 +58,8 @@ function StarPackageCard({ product, index, onPurchase, onGift }: StarPackageCard
           <span
             className={`mb-3 inline-flex w-fit rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.14em] ${
               isSpotlight
-                ? "border-amber-200/40 bg-amber-300/15 text-amber-50"
-                : "border-amber-400/30 bg-amber-400/10 text-amber-100"
+                ? "border-zinc-700 bg-zinc-900 text-stone-300"
+                : "border-zinc-700 bg-zinc-900 text-stone-300"
             }`}
           >
             {product.badge}
@@ -81,7 +81,7 @@ function StarPackageCard({ product, index, onPurchase, onGift }: StarPackageCard
           </div>
           <div className={isSpotlight ? "sm:text-right" : undefined}>
             <p
-              className={`font-semibold tabular-nums text-amber-200/90 ${isSpotlight ? "text-3xl sm:text-4xl" : "text-lg"}`}
+              className={`font-semibold tabular-nums text-stone-300 ${isSpotlight ? "text-3xl sm:text-4xl" : "text-lg"}`}
             >
               {product.priceLabel}
             </p>
@@ -102,10 +102,10 @@ function StarPackageCard({ product, index, onPurchase, onGift }: StarPackageCard
           onClick={() => onPurchase(product)}
           className={`${SALES_CTA_PRIMARY_CLASS} ${
             isSpotlight
-              ? "bg-gradient-to-r from-amber-300 to-amber-400 text-[#0f172a] shadow-[0_0_32px_rgba(251,191,36,0.35)] hover:from-amber-200 hover:to-amber-300"
+              ? "bg-gradient-to-r from-zinc-800 to-zinc-900 text-[#0f172a] shadow-[0_0_32px_rgba(255,255,255,0.08)] hover:from-zinc-800 hover:to-zinc-900"
               : isFeatured
-                ? "bg-amber-400/95 text-[#0f172a] hover:bg-amber-300"
-                : "border border-amber-400/25 bg-amber-400/10 text-amber-100 hover:bg-amber-400/18"
+                ? "bg-zinc-900 text-[#0f172a] hover:bg-zinc-900"
+                : "border border-zinc-700 bg-zinc-900 text-stone-300 hover:bg-zinc-900"
           }`}
         >
           {SALES_CTA_LABEL}
@@ -126,7 +126,7 @@ export default function StarPackageGrid() {
   return (
     <section id="yildiz-paketleri" className={`${SALES_SECTION_CLASS} border-b border-white/[0.06]`}>
       <div className="mx-auto max-w-5xl">
-        <p className="sales-kicker text-[10px] uppercase tracking-[0.3em] text-amber-400/70">
+        <p className="sales-kicker text-[10px] uppercase tracking-[0.3em] text-stone-300">
           Yıldız Paketleri
         </p>
         <h2 className="mt-2 text-2xl font-bold tracking-tight text-white sm:text-3xl">

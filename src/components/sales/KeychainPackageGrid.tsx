@@ -67,9 +67,9 @@ function KeychainPackageCard({
         }}
         className={`relative flex h-full cursor-pointer flex-col rounded-[24px] border p-5 backdrop-blur-xl transition sm:p-6 ${
           isVip
-            ? "border-2 border-amber-500 bg-gradient-to-br from-amber-400/[0.1] via-[#0f172a]/90 to-[#0f172a]/95 shadow-2xl"
+            ? "border-2 border-zinc-700 bg-gradient-to-br from-zinc-800/0.1 via-[#0f172a]/90 to-[#0f172a]/95 shadow-2xl"
             : selected
-              ? "border-amber-400/45 bg-amber-400/[0.07] shadow-[0_0_36px_rgba(251,191,36,0.14)]"
+              ? "border-zinc-700 bg-zinc-900/0.07 shadow-[0_0_36px_rgba(255,255,255,0.08)]"
               : "border-white/10 bg-[#0f172a]/72 hover:border-white/18"
         }`}
       >
@@ -77,8 +77,8 @@ function KeychainPackageCard({
           <span
             className={`mb-3 inline-flex w-fit rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.14em] ${
               isVip
-                ? "border-amber-300/50 bg-amber-400/15 text-amber-100"
-                : "border-amber-400/30 bg-amber-400/10 text-amber-100"
+                ? "border-zinc-700 bg-zinc-900 text-stone-300"
+                : "border-zinc-700 bg-zinc-900 text-stone-300"
             }`}
           >
             {bundle.badge}
@@ -95,7 +95,7 @@ function KeychainPackageCard({
             </h3>
           </div>
           <p
-            className={`shrink-0 font-semibold tabular-nums text-amber-200/90 ${isVip ? "text-2xl" : "text-lg"}`}
+            className={`shrink-0 font-semibold tabular-nums text-stone-300 ${isVip ? "text-2xl" : "text-lg"}`}
           >
             {bundle.priceLabel}
           </p>
@@ -103,13 +103,13 @@ function KeychainPackageCard({
 
         <p className="mt-2 flex-1 text-sm leading-relaxed text-white/50">{bundle.description}</p>
 
-        <p className="mt-4 text-sm font-bold text-emerald-400">
+        <p className="mt-4 text-sm font-bold text-stone-300">
           Toplamda {bundle.giftStars.toLocaleString("tr-TR")} adet Hediye Yıldız Kazanın!
         </p>
 
         <p
           className={`mt-2 text-xs font-semibold uppercase tracking-[0.12em] ${
-            bundle.freeShipping ? "text-emerald-400" : "text-white/45"
+            bundle.freeShipping ? "text-stone-300" : "text-white/45"
           }`}
         >
           {bundle.shippingNote}
@@ -122,8 +122,8 @@ function KeychainPackageCard({
             disabled={selected && !zodiacReady}
             className={`${SALES_CTA_PRIMARY_CLASS} disabled:cursor-not-allowed disabled:opacity-45 ${
               isVip
-                ? "bg-gradient-to-r from-amber-300 to-amber-400 text-[#0f172a] hover:from-amber-200 hover:to-amber-300"
-                : "bg-amber-400/95 text-[#0f172a] hover:bg-amber-300"
+                ? "bg-gradient-to-r from-zinc-800 to-zinc-900 text-[#0f172a] hover:from-zinc-800 hover:to-zinc-900"
+                : "bg-zinc-900 text-[#0f172a] hover:bg-zinc-900"
             }`}
           >
             {SALES_CTA_LABEL}
@@ -230,7 +230,7 @@ export default function KeychainPackageGrid() {
   return (
     <section id="anahtarlik-paketleri" className={SALES_SECTION_CLASS}>
       <div className="mx-auto max-w-5xl">
-        <p className="sales-kicker text-[10px] uppercase tracking-[0.3em] text-amber-400/70">
+        <p className="sales-kicker text-[10px] uppercase tracking-[0.3em] text-stone-300">
           NFC Anahtarlık Paketleri
         </p>
         <h2 className="mt-2 text-2xl font-bold tracking-tight text-white sm:text-3xl">

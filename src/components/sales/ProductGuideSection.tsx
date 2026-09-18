@@ -36,7 +36,7 @@ function GuideAccordionItem({
         aria-expanded={isOpen}
         aria-controls={`guide-panel-${id}`}
         onClick={onToggle}
-        className="flex min-h-14 w-full items-start justify-between gap-4 py-6 text-left transition-colors duration-200 hover:text-amber-50 sm:min-h-16 sm:py-8"
+        className="flex min-h-14 w-full items-start justify-between gap-4 py-6 text-left transition-colors duration-200 hover:text-stone-300 sm:min-h-16 sm:py-8"
       >
         <span className="pr-2 text-lg font-semibold leading-snug tracking-tight text-white sm:text-xl md:text-2xl">
           {title}
@@ -44,7 +44,7 @@ function GuideAccordionItem({
         <span
           className={`mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition-[border-color,background-color,transform] duration-300 ${
             isOpen
-              ? "border-amber-400/35 bg-amber-400/10 text-amber-200"
+              ? "border-zinc-700 bg-zinc-900 text-stone-300"
               : "border-white/10 bg-white/[0.03] text-white/45"
           }`}
           aria-hidden
@@ -90,7 +90,7 @@ export default function ProductGuideSection() {
       className={`${SALES_SECTION_CLASS} border-b border-white/[0.06]`}
     >
       <div className="mx-auto max-w-3xl">
-        <p className="sales-kicker font-mono text-[10px] uppercase tracking-[0.34em] text-amber-400/70">
+        <p className="sales-kicker font-mono text-[10px] uppercase tracking-[0.34em] text-stone-300">
           Ürün Rehberi ve Güven Merkezi
         </p>
         <h2 className="mt-3 text-2xl font-bold tracking-tight text-white sm:text-3xl md:text-4xl md:leading-tight">

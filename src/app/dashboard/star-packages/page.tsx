@@ -17,7 +17,7 @@ export default function StarPackagesPage() {
         backLabel="Oracle"
       />
 
-      <p className="text-[10px] uppercase tracking-[0.3em] text-amber-400/70">
+      <p className="text-[10px] uppercase tracking-[0.3em] text-stone-300">
         Yıldız Ekonomisi
       </p>
       <h1 className="mt-2 text-2xl font-bold text-white">Yıldız Paketi</h1>
@@ -41,8 +41,8 @@ export default function StarPackagesPage() {
         </ul>
       </section>
 
-      <section className="mt-4 rounded-[28px] border border-amber-400/20 bg-amber-400/[0.06] p-5">
-        <h2 className="text-sm font-semibold text-amber-100">Premium Yıldız</h2>
+      <section className="mt-4 rounded-[28px] border border-zinc-700 bg-zinc-900/0.06 p-5">
+        <h2 className="text-sm font-semibold text-stone-300">Premium Yıldız</h2>
         <p className="mt-2 text-sm leading-relaxed text-white/55">
           Fiziksel AstroTag anahtarlık ve premium paketler için resmi mağazayı ziyaret edin.
         </p>
@@ -50,7 +50,7 @@ export default function StarPackagesPage() {
           href={NFC_SHOP_URL}
           target={NFC_SHOP_URL.startsWith("http") ? "_blank" : undefined}
           rel={NFC_SHOP_URL.startsWith("http") ? "noopener noreferrer" : undefined}
-          className="mt-4 inline-flex rounded-xl bg-amber-400/90 px-5 py-2.5 text-sm font-semibold text-[#0f172a] hover:bg-amber-300"
+          className="mt-4 inline-flex rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-[#0f172a] hover:bg-zinc-900"
         >
           Mağazaya Git
         </Link>

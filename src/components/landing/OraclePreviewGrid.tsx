@@ -27,7 +27,7 @@ export default function OraclePreviewGrid() {
           return (
             <SalesMotion key={feature.id} transition={{ delay: index * 0.06 }}>
               <GlassCard className="flex gap-4">
-                <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-amber-400/20 bg-amber-400/[0.08] text-amber-200/90">
+                <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-zinc-700 bg-zinc-900/0.08 text-stone-300">
                   <Icon className="h-5 w-5" aria-hidden />
                 </span>
                 <div className="min-w-0 flex-1">

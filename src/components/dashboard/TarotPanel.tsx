@@ -22,15 +22,22 @@ import CosmicAccuracyBadge from "@/components/social-proof/CosmicAccuracyBadge";
 import type { AnalysisUiStatus, OracleAnalysisPresentation } from "@/lib/analysis/types";
 import { TAROT_SPREAD_POSITIONS } from "@/lib/tarot/share-content";
 import { tarotDeck } from "@/data/deck";
-
-const RITUAL_GAP_MS = 1750;
+import TarotQuickDrawBar from "@/components/tarot/TarotQuickDrawBar";
+import { pickRandomSpreadIds } from "@/lib/tarot/random-spread";
+import {
+  TAROT_QUICK_RITUAL_GAP_MS,
+  TAROT_RITUAL_GAP_MS,
+} from "@/lib/tarot/tarot-panel-ui";
+import { noirSecondaryButtonClass } from "@/lib/theme/noir-tokens";
 
 interface TarotPanelProps {
   user: UserData;
   onClose: () => void;
+  layout?: "modal" | "inline";
 }
 
-export default function TarotPanel({ onClose }: TarotPanelProps) {
+export default function TarotPanel({ onClose, layout = "modal" }: TarotPanelProps) {
+  const isInline = layout === "inline";
   const [question, setQuestion] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [revealedCount, setRevealedCount] = useState(0);
@@ -49,6 +56,9 @@ export default function TarotPanel({ onClose }: TarotPanelProps) {
   const [detailsUnlocked, setDetailsUnlocked] = useState(false);
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [unlockError, setUnlockError] = useState<string | null>(null);
+  const [drawMode, setDrawMode] = useState<"manual" | "quick">("manual");
+  const [manualDeckOpen, setManualDeckOpen] = useState(false);
+  const [autoInterpretPending, setAutoInterpretPending] = useState(false);
 
   const resetUnlock = useCallback(() => {
     setDetailsUnlocked(false);
@@ -96,6 +106,8 @@ export default function TarotPanel({ onClose }: TarotPanelProps) {
     setRitualFocusIndex(0);
     setRitualComplete(false);
 
+    const ritualGap = drawMode === "quick" ? TAROT_QUICK_RITUAL_GAP_MS : TAROT_RITUAL_GAP_MS;
+
     for (let index = 0; index < TAROT_SPREAD_SIZE; index += 1) {
       scheduleRitualTimer(() => {
         setRitualFocusIndex(index);
@@ -110,11 +122,11 @@ export default function TarotPanel({ onClose }: TarotPanelProps) {
             setRitualComplete(true);
           }, FLIP_DURATION * 1000);
         }
-      }, RITUAL_GAP_MS * (index + 1));
+      }, ritualGap * (index + 1));
     }
 
     return clearRitualTimers;
-  }, [clearRitualTimers, presentation, scheduleRitualTimer, selectedIds]);
+  }, [clearRitualTimers, drawMode, presentation, scheduleRitualTimer, selectedIds]);
 
   const handleSelectCard = (cardId: string) => {
     if (isInterpreting || presentation || ritualActive) return;
@@ -129,7 +141,7 @@ export default function TarotPanel({ onClose }: TarotPanelProps) {
     setValidationHint(null);
   };
 
-  const handleInterpret = async () => {
+  const handleInterpret = useCallback(async () => {
     if (isInterpreting) return;
 
     setValidationHint(null);
@@ -156,9 +168,13 @@ export default function TarotPanel({ onClose }: TarotPanelProps) {
     setAnalysisStatus("loading");
 
     try {
+      const cards = selectedIds
+        .map((id) => getTarotCardById(id))
+        .filter((card): card is TarotCardDefinition => Boolean(card));
+
       const result = await interpretTarotSpread({
         question: question.trim(),
-        cards: selectedCards.map((card, index) => ({
+        cards: cards.map((card, index) => ({
           id: card.id,
           name: card.name,
           position: TAROT_SPREAD_POSITIONS[index],
@@ -186,7 +202,43 @@ export default function TarotPanel({ onClose }: TarotPanelProps) {
       setAnalysisStatus("error");
       setAnalysisError(TAROT_ACTION_ERROR_MESSAGE);
     }
-  };
+  }, [isInterpreting, question, resetUnlock, ritualComplete, selectedIds]);
+
+  useEffect(() => {
+    if (!autoInterpretPending || !ritualComplete || isInterpreting || presentation) {
+      return;
+    }
+    setAutoInterpretPending(false);
+    void handleInterpret();
+  }, [
+    autoInterpretPending,
+    handleInterpret,
+    isInterpreting,
+    presentation,
+    ritualComplete,
+  ]);
+
+  const handleInstantDraw = useCallback(() => {
+    if (isInterpreting || presentation || ritualActive) {
+      return;
+    }
+
+    if (!question.trim()) {
+      setValidationHint("Anlık çekim için önce sorunuzu yazın.");
+      return;
+    }
+
+    clearRitualTimers();
+    resetUnlock();
+    setPresentation(null);
+    setAnalysisStatus("idle");
+    setAnalysisError(null);
+    setValidationHint(null);
+    setDrawMode("quick");
+    setManualDeckOpen(false);
+    setSelectedIds(pickRandomSpreadIds(tarotDeck, TAROT_SPREAD_SIZE));
+    setAutoInterpretPending(true);
+  }, [clearRitualTimers, isInterpreting, presentation, question, resetUnlock, ritualActive]);
 
   const handleUnlockDetails = useCallback(() => {
     if (!presentation || detailsUnlocked || isUnlocking) {
@@ -241,6 +293,9 @@ export default function TarotPanel({ onClose }: TarotPanelProps) {
     setAnalysisError(null);
     setIsCached(false);
     setValidationHint(null);
+    setDrawMode("manual");
+    setManualDeckOpen(false);
+    setAutoInterpretPending(false);
   };
 
   const tarotShareCards = useMemo(
@@ -254,42 +309,54 @@ export default function TarotPanel({ onClose }: TarotPanelProps) {
     [selectedCards]
   );
 
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-3 backdrop-blur-sm sm:items-center sm:p-4"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ opacity: 0, y: 40 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 40 }}
-        onClick={(event) => event.stopPropagation()}
-        className="flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-[28px] border border-amber-400/20 bg-[#0f172a]/90 backdrop-blur-2xl"
+  const header = isInline ? (
+    <header>
+      <p className="text-xs tracking-wide text-stone-500">Oracle · Tarot</p>
+      <h2 className="mt-1 font-[family-name:var(--font-serif-display)] text-xl font-normal text-white sm:text-2xl">
+        Tarot Açılımı
+      </h2>
+      <p className="mt-2 text-sm text-stone-400">
+        Sorunuzu yazın, kartlarınızı çekin ve yorumu alın.
+        {isCached ? " · Önbellek" : ""}
+      </p>
+    </header>
+  ) : (
+    <div className="flex items-start justify-between border-b border-zinc-800 px-5 py-4">
+      <div>
+        <p className="text-xs tracking-wide text-stone-500">Oracle · Tarot</p>
+        <h2 className="mt-1 font-[family-name:var(--font-serif-display)] text-xl font-normal text-white sm:text-2xl">
+          Tarot Açılımı
+        </h2>
+        <p className="mt-2 text-sm text-stone-400">
+          Özet ücretsiz · detaylar −1 Yıldız
+          {isCached ? " · Önbellek" : ""}
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={onClose}
+        className={`${noirSecondaryButtonClass} w-auto shrink-0 bg-zinc-950 px-4 hover:bg-zinc-800 hover:text-stone-50`}
       >
-        <div className="flex items-start justify-between border-b border-white/10 px-5 py-4">
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.3em] text-amber-400/70">
-              Oracle · Tarot
-            </p>
-            <h2 className="mt-1 text-xl font-bold text-white sm:text-2xl">Tarot</h2>
-            <p className="mt-1 text-xs text-white/45">
-              Özet ücretsiz · detaylar −1 Yıldız
-              {isCached ? " · Önbellek" : ""}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="min-h-11 rounded-lg border border-white/10 px-3 py-2 text-sm text-white/50 hover:text-white"
-          >
-            Kapat
-          </button>
-        </div>
+        ← Geri
+      </button>
+    </div>
+  );
 
-        <div className="flex-1 overflow-y-auto px-5 py-4">
+  const panelBody = (
+    <motion.section
+      initial={{ opacity: 0, y: isInline ? 12 : 40 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: isInline ? 12 : 40 }}
+      onClick={isInline ? undefined : (event) => event.stopPropagation()}
+      className={
+        isInline
+          ? "relative mb-8 w-full min-w-0 space-y-6"
+          : "flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-sm border border-zinc-800 bg-zinc-950"
+      }
+    >
+      {header}
+
+      <div className={isInline ? "space-y-4" : "flex-1 overflow-y-auto px-5 py-4"}>
           {!showResultPanel ? (
             <div className="space-y-4">
               <textarea
@@ -301,12 +368,20 @@ export default function TarotPanel({ onClose }: TarotPanelProps) {
                 placeholder="Yıldızlara sorunuzu yazın..."
                 rows={3}
                 disabled={isInterpreting || ritualActive}
-                className="min-h-11 w-full resize-none rounded-xl border border-white/10 bg-white/[0.04] p-4 text-sm text-white outline-none placeholder:text-white/25 focus:border-amber-400/30 disabled:opacity-60"
+                className="min-h-11 w-full resize-none rounded-sm border border-zinc-800 bg-zinc-900 p-4 text-sm text-stone-300 outline-none placeholder:text-stone-600 focus:border-zinc-600 disabled:opacity-60"
+              />
+
+              <TarotQuickDrawBar
+                onQuickDraw={handleInstantDraw}
+                onToggleManual={() => setManualDeckOpen((open) => !open)}
+                manualOpen={manualDeckOpen}
+                disabled={isInterpreting || ritualActive}
+                busy={isInterpreting || ritualActive || autoInterpretPending}
               />
 
               {selectedCards.length > 0 ? (
                 <div>
-                  <p className="mb-2 text-[10px] uppercase tracking-[0.2em] text-amber-400/70">
+                  <p className="mb-2 text-[10px] uppercase tracking-[0.2em] text-stone-300">
                     {ritualActive ? "Kartlar Açılıyor..." : "Seçilen Kartlar"}
                   </p>
                   <div className="grid grid-cols-3 gap-2">
@@ -326,22 +401,27 @@ export default function TarotPanel({ onClose }: TarotPanelProps) {
                 </div>
               ) : null}
 
-              <div>
-                <p className="mb-2 text-[10px] uppercase tracking-[0.2em] text-white/45">
-                  Desteden kart seç ({selectedIds.length}/{TAROT_SPREAD_SIZE}) ·{" "}
-                  {tarotDeck.length} kart
-                </p>
-                <TarotDeck
-                  selectedIds={selectedIds}
-                  disabled={isInterpreting || ritualActive}
-                  onSelect={(card) => handleSelectCard(card.id)}
-                />
-              </div>
+              {manualDeckOpen ? (
+                <div>
+                  <p className="mb-2 text-xs text-stone-500">
+                    Desteden kart seç ({selectedIds.length}/{TAROT_SPREAD_SIZE}) ·{" "}
+                    {tarotDeck.length} kart
+                  </p>
+                  <TarotDeck
+                    selectedIds={selectedIds}
+                    disabled={isInterpreting || ritualActive}
+                    onSelect={(card) => {
+                      setDrawMode("manual");
+                      handleSelectCard(card.id);
+                    }}
+                  />
+                </div>
+              ) : null}
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="rounded-2xl border border-amber-400/20 bg-gradient-to-b from-amber-950/20 to-[#0f172a]/40 p-4">
-                <p className="text-[10px] uppercase tracking-[0.25em] text-amber-400/70">
+              <div className="rounded-sm border border-zinc-800 bg-zinc-900 p-4">
+                <p className="text-[10px] uppercase tracking-[0.25em] text-stone-300">
                   Kart Dizilimi
                 </p>
                 <div className="mt-3 grid grid-cols-3 gap-2">
@@ -387,53 +467,74 @@ export default function TarotPanel({ onClose }: TarotPanelProps) {
           )}
         </div>
 
-        <div className="space-y-2 border-t border-white/10 px-5 py-4">
-          {!presentation && analysisStatus !== "ready" ? (
-            <>
-              {ritualActive ? (
-                <p className="text-center text-xs text-amber-300/60">
-                  Kartlar sırayla açılıyor...
-                </p>
-              ) : null}
+      <div
+        className={
+          isInline
+            ? "space-y-2"
+            : "space-y-2 border-t border-zinc-800 px-5 py-4"
+        }
+      >
+        {!presentation && analysisStatus !== "ready" ? (
+          <>
+            {ritualActive ? (
+              <p className="text-center text-xs text-stone-300">
+                Kartlar sırayla açılıyor...
+              </p>
+            ) : null}
 
-              {validationHint ? (
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="rounded-lg border border-amber-400/20 bg-amber-950/20 px-3 py-2 text-center text-xs text-amber-200/75"
-                >
-                  {validationHint}
-                </motion.p>
-              ) : null}
-
-              <div className="flex justify-center">
-                <CosmicAccuracyBadge variant="inline" />
-              </div>
-
-              <button
-                type="button"
-                onClick={() => void handleInterpret()}
-                disabled={isInterpreting}
-                className="min-h-11 w-full rounded-xl border border-amber-400/30 bg-gradient-to-r from-amber-500/20 to-amber-600/10 text-sm font-medium text-amber-100 transition hover:border-amber-400/50 hover:bg-amber-500/25 disabled:cursor-wait disabled:opacity-80"
+            {validationHint ? (
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="rounded-sm border border-zinc-800 bg-zinc-900 px-3 py-2 text-center text-xs text-stone-300"
               >
-                {isInterpreting
-                  ? "Yıldızlar rehberliğini hazırlıyor..."
-                  : ritualActive
-                    ? "Ritüel devam ediyor..."
-                    : "Yorumla"}
-              </button>
-            </>
-          ) : (
+                {validationHint}
+              </motion.p>
+            ) : null}
+
+            <div className="flex justify-center">
+              <CosmicAccuracyBadge variant="inline" />
+            </div>
+
             <button
               type="button"
-              onClick={handleReset}
-              className="min-h-11 w-full rounded-xl border border-amber-400/25 bg-amber-400/10 text-sm text-amber-100"
+              onClick={() => void handleInterpret()}
+              disabled={isInterpreting}
+              className="min-h-11 w-full rounded-sm border border-zinc-700 bg-zinc-900 text-sm font-medium text-stone-300 transition hover:border-zinc-600 hover:bg-zinc-800 disabled:cursor-wait disabled:opacity-80"
             >
-              Yeni Açılım
+              {isInterpreting
+                ? "Yıldızlar rehberliğini hazırlıyor..."
+                : ritualActive
+                  ? "Ritüel devam ediyor..."
+                  : "Yorumla"}
             </button>
-          )}
-        </div>
-      </motion.div>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={handleReset}
+            className="min-h-11 w-full rounded-sm border border-zinc-800 bg-zinc-900 text-sm text-stone-300 hover:border-zinc-600"
+          >
+            Yeni Açılım
+          </button>
+        )}
+      </div>
+    </motion.section>
+  );
+
+  if (isInline) {
+    return panelBody;
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-3 sm:items-center sm:p-4"
+      onClick={onClose}
+    >
+      {panelBody}
     </motion.div>
   );
 }

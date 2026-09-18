@@ -12,9 +12,9 @@ export default function AnalysisExecutiveSummary({
   shareAction,
 }: AnalysisExecutiveSummaryProps) {
   return (
-    <div className="rounded-2xl border border-amber-400/20 bg-gradient-to-br from-amber-400/[0.08] to-[#0f172a]/40 p-5 sm:p-6">
+    <div className="rounded-2xl border border-zinc-700 bg-gradient-to-br from-zinc-800/0.08 to-[#0f172a]/40 p-5 sm:p-6">
       <div className="flex items-start justify-between gap-3">
-        <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-amber-400/75">
+        <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-stone-300">
           {label}
         </p>
         {shareAction}

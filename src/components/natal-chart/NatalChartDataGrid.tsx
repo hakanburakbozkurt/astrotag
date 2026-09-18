@@ -72,9 +72,9 @@ export default function NatalChartDataGrid({
                   className="border-b border-white/[0.06] last:border-0 hover:bg-white/[0.02]"
                 >
                   <td className="px-3 py-2.5 text-white/85">
-                    <span className="text-amber-200/90">{row.symbol}</span> {row.name}
+                    <span className="text-stone-300">{row.symbol}</span> {row.name}
                   </td>
-                  <td className="px-3 py-2.5 font-mono text-amber-100/80">{row.degree}</td>
+                  <td className="px-3 py-2.5 font-mono text-stone-300">{row.degree}</td>
                   <td className="px-3 py-2.5 text-white/70">{row.sign}</td>
                   <td className="px-3 py-2.5 text-white/60">{row.house}</td>
                   <td className="px-3 py-2.5 text-white/45">{row.kind}</td>
@@ -110,7 +110,7 @@ export default function NatalChartDataGrid({
                       className={
                         aspect.isMinor
                           ? "text-white/55"
-                          : "font-medium text-amber-100/90"
+                          : "font-medium text-stone-300"
                       }
                     >
                       {aspect.typeLabel}

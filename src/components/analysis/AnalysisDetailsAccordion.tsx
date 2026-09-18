@@ -41,7 +41,7 @@ export default function AnalysisDetailsAccordion({
           type="button"
           onClick={() => void onUnlock()}
           disabled={isUnlocking}
-          className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm font-semibold text-amber-100 transition hover:bg-amber-400/18 disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm font-semibold text-stone-300 transition hover:bg-zinc-900 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isUnlocking ? (
             <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
@@ -57,14 +57,14 @@ export default function AnalysisDetailsAccordion({
         </p>
 
         {unlockError ? (
-          <div className="space-y-2 rounded-xl border border-red-400/20 bg-red-950/20 px-4 py-3">
-            <p className="text-sm text-red-200/85" role="alert">
+          <div className="space-y-2 rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3">
+            <p className="text-sm text-stone-400" role="alert">
               {unlockError}
             </p>
             {totalStarPoints < cost ? (
               <Link
                 href={STAR_PACKAGES_PATH}
-                className="inline-flex text-xs font-medium text-amber-200/90 underline underline-offset-2"
+                className="inline-flex text-xs font-medium text-stone-300 underline underline-offset-2"
               >
                 Yıldız paketlerine git
               </Link>
@@ -86,7 +86,7 @@ export default function AnalysisDetailsAccordion({
       >
         <span className="text-sm font-medium text-white/85">Detayları İncele</span>
         <ChevronDown
-          className={`h-4 w-4 shrink-0 text-amber-300/70 transition-transform duration-300 ${
+          className={`h-4 w-4 shrink-0 text-stone-300 transition-transform duration-300 ${
             open ? "rotate-180" : ""
           }`}
           aria-hidden

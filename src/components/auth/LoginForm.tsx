@@ -116,8 +116,8 @@ export default function LoginForm({ optionalNfcId = "" }: LoginFormProps) {
           role="alert"
           className={`mb-4 rounded-xl border px-4 py-3 text-sm ${
             toast.variant === "error"
-              ? "border-red-400/35 bg-red-950/50 text-red-100"
-              : "border-amber-400/35 bg-amber-950/40 text-amber-100"
+              ? "border-zinc-700 bg-zinc-900 text-stone-400"
+              : "border-zinc-700 bg-zinc-900 text-stone-300"
           }`}
         >
           {toast.message}
@@ -163,7 +163,7 @@ export default function LoginForm({ optionalNfcId = "" }: LoginFormProps) {
 
         <Link
           href={`${AUTH_FORGOT_PASSWORD_PATH}${email ? `?email=${encodeURIComponent(email)}` : ""}`}
-          className="-mt-1 text-right text-[11px] text-amber-200/80 hover:underline"
+          className="-mt-1 text-right text-[11px] text-stone-300 hover:underline"
         >
           Şifremi unuttum
         </Link>
@@ -180,7 +180,7 @@ export default function LoginForm({ optionalNfcId = "" }: LoginFormProps) {
       <p className="mt-4 text-center text-[11px]">
         <Link
           href={signupHref}
-          className="font-medium text-amber-200/90 underline-offset-2 hover:underline"
+          className="font-medium text-stone-300 underline-offset-2 hover:underline"
         >
           Hesabın yok mu? Kayıt Ol
         </Link>

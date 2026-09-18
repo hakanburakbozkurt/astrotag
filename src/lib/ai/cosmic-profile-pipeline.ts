@@ -41,13 +41,15 @@ Yanıtını yalnızca şu JSON formatında ver:
 export async function runCosmicProfilePipeline(
   userData: UserData,
   subjectName: string,
-  tier: CosmicProfileTierId
+  tier: CosmicProfileTierId,
+  question?: string
 ): Promise<string | null> {
   try {
     const emphPackage = await processCosmicProfileThroughEmph(
       userData,
       subjectName,
-      tier
+      tier,
+      question
     );
     const kieConfig = TIER_KIE_CONFIG[tier];
 

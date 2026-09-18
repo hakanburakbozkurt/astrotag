@@ -14,7 +14,7 @@ import ExpertProfileEditForm from "@/components/expert/ExpertProfileEditForm";
 import Link from "next/link";
 
 const inputClass =
-  "mt-1 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-white/90 outline-none focus:border-amber-400/30";
+  "mt-1 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-white/90 outline-none focus:border-zinc-700";
 
 export default function ExpertPanelSection() {
   const [data, setData] = useState<ExpertPanelData | null>(null);
@@ -111,15 +111,15 @@ export default function ExpertPanelSection() {
   };
 
   return (
-    <section className="rounded-[28px] border border-emerald-400/15 bg-[#0f172a]/80 p-5 backdrop-blur-2xl sm:p-6">
-      <p className="text-[10px] uppercase tracking-[0.3em] text-emerald-400/70">
+    <section className="rounded-[28px] border border-zinc-700 bg-[#0f172a]/80 p-5 backdrop-blur-2xl sm:p-6">
+      <p className="text-[10px] uppercase tracking-[0.3em] text-stone-300">
         Uzman Paneli
       </p>
       <p className="mt-2 text-xs text-white/45">
         Profil, hizmet menüsü ve yazılarınızı yönetin. Yayınla → Uzmanlar
         sekmesinde görünür.
       </p>
-      <p className="mt-2 font-mono text-xs text-emerald-200/70">
+      <p className="mt-2 font-mono text-xs text-stone-300">
         Hakediş: ₺{data.earningsBalanceTry.toLocaleString("tr-TR")}
       </p>
 
@@ -127,7 +127,7 @@ export default function ExpertPanelSection() {
 
       <Link
         href="/dashboard/expert-requests"
-        className="mt-3 inline-flex text-[11px] uppercase tracking-wider text-emerald-300/80 underline decoration-emerald-400/30 underline-offset-2"
+        className="mt-3 inline-flex text-[11px] uppercase tracking-wider text-stone-300 underline decoration-emerald-400/30 underline-offset-2"
       >
         Danışmanlık talepleri →
       </Link>
@@ -210,7 +210,7 @@ export default function ExpertPanelSection() {
         <button
           type="button"
           onClick={() => void saveProfile()}
-          className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-2 text-xs uppercase tracking-wider text-emerald-100"
+          className="rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-2 text-xs uppercase tracking-wider text-stone-300"
         >
           Profili Kaydet
         </button>
@@ -234,8 +234,8 @@ export default function ExpertPanelSection() {
         {data.services.length} hizmet · {data.articles.length} yazı
       </p>
 
-      {message ? <p className="mt-3 text-xs text-emerald-300/85">{message}</p> : null}
-      {error ? <p className="mt-3 text-xs text-red-300/85">{error}</p> : null}
+      {message ? <p className="mt-3 text-xs text-stone-300">{message}</p> : null}
+      {error ? <p className="mt-3 text-xs text-stone-400">{error}</p> : null}
     </section>
   );
 }

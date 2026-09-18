@@ -8,14 +8,14 @@ const HERO_IMAGE = "/image_93d8a2.png";
 
 export default function RegistrationCompleteView() {
   return (
-    <div className="relative isolate flex min-h-0 w-full flex-1 flex-col overflow-x-hidden bg-[#070b14]">
+    <div className="relative isolate flex min-h-0 w-full flex-1 flex-col overflow-x-hidden bg-zinc-950">
       <Starfield />
 
       <div
         className="pointer-events-none absolute inset-0 opacity-40"
         style={{
           background:
-            "radial-gradient(ellipse 80% 50% at 50% 0%, rgba(251,191,36,0.12) 0%, transparent 65%)",
+            "radial-gradient(ellipse 80% 50% at 50% 0%, rgba(255,255,255,0.08) 0%, transparent 65%)",
         }}
       />
 
@@ -29,7 +29,7 @@ export default function RegistrationCompleteView() {
           <div
             className="relative aspect-[16/9] w-full shrink-0 bg-cover bg-center bg-no-repeat"
             style={{
-              backgroundImage: `linear-gradient(to top, #0f172a 0%, transparent 55%), url('${HERO_IMAGE}'), linear-gradient(135deg, #1e293b 0%, #070b14 100%)`,
+              backgroundImage: `linear-gradient(to top, #0f172a 0%, transparent 55%), url('${HERO_IMAGE}'), linear-gradient(135deg, #1e293b 0%, #09090b 100%)`,
             }}
             role="img"
             aria-label="AstroTag"
@@ -37,7 +37,7 @@ export default function RegistrationCompleteView() {
 
           <div className="flex flex-col p-6 sm:p-8">
             <div className="text-center">
-              <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-amber-400/75">
+              <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-stone-300">
                 Kayıt Tamamla
               </p>
               <h1 className="mt-2 text-2xl font-bold tracking-tight text-white sm:text-[1.65rem]">

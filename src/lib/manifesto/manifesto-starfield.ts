@@ -66,7 +66,7 @@ export function updateManifestoStarfield(
 
 function particleColor(particle: ManifestoStarParticle, alpha: number): string {
   if (particle.tint === "amber") {
-    return `rgba(251,191,36,${alpha})`;
+    return `rgba(255,255,255,0.08)`;
   }
   if (particle.tint === "violet") {
     return `rgba(167,139,250,${alpha})`;
@@ -88,8 +88,8 @@ export function drawManifestoCosmicGlow(
     height * 0.35,
     width * 0.55
   );
-  glow.addColorStop(0, `rgba(139,92,246,${0.2 + pulse * 0.06})`);
-  glow.addColorStop(0.45, `rgba(251,191,36,${0.07 + pulse * 0.03})`);
+  glow.addColorStop(0, `rgba(255,255,255,0.06)`);
+  glow.addColorStop(0.45, `rgba(255,255,255,0.08)`);
   glow.addColorStop(1, "rgba(10,15,26,0)");
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, width, height);

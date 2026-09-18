@@ -6,6 +6,7 @@ import NatalChartViewToggle from "@/components/natal-chart/NatalChartViewToggle"
 import NatalSectionToggle from "@/components/natal-chart/NatalSectionToggle";
 import WeeklyAnalysisView from "@/components/natal-chart/WeeklyAnalysisView";
 import TabPageScaffold from "@/components/navigation/TabPageScaffold";
+import SubPageNav from "@/components/navigation/SubPageNav";
 import {
   compactSectionClass,
   compactLabelClass,
@@ -35,6 +36,7 @@ export default function NatalScreen({ user }: NatalScreenProps) {
       eyebrow="Natal"
       title={isChart ? "Doğum Haritası" : "Haftalık Analiz"}
       description={`${user.birthDate} · ${user.birthTime} · ${user.birthPlace}`}
+      topNav={<SubPageNav backHref="/dashboard" closeHref="/dashboard" />}
       headerExtra={
         <div className="mt-3 space-y-3">
           <NatalSectionToggle section={section} onChange={setSection} />

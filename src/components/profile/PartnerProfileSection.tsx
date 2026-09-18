@@ -16,7 +16,7 @@ import { SupabaseActionError } from "@/lib/supabase-action-error";
 import { useUserProfile } from "@/lib/auth";
 
 const fieldClass =
-  "box-border block h-10 w-full min-w-0 max-w-none appearance-none rounded-lg border border-white/10 bg-white/[0.04] px-3 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-amber-400/30 [color-scheme:dark]";
+  "box-border block h-10 w-full min-w-0 max-w-none appearance-none rounded-lg border border-white/10 bg-white/[0.04] px-3 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-zinc-700 [color-scheme:dark]";
 
 export default function PartnerProfileSection() {
   const { userData, refreshProfile, isLoading: isProfileLoading } = useUserProfile();
@@ -106,10 +106,10 @@ export default function PartnerProfileSection() {
 
       {toast ? <FormToast message={toast} onDismiss={() => setToast(null)} /> : null}
       {error && !toast ? (
-        <p className="mt-3 text-xs text-red-300/80">{error}</p>
+        <p className="mt-3 text-xs text-stone-400">{error}</p>
       ) : null}
       {message ? (
-        <p className="mt-3 text-xs text-emerald-300/80">{message}</p>
+        <p className="mt-3 text-xs text-stone-300">{message}</p>
       ) : null}
 
       <form onSubmit={handleSubmit} className="mt-4 space-y-3">
@@ -154,7 +154,7 @@ export default function PartnerProfileSection() {
           </label>
         </div>
 
-        <p className="text-[10px] leading-relaxed text-amber-200/55">
+        <p className="text-[10px] leading-relaxed text-stone-300">
           Doğum saati bilinmiyorsa en yakın tahmini girin; yükselen derecesi buna göre
           değişir.
         </p>
@@ -177,7 +177,7 @@ export default function PartnerProfileSection() {
         <button
           type="submit"
           disabled={isSaving || isProfileLoading}
-          className="min-h-9 w-full rounded-lg border border-amber-400/35 bg-amber-400/10 px-3 py-2 text-xs font-medium text-amber-100 transition hover:bg-amber-400/20 disabled:cursor-not-allowed disabled:opacity-50"
+          className="min-h-9 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs font-medium text-stone-300 transition hover:bg-zinc-900 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isSaving ? "Kaydediliyor..." : "Partner Bilgilerini Kaydet"}
         </button>

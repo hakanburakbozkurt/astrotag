@@ -31,7 +31,7 @@ export default function ExpertAvatar({
 
   const inner = (
     <div
-      className={`${SIZE_CLASS[size]} flex items-center justify-center overflow-hidden rounded-full bg-[#1e293b] text-sm font-semibold text-amber-100/90`}
+      className={`${SIZE_CLASS[size]} flex items-center justify-center overflow-hidden rounded-full bg-[#1e293b] text-sm font-semibold text-stone-300`}
     >
       {avatarUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -50,8 +50,8 @@ export default function ExpertAvatar({
     <div
       className={`rounded-full p-[2.5px] transition ${
         selected
-          ? "bg-gradient-to-tr from-amber-300 via-violet-400 to-fuchsia-400 shadow-[0_0_18px_rgba(167,139,250,0.35)]"
-          : "bg-gradient-to-tr from-amber-400/80 via-violet-500/70 to-fuchsia-500/60"
+          ? "bg-gradient-to-tr from-zinc-800 via-violet-400 to-fuchsia-400 shadow-[0_0_18px_rgba(167,139,250,0.35)]"
+          : "bg-gradient-to-tr from-zinc-800 via-violet-500/70 to-fuchsia-500/60"
       }`}
     >
       <div className="rounded-full bg-[#0b1220] p-[2px]">{inner}</div>

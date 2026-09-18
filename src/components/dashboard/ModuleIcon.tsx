@@ -1,6 +1,6 @@
 import type { DashboardModule } from "./modules/config";
 
-const iconClass = "h-7 w-7 text-amber-400/90";
+const iconClass = "h-7 w-7 text-stone-300";
 
 function ModuleIcon({ icon }: { icon: DashboardModule["icon"] }) {
   switch (icon) {

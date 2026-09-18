@@ -29,21 +29,21 @@ export const READING_TYPE_META: Record<
   Tarot: {
     code: "TRT",
     label: "Tarot",
-    accent: "border-amber-400/35 bg-amber-400/10 text-amber-200/90",
+    accent: "border-zinc-700 bg-zinc-900 text-stone-300",
   },
   Horary: {
     code: "HOR",
     label: "Horary",
-    accent: "border-violet-400/30 bg-violet-400/10 text-violet-200/85",
+    accent: "border-zinc-700 bg-zinc-900 text-stone-300",
   },
   Synastry: {
     code: "SYN",
     label: "Synastry",
-    accent: "border-emerald-400/30 bg-emerald-400/10 text-emerald-200/85",
+    accent: "border-zinc-600 bg-zinc-900/90 text-stone-300",
   },
   CosmicProfile: {
     code: "KPF",
     label: "Kozmik Profil",
-    accent: "border-sky-400/30 bg-sky-400/10 text-sky-200/85",
+    accent: "border-zinc-800 bg-zinc-950 text-stone-400",
   },
 };

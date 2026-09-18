@@ -45,17 +45,17 @@ export default function CosmicToastCard({
       <button
         type="button"
         onClick={handleClick}
-        className="flex w-full items-start gap-3 rounded-2xl border border-white/15 bg-[#0f172a]/72 px-4 py-3.5 text-left shadow-[0_12px_40px_rgba(0,0,0,0.45)] backdrop-blur-xl transition hover:border-amber-400/25 hover:bg-[#0f172a]/82"
+        className="flex w-full items-start gap-3 rounded-2xl border border-white/15 bg-[#0f172a]/72 px-4 py-3.5 text-left shadow-[0_12px_40px_rgba(0,0,0,0.45)] backdrop-blur-xl transition hover:border-zinc-700 hover:bg-[#0f172a]/82"
       >
         <span
           aria-hidden
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-amber-400/20 bg-amber-400/10 text-lg"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-zinc-700 bg-zinc-900 text-lg"
         >
           {icon}
         </span>
         <span className="min-w-0 flex-1 pt-0.5">
           {title ? (
-            <span className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-200/85">
+            <span className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-300">
               {title}
             </span>
           ) : null}

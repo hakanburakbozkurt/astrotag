@@ -33,10 +33,10 @@ const ICONS = {
 type PanelFlow = "digital" | "expert" | null;
 
 const INPUT_CLASS =
-  "w-full rounded-xl border border-white/10 bg-[#070b14]/80 px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-amber-400/35 focus:ring-1 focus:ring-amber-400/20";
+  "w-full rounded-xl border border-white/10 bg-zinc-950/80 px-4 py-3 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-zinc-700 focus:ring-1 focus:ring-zinc-700";
 
 const PRIMARY_BUTTON_CLASS =
-  "inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-amber-400/95 px-4 py-2.5 text-sm font-semibold text-[#0f172a] transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-[#0f172a] transition hover:bg-zinc-900 disabled:cursor-not-allowed disabled:opacity-60";
 
 const GHOST_BUTTON_CLASS =
   "inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-white/12 bg-white/[0.03] px-4 py-2.5 text-sm font-medium text-white/80 transition hover:border-white/20 hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-60";
@@ -77,7 +77,7 @@ function QuickAccessModal({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={SALES_IN_VIEW_TRANSITION}
-          className="fixed inset-0 z-50 flex items-end justify-center bg-[#070b14]/80 p-4 backdrop-blur-sm sm:items-center"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-zinc-950/80 p-4 backdrop-blur-sm sm:items-center"
           onClick={onClose}
         >
           <motion.div
@@ -203,7 +203,7 @@ export default function QuickAccessPanel() {
     <>
       <section className={`${SALES_SECTION_CLASS} border-b border-white/[0.06] py-8`}>
         <div className="mx-auto max-w-5xl">
-          <p className="sales-kicker text-[10px] uppercase tracking-[0.3em] text-amber-400/70">
+          <p className="sales-kicker text-[10px] uppercase tracking-[0.3em] text-stone-300">
             Hızlı Giriş
           </p>
           <h2 className="mt-2 text-xl font-bold text-white sm:text-2xl">
@@ -211,9 +211,9 @@ export default function QuickAccessPanel() {
           </h2>
 
           {guestCode ? (
-            <div className="mt-6 rounded-2xl border border-amber-400/25 bg-amber-400/[0.06] p-5">
+            <div className="mt-6 rounded-2xl border border-zinc-700 bg-zinc-900/0.06 p-5">
               <p className="text-sm text-white/70">Misafir oturumun hazır. Kodun:</p>
-              <p className="mt-2 font-mono text-2xl font-semibold tracking-[0.2em] text-amber-200">
+              <p className="mt-2 font-mono text-2xl font-semibold tracking-[0.2em] text-stone-300">
                 {guestCode}
               </p>
               <p className="mt-2 text-xs text-white/45">
@@ -239,9 +239,9 @@ export default function QuickAccessPanel() {
                   <SalesMotion key={item.id} transition={{ delay: index * 0.05 }}>
                     <Link
                       href={item.href}
-                      className="flex min-h-[108px] flex-col justify-between rounded-2xl border border-white/10 bg-[#0f172a]/55 p-4 shadow-lg backdrop-blur-xl transition hover:border-amber-400/25 hover:bg-amber-400/[0.05] sm:min-h-[120px] sm:p-5"
+                      className="flex min-h-[108px] flex-col justify-between rounded-2xl border border-white/10 bg-[#0f172a]/55 p-4 shadow-lg backdrop-blur-xl transition hover:border-zinc-700 hover:bg-zinc-900/0.05 sm:min-h-[120px] sm:p-5"
                     >
-                      <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-amber-400/25 bg-amber-400/10 text-amber-200">
+                      <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-700 bg-zinc-900 text-stone-300">
                         <Icon className="h-5 w-5" aria-hidden />
                       </span>
                       <span>
@@ -264,9 +264,9 @@ export default function QuickAccessPanel() {
                       type="button"
                       onClick={handleGuestExplore}
                       disabled={loading}
-                      className="flex min-h-[108px] w-full flex-col justify-between rounded-2xl border border-white/10 bg-[#0f172a]/55 p-4 text-left shadow-lg backdrop-blur-xl transition hover:border-amber-400/25 hover:bg-amber-400/[0.05] disabled:cursor-not-allowed disabled:opacity-70 sm:min-h-[120px] sm:p-5"
+                      className="flex min-h-[108px] w-full flex-col justify-between rounded-2xl border border-white/10 bg-[#0f172a]/55 p-4 text-left shadow-lg backdrop-blur-xl transition hover:border-zinc-700 hover:bg-zinc-900/0.05 disabled:cursor-not-allowed disabled:opacity-70 sm:min-h-[120px] sm:p-5"
                     >
-                      <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-amber-400/25 bg-amber-400/10 text-amber-200">
+                      <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-700 bg-zinc-900 text-stone-300">
                         {loading && !guestCode ? (
                           <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
                         ) : (
@@ -291,9 +291,9 @@ export default function QuickAccessPanel() {
                   <button
                     type="button"
                     onClick={() => handleCardClick(item.id)}
-                    className="flex min-h-[108px] w-full flex-col justify-between rounded-2xl border border-white/10 bg-[#0f172a]/55 p-4 text-left shadow-lg backdrop-blur-xl transition hover:border-amber-400/25 hover:bg-amber-400/[0.05] sm:min-h-[120px] sm:p-5"
+                    className="flex min-h-[108px] w-full flex-col justify-between rounded-2xl border border-white/10 bg-[#0f172a]/55 p-4 text-left shadow-lg backdrop-blur-xl transition hover:border-zinc-700 hover:bg-zinc-900/0.05 sm:min-h-[120px] sm:p-5"
                   >
-                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-amber-400/25 bg-amber-400/10 text-amber-200">
+                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-700 bg-zinc-900 text-stone-300">
                       <Icon className="h-5 w-5" aria-hidden />
                     </span>
                     <span>
@@ -311,7 +311,7 @@ export default function QuickAccessPanel() {
           </div>
 
           {error && !activeFlow ? (
-            <p className="mt-4 text-sm text-rose-300/90" role="alert">
+            <p className="mt-4 text-sm text-stone-300" role="alert">
               {error}
             </p>
           ) : null}
@@ -341,7 +341,7 @@ export default function QuickAccessPanel() {
         </label>
 
         {error ? (
-          <p className="mt-3 text-sm text-rose-300/90" role="alert">
+          <p className="mt-3 text-sm text-stone-300" role="alert">
             {error}
           </p>
         ) : null}

@@ -56,21 +56,21 @@ const SHARE_OPTIONS: Array<{
     label: "Instagram",
     sublabel: "Story metni",
     Icon: InstagramIcon,
-    accent: "from-pink-500/20 to-purple-600/10 border-pink-400/25",
+    accent: "from-pink-500/20 to-purple-600/10 border-zinc-700",
   },
   {
     id: "tiktok",
     label: "TikTok",
     sublabel: "Video metni",
     Icon: Video,
-    accent: "from-cyan-500/15 to-slate-400/10 border-cyan-300/20",
+    accent: "from-cyan-500/15 to-slate-400/10 border-zinc-700",
   },
   {
     id: "twitter",
     label: "X (Twitter)",
     sublabel: "Tweet özeti",
     Icon: TwitterIcon,
-    accent: "from-sky-500/15 to-slate-500/10 border-sky-400/25",
+    accent: "from-sky-500/15 to-slate-500/10 border-zinc-700",
   },
 ];
 
@@ -148,9 +148,9 @@ export default function TarotShareMenu({
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
-        className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] text-sm text-white/75 transition hover:border-amber-400/25 hover:bg-white/[0.06]"
+        className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] text-sm text-white/75 transition hover:border-zinc-700 hover:bg-white/[0.06]"
       >
-        <Copy className="h-4 w-4 text-amber-300/70" />
+        <Copy className="h-4 w-4 text-stone-300" />
         Paylaş
         <ChevronDown
           className={`h-4 w-4 text-white/40 transition ${open ? "rotate-180" : ""}`}

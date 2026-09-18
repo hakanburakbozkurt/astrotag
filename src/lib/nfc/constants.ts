@@ -67,6 +67,8 @@ export const PRIVATE_MODE_PATH = "/private-mode-warning";
 /** @deprecated */
 export const LOGIN_PATH = HOME_PATH;
 export const DASHBOARD_PATH = "/dashboard";
+/** Oturumlu kullanıcı profil alt sayfaları — /profil/bilgiler, /profil/gunlugum vb. */
+export const PROFIL_PATH = "/profil";
 export const PROFILE_COMPLETE_PATH = "/profile/complete";
 export const PROFILE_SETUP_PATH = "/profile-setup";
 /** PIN sonrası eksik profil — nfc_user_data full_name / birth_date */
@@ -117,7 +119,8 @@ export const PUBLIC_PATHS = new Set([
 ]);
 
 export const PROTECTED_PATH_PREFIXES = [
-  "/dashboard",
+  DASHBOARD_PATH,
+  PROFIL_PATH,
   "/profile",
   "/api/ai",
 ] as const;

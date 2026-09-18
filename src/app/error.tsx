@@ -23,7 +23,7 @@ export default function AppError({ error, reset }: AppErrorProps) {
 
   return (
     <div className="flex min-h-[50dvh] flex-col items-center justify-center px-6 py-16 text-center">
-      <p className="text-[10px] uppercase tracking-[0.28em] text-amber-400/70">
+      <p className="text-[10px] uppercase tracking-[0.28em] text-stone-300">
         Kozmik Kesinti
       </p>
       <h1 className="mt-3 text-xl font-semibold text-white">Bir şeyler ters gitti</h1>
@@ -43,7 +43,7 @@ export default function AppError({ error, reset }: AppErrorProps) {
         <button
           type="button"
           onClick={() => window.location.reload()}
-          className="rounded-xl bg-amber-500/95 px-5 py-2.5 text-sm font-medium text-[#0f172a] transition hover:bg-amber-400"
+          className="rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-medium text-[#0f172a] transition hover:bg-zinc-900"
         >
           Sayfayı Yenile
         </button>

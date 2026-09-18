@@ -27,7 +27,7 @@ export default function CollapsiblePanel({
         onClick={() => setOpen((value) => !value)}
         className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left transition hover:bg-white/[0.04]"
       >
-        <span className="text-sm font-semibold leading-snug tracking-tight text-amber-50">
+        <span className="text-sm font-semibold leading-snug tracking-tight text-stone-300">
           {title}
         </span>
         <motion.span
