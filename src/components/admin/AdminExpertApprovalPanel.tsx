@@ -15,6 +15,9 @@ import {
   normalizeExternalUrl,
 } from "@/lib/admin/external-url";
 
+const actionButtonClassName =
+  "inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-sm border border-zinc-700 bg-zinc-950 px-3 py-2.5 text-[11px] uppercase tracking-wider transition hover:border-zinc-600 disabled:opacity-50 sm:min-h-11";
+
 export default function AdminExpertApprovalPanel() {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [experts, setExperts] = useState<AdminPendingExpert[]>([]);
@@ -84,7 +87,7 @@ export default function AdminExpertApprovalPanel() {
     <motion.section
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-sm border border-zinc-800 bg-zinc-950 p-5 sm:p-6"
+      className="min-w-0 overflow-hidden rounded-sm border border-zinc-800 bg-zinc-950 p-4 sm:p-5"
     >
       <p className="text-[10px] uppercase tracking-[0.3em] text-stone-400">
         Admin · Uzman Onayları
@@ -110,68 +113,102 @@ export default function AdminExpertApprovalPanel() {
           const socialUrl = expert.socialProfileUrl
             ? normalizeExternalUrl(expert.socialProfileUrl)
             : null;
+          const isApproving = pendingId === expert.expertProfileId;
 
           return (
             <li
               key={expert.expertProfileId}
-              className="rounded-sm border border-zinc-800 bg-zinc-900 p-4"
+              className="min-w-0 overflow-hidden rounded-sm border border-zinc-800 bg-zinc-900"
             >
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium text-stone-200">{expert.displayName}</p>
-                  <p className="mt-1 text-xs text-stone-500">
-                    {expert.title} · {expert.tradition} · {expert.experienceYears} yıl
-                  </p>
-                  {expert.email ? (
-                    <p className="mt-1 text-xs text-stone-500">{expert.email}</p>
-                  ) : null}
-                  {socialUrl ? (
-                    <a
-                      href={socialUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-2 inline-flex items-center gap-1 text-xs text-stone-400 underline underline-offset-2 transition hover:text-stone-200"
-                    >
-                      {externalLinkLabel(expert.socialProfileUrl ?? socialUrl)}
-                      <span aria-hidden="true">↗</span>
-                    </a>
-                  ) : null}
+              <div className="flex flex-col gap-4 p-4">
+                <div className="min-w-0 space-y-3">
+                  <div className="min-w-0">
+                    <p className="break-words text-base font-medium leading-snug text-stone-200">
+                      {expert.displayName}
+                    </p>
+                    <p className="mt-1.5 break-words text-xs leading-relaxed text-stone-500">
+                      {expert.title}
+                    </p>
+                  </div>
+
+                  <dl className="grid min-w-0 gap-2 text-xs">
+                    <div className="grid min-w-0 gap-0.5">
+                      <dt className="text-[10px] uppercase tracking-[0.18em] text-stone-600">
+                        Uzmanlık
+                      </dt>
+                      <dd className="break-words text-stone-400">
+                        {expert.tradition} · {expert.experienceYears} yıl
+                      </dd>
+                    </div>
+
+                    {expert.email ? (
+                      <div className="grid min-w-0 gap-0.5">
+                        <dt className="text-[10px] uppercase tracking-[0.18em] text-stone-600">
+                          E-posta
+                        </dt>
+                        <dd className="break-all text-stone-400">{expert.email}</dd>
+                      </div>
+                    ) : null}
+
+                    {socialUrl ? (
+                      <div className="grid min-w-0 gap-0.5">
+                        <dt className="text-[10px] uppercase tracking-[0.18em] text-stone-600">
+                          Sosyal / Web
+                        </dt>
+                        <dd className="min-w-0">
+                          <a
+                            href={socialUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex max-w-full items-start gap-1 break-all text-stone-300 underline underline-offset-2 transition hover:text-stone-100"
+                          >
+                            <span>{externalLinkLabel(expert.socialProfileUrl ?? socialUrl)}</span>
+                            <span aria-hidden="true" className="shrink-0">
+                              ↗
+                            </span>
+                          </a>
+                        </dd>
+                      </div>
+                    ) : null}
+                  </dl>
                 </div>
 
-                <div className="flex shrink-0 flex-wrap items-center gap-2">
+                <div className="grid min-w-0 grid-cols-1 gap-2 border-t border-zinc-800 pt-4 sm:grid-cols-2">
                   <button
                     type="button"
                     onClick={() => toggleDetails(expert.expertProfileId)}
-                    className="inline-flex items-center gap-1 rounded-sm border border-zinc-700 bg-zinc-950 px-3 py-2 text-[11px] uppercase tracking-wider text-stone-400 transition hover:border-zinc-600 hover:text-stone-200"
+                    className={`${actionButtonClassName} text-stone-400 hover:text-stone-200`}
                     aria-expanded={isExpanded}
                   >
                     {isExpanded ? (
                       <>
-                        Detayları Gizle
-                        <ChevronUp className="h-3.5 w-3.5" aria-hidden />
+                        <span>Detayları Gizle</span>
+                        <ChevronUp className="h-3.5 w-3.5 shrink-0" aria-hidden />
                       </>
                     ) : (
                       <>
-                        Detayları Gör
-                        <ChevronDown className="h-3.5 w-3.5" aria-hidden />
+                        <span>Detayları Gör</span>
+                        <ChevronDown className="h-3.5 w-3.5 shrink-0" aria-hidden />
                       </>
                     )}
                   </button>
 
                   <button
                     type="button"
-                    disabled={pendingId === expert.expertProfileId}
+                    disabled={isApproving}
                     onClick={() => void handleApprove(expert)}
-                    className="rounded-sm border border-zinc-700 bg-zinc-950 px-4 py-2 text-[11px] uppercase tracking-wider text-stone-300 transition hover:border-zinc-600 disabled:opacity-50"
+                    className={`${actionButtonClassName} text-stone-300`}
                   >
-                    {pendingId === expert.expertProfileId
-                      ? "Onaylanıyor…"
-                      : "Onayla / Vitrine Çıkar"}
+                    {isApproving ? "Onaylanıyor…" : "Onayla / Vitrine Çıkar"}
                   </button>
                 </div>
               </div>
 
-              {isExpanded ? <AdminExpertApplicationDetails expert={expert} /> : null}
+              {isExpanded ? (
+                <div className="border-t border-zinc-800 px-4 pb-4">
+                  <AdminExpertApplicationDetails expert={expert} />
+                </div>
+              ) : null}
             </li>
           );
         })}

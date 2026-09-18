@@ -25,10 +25,12 @@ function DetailRow({
   }
 
   return (
-    <div className="grid gap-1 border-t border-zinc-800 py-3 first:border-t-0 first:pt-0">
+    <div className="grid min-w-0 gap-1 border-t border-zinc-800 py-3 first:border-t-0 first:pt-0">
       <dt className="text-[10px] uppercase tracking-[0.22em] text-stone-500">{label}</dt>
       <dd
-        className={`text-sm leading-relaxed text-stone-300 ${mono ? "font-mono text-xs" : ""}`}
+        className={`min-w-0 break-words text-sm leading-relaxed text-stone-300 ${
+          mono ? "break-all font-mono text-xs" : ""
+        }`}
       >
         {value}
       </dd>
@@ -62,12 +64,12 @@ export default function AdminExpertApplicationDetails({
   const biography = biographyText(expert);
 
   return (
-    <div className="mt-4 rounded-sm border border-zinc-800 bg-zinc-950 p-4">
+    <div className="mt-4 min-w-0 overflow-hidden rounded-sm border border-zinc-800 bg-zinc-950 p-4">
       <p className="text-[10px] uppercase tracking-[0.24em] text-stone-500">
         Başvuru Detayları
       </p>
 
-      <dl className="mt-3">
+      <dl className="mt-3 min-w-0">
         <DetailRow label="Ad Soyad" value={expert.displayName} />
         <DetailRow label="Unvan" value={expert.title} />
         <DetailRow label="Uzmanlık Alanı" value={expert.tradition} />
@@ -86,21 +88,29 @@ export default function AdminExpertApplicationDetails({
         {biography ? (
           <DetailRow
             label="Biyografi"
-            value={<p className="whitespace-pre-wrap">{biography}</p>}
+            value={<p className="whitespace-pre-wrap break-words">{biography}</p>}
           />
         ) : null}
 
         {expert.experienceText?.trim() ? (
           <DetailRow
             label="Tecrübe Detayı"
-            value={<p className="whitespace-pre-wrap">{expert.experienceText.trim()}</p>}
+            value={
+              <p className="whitespace-pre-wrap break-words">
+                {expert.experienceText.trim()}
+              </p>
+            }
           />
         ) : null}
 
         {expert.philosophyText.trim() ? (
           <DetailRow
             label="Felsefe / Yaklaşım"
-            value={<p className="whitespace-pre-wrap">{expert.philosophyText.trim()}</p>}
+            value={
+              <p className="whitespace-pre-wrap break-words">
+                {expert.philosophyText.trim()}
+              </p>
+            }
           />
         ) : null}
 
@@ -112,10 +122,12 @@ export default function AdminExpertApplicationDetails({
                 href={socialUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-stone-300 underline underline-offset-2 transition hover:text-white"
+                className="inline-flex max-w-full items-start gap-1 break-all text-stone-300 underline underline-offset-2 transition hover:text-white"
               >
-                {externalLinkLabel(expert.socialProfileUrl ?? socialUrl)}
-                <span aria-hidden="true">↗</span>
+                <span>{externalLinkLabel(expert.socialProfileUrl ?? socialUrl)}</span>
+                <span aria-hidden="true" className="shrink-0">
+                  ↗
+                </span>
               </a>
             }
           />
@@ -129,7 +141,7 @@ export default function AdminExpertApplicationDetails({
                 href={avatarUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-stone-300 underline underline-offset-2 transition hover:text-white"
+                className="break-all text-stone-300 underline underline-offset-2 transition hover:text-white"
               >
                 Profil görselini aç ↗
               </a>
