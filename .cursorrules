@@ -1,0 +1,51 @@
+# AstroTag — Endüstriyel / Brutalist / Esoterik Cihaz UI
+
+Tüm UI kodu, refaktör ve yeni bileşenler için **zorunludur**.
+
+---
+
+## 1. Zemin & Token
+
+- Arka plan: **#09090b** (`bg-[#09090b]` veya `bg-black`). Gradient wash, nebula, glass taban yok.
+- Border: `border-zinc-800` veya `border-zinc-700`. **Altın/sarı/amber border yasak.**
+- Kart radius: `rounded-none` veya en fazla `rounded-sm` (2px).
+- Buton/input radius: `rounded-sm` max.
+- Glow / çok katmanlı `box-shadow` yığını yasak.
+
+---
+
+## 2. Yasak (SaaS / AI slop)
+
+- Mor/mavi/yeşil AI gradientleri
+- `backdrop-blur` cam efektleri
+- `border-amber-*`, `border-yellow-*`, altın glow
+- 9–11px uppercase micro-label spam
+- Sparkles, Wand2 vb. dekoratif SaaS ikonları
+- Her section'da aynı glass card şablonu
+
+---
+
+## 3. Tipografi
+
+- Display/başlık: Cormorant Garamond (serif)
+- Gövde/UI: Inter (sans)
+- Bol whitespace; metin çakışması yok
+
+---
+
+## 4. Bileşen disiplini
+
+- ManifestoWidget modüler: Ritüel / Intent / Reveal / Archive
+- Tarot kartı editorial: serif başlık + tek paragraf + mühür; süs yok
+- Tek nötr accent: **zinc scale** (renkli kategori gökkuşağı yok)
+
+---
+
+## 5. Kod üretim kuralı
+
+Yeni UI yazarken checklist:
+- [ ] Zemin #09090b mi?
+- [ ] Border zinc mi?
+- [ ] Radius ≤ sm mi?
+- [ ] Gradient/blur/glow/amber kaldırıldı mı?
+- [ ] SaaS ikonları yok mu?
