@@ -73,26 +73,27 @@ export default function AdminUserBanPanel() {
     <motion.section
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-[28px] border border-zinc-700 bg-zinc-900 p-5 backdrop-blur-2xl sm:p-6"
+      className="rounded-sm border border-zinc-800 bg-zinc-950 p-5 sm:p-6"
     >
       <p className="text-[10px] uppercase tracking-[0.3em] text-stone-400">
         Admin · Hesap Yönetimi
       </p>
-      <p className="mt-2 text-xs leading-relaxed text-white/45">
-        Kullanıcı ve NFC kartını tek tıkla askıya alın. Pasif hesaplar giriş yapamaz.
+      <p className="mt-2 text-xs leading-relaxed text-stone-500">
+        Kullanıcı ve NFC kartını tek tıkla askıya alın. Yıldız bakiyesi yalnızca
+        görüntüleme amaçlıdır; kristal bakiyesi ödeme sistemleri üzerinden yönetilir.
       </p>
 
       {error ? (
-        <p className="mt-3 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs text-stone-400">
+        <p className="mt-3 rounded-sm border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-stone-400">
           {error}
         </p>
       ) : null}
 
       <div className="mt-4 space-y-2">
         {loading ? (
-          <p className="text-xs text-white/40">Kullanıcılar yükleniyor...</p>
+          <p className="text-xs text-stone-500">Kullanıcılar yükleniyor...</p>
         ) : users.length === 0 ? (
-          <p className="text-xs text-white/40">Kayıtlı kullanıcı bulunamadı.</p>
+          <p className="text-xs text-stone-500">Kayıtlı kullanıcı bulunamadı.</p>
         ) : (
           users.map((user) => {
             const suspended = !user.isActive;
@@ -101,26 +102,30 @@ export default function AdminUserBanPanel() {
             return (
               <div
                 key={user.id}
-                className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3"
+                className="flex items-center justify-between gap-3 rounded-sm border border-zinc-800 bg-zinc-900 px-3 py-3"
               >
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-white/90">{user.name}</p>
-                  <p className="truncate font-mono text-[10px] text-white/35">
+                  <p className="truncate text-sm font-medium text-stone-200">{user.name}</p>
+                  <p className="truncate font-mono text-[10px] text-stone-500">
                     {user.nfcUid ?? "NFC yok"}
                   </p>
-                  <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-white/30">
+                  <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-stone-500">
                     {suspended ? "Askıda" : "Aktif"}
                     {user.cardActive === false ? " · Kart pasif" : ""}
+                  </p>
+                  <p className="mt-1 text-xs text-stone-500">
+                    Yıldız:{" "}
+                    <span className="font-mono text-stone-300">{user.starPoints}</span>
                   </p>
                 </div>
                 <button
                   type="button"
                   disabled={busy}
                   onClick={() => void handleToggle(user)}
-                  className={`shrink-0 rounded-lg px-3 py-2 text-[10px] font-medium uppercase tracking-[0.14em] transition disabled:opacity-60 ${
+                  className={`shrink-0 rounded-sm px-3 py-2 text-[10px] font-medium uppercase tracking-[0.14em] transition disabled:opacity-60 ${
                     suspended
-                      ? "border border-zinc-700 bg-zinc-900 text-stone-300"
-                      : "border border-zinc-700 bg-zinc-900 text-stone-400"
+                      ? "border border-zinc-700 bg-zinc-950 text-stone-300"
+                      : "border border-zinc-700 bg-zinc-950 text-stone-400"
                   }`}
                 >
                   {busy ? "..." : suspended ? "Aktifleştir" : "Askıya Al"}

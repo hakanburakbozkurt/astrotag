@@ -14,6 +14,7 @@ export type AdminManagedUser = {
   nfcUid: string | null;
   isActive: boolean;
   cardActive: boolean | null;
+  starPoints: number;
 };
 
 export type AdminUsersListResult =
@@ -38,7 +39,7 @@ export async function listAdminManagedUsersAction(): Promise<AdminUsersListResul
   const supabase = createServiceRoleClient();
   const { data: profiles, error } = await supabase
     .from(PROFILES_TABLE)
-    .select("id, name, nfc_uid, is_active")
+    .select("id, name, nfc_uid, is_active, star_points")
     .order("name", { ascending: true });
 
   if (error) {
@@ -69,6 +70,7 @@ export async function listAdminManagedUsersAction(): Promise<AdminUsersListResul
     cardActive: cardActiveByProfile.has(row.id)
       ? cardActiveByProfile.get(row.id)!
       : null,
+    starPoints: row.star_points ?? 0,
   }));
 
   return { ok: true, users };

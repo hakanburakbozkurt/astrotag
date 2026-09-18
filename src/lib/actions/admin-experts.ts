@@ -13,8 +13,20 @@ export type AdminPendingExpert = {
   tradition: string;
   experienceYears: number;
   aboutText: string;
+  about: string | null;
+  experienceText: string | null;
+  philosophyText: string;
+  phoneNumber: string | null;
+  socialProfileUrl: string | null;
+  avatarUrl: string | null;
+  approvalStatus: string;
+  isPublished: boolean;
+  vitrineSort: number;
+  expertCode: string | null;
+  nfcUid: string | null;
   email: string | null;
   submittedAt: string;
+  updatedAt: string;
 };
 
 export type AdminPendingExpertsResult =
@@ -35,7 +47,7 @@ export async function listPendingExpertApplicationsAction(): Promise<AdminPendin
   const { data: rows, error } = await supabase
     .from("expert_profiles")
     .select(
-      "id, profile_id, display_name, title, tradition, experience_years, about_text, created_at"
+      "id, profile_id, display_name, title, tradition, experience_years, about_text, about, experience_text, philosophy_text, phone_number, social_profile_url, avatar_url, approval_status, is_published, vitrine_sort, created_at, updated_at"
     )
     .eq("approval_status", "pending")
     .order("created_at", { ascending: true });
@@ -51,22 +63,29 @@ export async function listPendingExpertApplicationsAction(): Promise<AdminPendin
   const profileIds = rows.map((row) => row.profile_id);
   const { data: profiles } = await supabase
     .from("profiles")
-    .select("id, user_id, user_role")
+    .select("id, user_id, user_role, expert_code, nfc_uid")
     .in("id", profileIds)
     .eq("user_role", "expert");
 
-  const userIdByProfileId = new Map<string, string>();
+  const profileById = new Map<
+    string,
+    { userId: string; expertCode: string | null; nfcUid: string | null }
+  >();
   for (const profile of profiles ?? []) {
     if (profile.user_id) {
-      userIdByProfileId.set(profile.id, profile.user_id);
+      profileById.set(profile.id, {
+        userId: profile.user_id,
+        expertCode: profile.expert_code ?? null,
+        nfcUid: profile.nfc_uid ?? null,
+      });
     }
   }
 
   const experts: AdminPendingExpert[] = [];
 
   for (const row of rows) {
-    const authUserId = userIdByProfileId.get(row.profile_id);
-    if (!authUserId) {
+    const linkedProfile = profileById.get(row.profile_id);
+    if (!linkedProfile) {
       continue;
     }
 
@@ -78,8 +97,20 @@ export async function listPendingExpertApplicationsAction(): Promise<AdminPendin
       tradition: row.tradition,
       experienceYears: row.experience_years ?? 0,
       aboutText: row.about_text ?? "",
-      email: await getAuthUserEmail(authUserId),
+      about: row.about ?? null,
+      experienceText: row.experience_text ?? null,
+      philosophyText: row.philosophy_text ?? "",
+      phoneNumber: row.phone_number ?? null,
+      socialProfileUrl: row.social_profile_url ?? null,
+      avatarUrl: row.avatar_url ?? null,
+      approvalStatus: row.approval_status ?? "pending",
+      isPublished: row.is_published === true,
+      vitrineSort: row.vitrine_sort ?? 0,
+      expertCode: linkedProfile.expertCode,
+      nfcUid: linkedProfile.nfcUid,
+      email: await getAuthUserEmail(linkedProfile.userId),
       submittedAt: row.created_at,
+      updatedAt: row.updated_at ?? row.created_at,
     });
   }
 
