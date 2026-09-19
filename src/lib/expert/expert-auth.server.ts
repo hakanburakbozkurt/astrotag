@@ -4,7 +4,9 @@ import { randomInt, randomUUID } from "crypto";
 import { assertAccountLoginAllowed } from "@/lib/nfc/account-status.server";
 import { expertNfcSlugForCode } from "@/lib/expert/expert-codes.shared";
 import {
+  EXPERT_APPROVAL_APPROVED,
   EXPERT_APPROVAL_PENDING,
+  EXPERT_APPROVAL_REJECTED,
 } from "@/lib/expert/expert-approval.shared";
 import { validatePasswordPair } from "@/lib/auth/password-rules";
 import { authErrorMessage } from "@/lib/auth/nfc-auth-debug";
@@ -15,6 +17,7 @@ import {
   getAuthUserEmail,
   isValidExpertEmail,
   normalizeExpertEmail,
+  updateAuthUserPassword,
 } from "@/lib/expert/expert-auth-email.server";
 import type { ExpertRegisterDraft } from "@/lib/expert/expert-pending-cookie.server";
 import {
@@ -44,6 +47,12 @@ export type ExpertRegisterApplicationInput = ExpertRegisterDraft & {
   confirmPassword: string;
 };
 
+export type ExpertRegisterErrorCode =
+  | "login_required"
+  | "validation"
+  | "auth"
+  | "server";
+
 export type ExpertRegisterApplicationResult =
   | {
       ok: true;
@@ -51,7 +60,195 @@ export type ExpertRegisterApplicationResult =
       redirectTo: string;
       requiresEmailConfirmation?: boolean;
     }
-  | { ok: false; error: string; redirectTo?: string };
+  | {
+      ok: false;
+      error: string;
+      redirectTo?: string;
+      errorCode?: ExpertRegisterErrorCode;
+    };
+
+type ExpertRegistrationSnapshot = {
+  authUserId: string;
+  profileId: string | null;
+  expertProfileId: string | null;
+  userRole: string | null;
+  isActive: boolean | null;
+  deletedAt: string | null;
+  approvalStatus: string | null;
+  expertCode: string | null;
+};
+
+type ExpertRegistrationIntent =
+  | "new"
+  | "active_approved"
+  | "reapply"
+  | "non_expert";
+
+const EXPERT_ALREADY_REGISTERED_MESSAGE =
+  "Bu e-posta ile zaten bir hesap var, lütfen giriş yapın.";
+
+function mapExpertRegisterAuthError(error: unknown, fallback: string): string {
+  const message = authErrorMessage(error, fallback).toLowerCase();
+
+  if (message.includes("password") && message.includes("weak")) {
+    return "Şifre çok zayıf. En az 8 karakter ve daha güçlü bir kombinasyon deneyin.";
+  }
+
+  if (message.includes("rate limit") || message.includes("too many")) {
+    return "Çok fazla deneme yapıldı. Lütfen birkaç dakika sonra tekrar deneyin.";
+  }
+
+  if (message.includes("invalid") && message.includes("email")) {
+    return "Geçerli bir e-posta adresi girin.";
+  }
+
+  if (message.includes("signup") && message.includes("disabled")) {
+    return "Yeni kayıt şu an kapalı. Lütfen daha sonra tekrar deneyin.";
+  }
+
+  if (message.includes("network") || message.includes("fetch")) {
+    return "Bağlantı hatası. İnternet bağlantınızı kontrol edip tekrar deneyin.";
+  }
+
+  const original = authErrorMessage(error, fallback);
+  if (original !== fallback) {
+    return original;
+  }
+
+  return fallback;
+}
+
+function resolveExpertRegistrationIntent(
+  snapshot: ExpertRegistrationSnapshot | null
+): ExpertRegistrationIntent {
+  if (!snapshot) {
+    return "new";
+  }
+
+  if (!snapshot.profileId) {
+    return "reapply";
+  }
+
+  const isDeleted = Boolean(snapshot.deletedAt);
+  const isSuspended = snapshot.isActive === false;
+  const isExpert = snapshot.userRole === "expert";
+  const approvalStatus = snapshot.approvalStatus;
+
+  if (!isExpert && !isDeleted) {
+    return "non_expert";
+  }
+
+  if (
+    approvalStatus === EXPERT_APPROVAL_APPROVED &&
+    !isDeleted &&
+    !isSuspended
+  ) {
+    return "active_approved";
+  }
+
+  if (
+    isDeleted ||
+    isSuspended ||
+    approvalStatus === EXPERT_APPROVAL_REJECTED ||
+    approvalStatus === EXPERT_APPROVAL_PENDING ||
+    !approvalStatus
+  ) {
+    return "reapply";
+  }
+
+  return "active_approved";
+}
+
+async function loadExpertRegistrationByEmail(
+  email: string
+): Promise<ExpertRegistrationSnapshot | null> {
+  const authUserId = await findAuthUserIdByEmail(email);
+  if (!authUserId) {
+    return null;
+  }
+
+  const admin = createServiceRoleClient();
+  const { data: profile } = await admin
+    .from(PROFILES_TABLE)
+    .select("id, user_role, is_active, deleted_at, expert_code")
+    .eq("user_id", authUserId)
+    .maybeSingle();
+
+  if (!profile?.id) {
+    return {
+      authUserId,
+      profileId: null,
+      expertProfileId: null,
+      userRole: null,
+      isActive: null,
+      deletedAt: null,
+      approvalStatus: null,
+      expertCode: null,
+    };
+  }
+
+  const { data: expertProfile } = await admin
+    .from(EXPERT_PROFILES_TABLE)
+    .select("id, approval_status")
+    .eq("profile_id", profile.id)
+    .maybeSingle();
+
+  return {
+    authUserId,
+    profileId: profile.id,
+    expertProfileId: expertProfile?.id ?? null,
+    userRole: profile.user_role ?? null,
+    isActive: profile.is_active ?? null,
+    deletedAt: profile.deleted_at ?? null,
+    approvalStatus: expertProfile?.approval_status ?? null,
+    expertCode: profile.expert_code ?? null,
+  };
+}
+
+async function signInExpertAfterRegistration(
+  email: string,
+  password: string
+): Promise<
+  | { ok: true; hasSession: true }
+  | { ok: true; hasSession: false }
+  | { ok: false; error: string }
+> {
+  const supabase = await createServerSupabaseClient();
+  const signIn = await supabase.auth.signInWithPassword({ email, password });
+
+  if (signIn.error) {
+    return {
+      ok: false,
+      error: mapExpertRegisterAuthError(
+        signIn.error,
+        "Hesabınız oluşturuldu ancak oturum açılamadı. Giriş sayfasından devam edin."
+      ),
+    };
+  }
+
+  return { ok: true, hasSession: Boolean(signIn.data.session) };
+}
+
+function buildRegisterSuccessResult(input: {
+  message: string;
+  redirectTo: string;
+  hasSession: boolean;
+}): ExpertRegisterApplicationResult {
+  if (input.hasSession) {
+    return {
+      ok: true,
+      message: input.message,
+      redirectTo: input.redirectTo,
+    };
+  }
+
+  return {
+    ok: true,
+    message: input.message,
+    redirectTo: input.redirectTo,
+    requiresEmailConfirmation: true,
+  };
+}
 
 function normalizeExpertRegisterDraft(
   input: ExpertRegisterDraft
@@ -290,33 +487,230 @@ export async function sendExpertRegisterMagicLink(
   return { ok: true };
 }
 
+async function upsertExpertProfileFromDraft(
+  snapshot: ExpertRegistrationSnapshot,
+  draft: ExpertRegisterDraft
+): Promise<
+  | { ok: true; profileId: string; expertCode: string }
+  | { ok: false; error: string }
+> {
+  const normalizedDraft = normalizeExpertRegisterDraft(draft);
+  const admin = createServiceRoleClient();
+
+  if (!snapshot.profileId) {
+    return createExpertProfileFromDraft(snapshot.authUserId, normalizedDraft);
+  }
+
+  const profileId = snapshot.profileId;
+  let expertCode = snapshot.expertCode;
+
+  if (!expertCode) {
+    expertCode = await generateUniqueExpertCode(admin);
+    if (!expertCode) {
+      return { ok: false, error: "Uzman kodu oluşturulamadı." };
+    }
+  }
+
+  const slug = expertNfcSlugForCode(expertCode);
+  const { error: profileError } = await admin
+    .from(PROFILES_TABLE)
+    .update({
+      name: normalizedDraft.name,
+      user_role: "expert",
+      is_active: true,
+      deleted_at: null,
+      anonymized_at: null,
+      expert_code: expertCode,
+      nfc_uid: slug,
+    })
+    .eq("id", profileId);
+
+  if (profileError) {
+    return { ok: false, error: "Uzman hesabı güncellenemedi." };
+  }
+
+  const expertProfilePayload = {
+    display_name: normalizedDraft.name,
+    title: normalizedDraft.title,
+    tradition: normalizedDraft.tradition,
+    experience_years: normalizedDraft.experienceYears,
+    about_text: normalizedDraft.aboutText,
+    phone_number: normalizedDraft.phoneNumber,
+    social_profile_url: normalizedDraft.socialProfileUrl,
+    approval_status: EXPERT_APPROVAL_PENDING,
+    is_published: false,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (snapshot.expertProfileId) {
+    const { error: expertUpdateError } = await admin
+      .from(EXPERT_PROFILES_TABLE)
+      .update(expertProfilePayload)
+      .eq("id", snapshot.expertProfileId);
+
+    if (expertUpdateError) {
+      return { ok: false, error: "Uzman başvuru profili güncellenemedi." };
+    }
+  } else {
+    const { error: expertInsertError } = await admin
+      .from(EXPERT_PROFILES_TABLE)
+      .insert({
+        profile_id: profileId,
+        ...expertProfilePayload,
+      });
+
+    if (expertInsertError) {
+      return { ok: false, error: "Uzman başvuru profili oluşturulamadı." };
+    }
+  }
+
+  const nfcCardUuid = await ensureExpertVirtualCard(admin, profileId, expertCode);
+  if (!nfcCardUuid) {
+    return { ok: false, error: "Uzman oturum kartı hazırlanamadı." };
+  }
+
+  await admin
+    .from(NFC_CARD_TABLE)
+    .update({ is_active: true })
+    .eq("profile_id", profileId);
+
+  return { ok: true, profileId, expertCode };
+}
+
+async function reapplyExpertApplication(
+  snapshot: ExpertRegistrationSnapshot,
+  email: string,
+  password: string,
+  draft: ExpertRegisterDraft
+): Promise<ExpertRegisterApplicationResult> {
+  const passwordUpdate = await updateAuthUserPassword(snapshot.authUserId, password);
+  if (!passwordUpdate.ok) {
+    return {
+      ok: false,
+      error: mapExpertRegisterAuthError(
+        passwordUpdate.error,
+        "Şifreniz güncellenemedi. Lütfen tekrar deneyin."
+      ),
+      errorCode: "auth",
+    };
+  }
+
+  const upserted = await upsertExpertProfileFromDraft(snapshot, draft);
+  if (!upserted.ok) {
+    return { ok: false, error: upserted.error, errorCode: "server" };
+  }
+
+  const signIn = await signInExpertAfterRegistration(email, password);
+  if (!signIn.ok) {
+    return {
+      ok: true,
+      message:
+        "Başvurunuz yenilendi. Güncel bilgilerinizle giriş sayfasından oturum açabilirsiniz.",
+      redirectTo: EXPERT_LOGIN_PATH,
+      requiresEmailConfirmation: true,
+    };
+  }
+
+  if (signIn.hasSession) {
+    const session = await establishExpertSession(upserted.profileId, upserted.expertCode);
+    if (!session.ok) {
+      return {
+        ok: false,
+        error: session.error,
+        redirectTo: EXPERT_LOGIN_PATH,
+        errorCode: "auth",
+      };
+    }
+
+    return buildRegisterSuccessResult({
+      message:
+        "Başvurunuz yenilendi ve tekrar incelemeye alındı. Admin onayından sonra vitrinde yerinizi alabilirsiniz.",
+      redirectTo: "/dashboard",
+      hasSession: true,
+    });
+  }
+
+  return buildRegisterSuccessResult({
+    message:
+      "Başvurunuz yenilendi. E-postanızı doğruladıktan sonra giriş yapabilirsiniz.",
+    redirectTo: EXPERT_LOGIN_PATH,
+    hasSession: false,
+  });
+}
+
+async function handleExistingExpertRegistration(
+  email: string,
+  password: string,
+  draft: ExpertRegisterDraft
+): Promise<ExpertRegisterApplicationResult | null> {
+  const snapshot = await loadExpertRegistrationByEmail(email);
+  const intent = resolveExpertRegistrationIntent(snapshot);
+
+  if (intent === "new") {
+    return null;
+  }
+
+  if (intent === "active_approved") {
+    return {
+      ok: false,
+      error: EXPERT_ALREADY_REGISTERED_MESSAGE,
+      redirectTo: EXPERT_LOGIN_PATH,
+      errorCode: "login_required",
+    };
+  }
+
+  if (intent === "non_expert") {
+    return {
+      ok: false,
+      error: EXPERT_ALREADY_REGISTERED_MESSAGE,
+      redirectTo: EXPERT_LOGIN_PATH,
+      errorCode: "login_required",
+    };
+  }
+
+  if (!snapshot) {
+    return {
+      ok: false,
+      error: "Mevcut hesap doğrulanamadı. Lütfen tekrar deneyin.",
+      errorCode: "server",
+    };
+  }
+
+  return reapplyExpertApplication(snapshot, email, password, draft);
+}
+
 export async function registerExpertApplication(
   input: ExpertRegisterApplicationInput
 ): Promise<ExpertRegisterApplicationResult> {
   const email = normalizeExpertEmail(input.email);
 
   if (!isValidExpertEmail(email)) {
-    return { ok: false, error: "Geçerli bir e-posta adresi girin." };
+    return {
+      ok: false,
+      error: "Geçerli bir e-posta adresi girin.",
+      errorCode: "validation",
+    };
   }
 
   const passwordError = validatePasswordPair(input.password, input.confirmPassword);
   if (passwordError) {
-    return { ok: false, error: passwordError };
+    return { ok: false, error: passwordError, errorCode: "validation" };
   }
 
   const draftValidation = validateExpertRegisterDraft(input);
   if (!draftValidation.ok) {
-    return draftValidation;
+    return { ...draftValidation, errorCode: "validation" };
   }
 
   const { draft } = draftValidation;
 
-  if (await authEmailExists(email)) {
-    return {
-      ok: false,
-      error: "Bu e-posta zaten kayıtlı. Giriş sayfasını kullanın.",
-      redirectTo: EXPERT_LOGIN_PATH,
-    };
+  const existingRegistration = await handleExistingExpertRegistration(
+    email,
+    input.password,
+    draft
+  );
+  if (existingRegistration) {
+    return existingRegistration;
   }
 
   const supabase = await createServerSupabaseClient();
@@ -327,79 +721,73 @@ export async function registerExpertApplication(
 
   if (signUp.error) {
     if (isUserAlreadyExistsError(signUp.error)) {
+      const retryExisting = await handleExistingExpertRegistration(
+        email,
+        input.password,
+        draft
+      );
+
+      if (retryExisting) {
+        return retryExisting;
+      }
+
       return {
         ok: false,
-        error: "Bu e-posta zaten kayıtlı. Giriş sayfasını kullanın.",
+        error: EXPERT_ALREADY_REGISTERED_MESSAGE,
         redirectTo: EXPERT_LOGIN_PATH,
+        errorCode: "login_required",
       };
     }
 
     return {
       ok: false,
-      error: authErrorMessage(signUp.error, "Uzman hesabı oluşturulamadı."),
+      error: mapExpertRegisterAuthError(signUp.error, "Uzman hesabı oluşturulamadı."),
+      errorCode: "auth",
     };
   }
 
   const authUserId = signUp.data.user?.id;
   if (!authUserId) {
-    return { ok: false, error: "Kullanıcı hesabı oluşturulamadı." };
-  }
-
-  const existingExpert = await findExpertProfileByAuthUserId(authUserId);
-  if (existingExpert?.expert_code) {
-    if (signUp.data.session) {
-      const session = await establishExpertSession(
-        existingExpert.id,
-        existingExpert.expert_code
-      );
-
-      if (!session.ok) {
-        return { ok: false, error: session.error, redirectTo: EXPERT_LOGIN_PATH };
-      }
-
-      return {
-        ok: true,
-        message: "Uzman hesabınız zaten kayıtlı. Panele yönlendiriliyorsunuz.",
-        redirectTo: "/dashboard",
-      };
-    }
-
     return {
-      ok: true,
-      message:
-        "Uzman hesabınız zaten kayıtlı. E-postanızı doğruladıktan sonra giriş yapabilirsiniz.",
-      redirectTo: EXPERT_LOGIN_PATH,
-      requiresEmailConfirmation: true,
+      ok: false,
+      error: "Kullanıcı hesabı oluşturulamadı.",
+      errorCode: "server",
     };
   }
 
   const created = await createExpertProfileFromDraft(authUserId, draft);
   if (!created.ok) {
     await deleteAuthUser(authUserId);
-    return { ok: false, error: created.error };
+    return { ok: false, error: created.error, errorCode: "server" };
   }
 
-  if (signUp.data.session) {
+  const hasSession = Boolean(signUp.data.session);
+
+  if (hasSession) {
     const session = await establishExpertSession(created.profileId, created.expertCode);
     if (!session.ok) {
-      return { ok: false, error: session.error, redirectTo: EXPERT_LOGIN_PATH };
+      return {
+        ok: false,
+        error: session.error,
+        redirectTo: EXPERT_LOGIN_PATH,
+        errorCode: "auth",
+      };
     }
 
-    return {
-      ok: true,
+    return buildRegisterSuccessResult({
       message:
         "Başvurunuz alındı. Admin onayından sonra vitrinde yerinizi alabilirsiniz.",
       redirectTo: "/dashboard",
-    };
+      hasSession: true,
+    });
   }
 
-  return {
-    ok: true,
+  return buildRegisterSuccessResult({
     message:
       "Başvurunuz kaydedildi. E-postanızdaki doğrulama bağlantısını onayladıktan sonra giriş yapabilirsiniz.",
     redirectTo: EXPERT_LOGIN_PATH,
-    requiresEmailConfirmation: true,
-  };
+    hasSession: false,
+  });
 }
 
 async function createExpertProfileFromDraft(

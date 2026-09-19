@@ -30,6 +30,9 @@ export default function ExpertRegisterForm() {
   const [socialProfileUrl, setSocialProfileUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<
+    "login_required" | "validation" | "auth" | "server" | null
+  >(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [requiresEmailConfirmation, setRequiresEmailConfirmation] = useState(false);
 
@@ -67,6 +70,7 @@ export default function ExpertRegisterForm() {
     const clientPasswordError = validatePasswordPair(password, confirmPassword);
     if (clientPasswordError) {
       setError(clientPasswordError);
+      setErrorCode("validation");
       return;
     }
 
@@ -76,6 +80,7 @@ export default function ExpertRegisterForm() {
 
     setLoading(true);
     setError(null);
+    setErrorCode(null);
     setSuccessMessage(null);
     setRequiresEmailConfirmation(false);
 
@@ -95,6 +100,7 @@ export default function ExpertRegisterForm() {
 
       if (!result.ok) {
         setError(result.error);
+        setErrorCode(result.errorCode ?? null);
         return;
       }
 
@@ -296,12 +302,30 @@ export default function ExpertRegisterForm() {
       />
 
       {error ? (
-        <p
+        <div
           role="alert"
           className="rounded-sm border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-stone-400"
         >
-          {error}
-        </p>
+          <p>{error}</p>
+          {errorCode === "login_required" ? (
+            <p className="mt-2 text-xs text-stone-500">
+              Mevcut hesabınızla{" "}
+              <Link
+                href={`${EXPERT_LOGIN_PATH}${normalizedEmail ? `?email=${encodeURIComponent(normalizedEmail)}` : ""}`}
+                className="font-medium text-stone-300 underline underline-offset-2 hover:text-stone-100"
+              >
+                uzman giriş
+              </Link>{" "}
+              sayfasından devam edebilirsiniz.
+            </p>
+          ) : null}
+          {errorCode === "auth" ? (
+            <p className="mt-2 text-xs text-stone-500">
+              Sorun devam ederse bir süre bekleyip tekrar deneyin veya giriş sayfasını
+              kullanın.
+            </p>
+          ) : null}
+        </div>
       ) : null}
 
       <button

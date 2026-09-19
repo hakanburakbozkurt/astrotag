@@ -5,6 +5,7 @@ import {
   registerExpertApplication,
   sendExpertLoginMagicLink,
   sendExpertRegisterMagicLink,
+  type ExpertRegisterErrorCode,
 } from "@/lib/expert/expert-auth.server";
 import { withNfcAction } from "@/lib/nfc/with-nfc-action.server";
 
@@ -60,7 +61,12 @@ export type ExpertRegisterApplicationActionResult =
       redirectTo: string;
       requiresEmailConfirmation?: boolean;
     }
-  | { ok: false; error: string; redirectTo?: string };
+  | {
+      ok: false;
+      error: string;
+      redirectTo?: string;
+      errorCode?: ExpertRegisterErrorCode;
+    };
 
 export async function registerExpertApplicationAction(input: {
   email: string;
