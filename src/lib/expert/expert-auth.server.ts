@@ -33,6 +33,11 @@ import { STARTING_STAR_POINTS } from "@/lib/constants/cosmic";
 import { generateReferralCode } from "@/lib/referral";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
+import {
+  fetchExpertProfileByProfileId,
+  fetchProfileByUserId,
+  firstRow,
+} from "@/lib/supabase/profile-query.server";
 import { authEmailExists } from "@/lib/auth/auth-email-exists.server";
 
 const PROFILES_TABLE = "profiles";
@@ -168,11 +173,13 @@ async function loadExpertRegistrationByEmail(
   }
 
   const admin = createServiceRoleClient();
-  const { data: profile } = await admin
-    .from(PROFILES_TABLE)
-    .select("id, user_role, is_active, deleted_at, expert_code")
-    .eq("user_id", authUserId)
-    .maybeSingle();
+  const { data: profile } = await fetchProfileByUserId<{
+    id: string;
+    user_role: string | null;
+    is_active: boolean | null;
+    deleted_at: string | null;
+    expert_code: string | null;
+  }>(admin, authUserId, "id, user_role, is_active, deleted_at, expert_code");
 
   if (!profile?.id) {
     return {
@@ -187,11 +194,10 @@ async function loadExpertRegistrationByEmail(
     };
   }
 
-  const { data: expertProfile } = await admin
-    .from(EXPERT_PROFILES_TABLE)
-    .select("id, approval_status")
-    .eq("profile_id", profile.id)
-    .maybeSingle();
+  const { data: expertProfile } = await fetchExpertProfileByProfileId<{
+    id: string;
+    approval_status: string | null;
+  }>(admin, profile.id, "id, approval_status");
 
   return {
     authUserId,
@@ -335,7 +341,7 @@ async function ensureExpertVirtualCard(
     return existing.id;
   }
 
-  const { data: created, error } = await admin
+  const { data: createdRows, error } = await admin
     .from(NFC_CARD_TABLE)
     .insert({
       nfc_id: slug,
@@ -343,8 +349,9 @@ async function ensureExpertVirtualCard(
       is_active: true,
     })
     .select("id")
-    .single();
+    .limit(1);
 
+  const created = firstRow(createdRows);
   if (error || !created?.id) {
     return null;
   }
@@ -354,11 +361,13 @@ async function ensureExpertVirtualCard(
 
 async function findExpertProfileByAuthUserId(authUserId: string) {
   const admin = createServiceRoleClient();
-  const { data } = await admin
-    .from(PROFILES_TABLE)
-    .select("id, expert_code, user_role, is_active, name")
-    .eq("user_id", authUserId)
-    .maybeSingle();
+  const { data } = await fetchProfileByUserId<{
+    id: string;
+    expert_code: string | null;
+    user_role: string | null;
+    is_active: boolean | null;
+    name: string | null;
+  }>(admin, authUserId, "id, expert_code, user_role, is_active, name");
 
   if (!data?.id || data.user_role !== "expert") {
     return null;

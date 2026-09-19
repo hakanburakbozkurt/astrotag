@@ -8,6 +8,7 @@ import { requireProtectedNfcAccess } from "@/lib/nfc/protected-access.server";
 import { withNfcAction } from "@/lib/nfc/with-nfc-action.server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
+import { fetchProfileByUserId } from "@/lib/supabase/profile-query.server";
 import type { UserData } from "@/types/user";
 
 export type CompleteProfileInput = {
@@ -38,11 +39,9 @@ export async function completeUserProfile(
     }
 
     const admin = createServiceRoleClient();
-    const { data: profileRow, error: lookupError } = await admin
-      .from("profiles")
-      .select("id")
-      .eq("user_id", user.id)
-      .maybeSingle();
+    const { data: profileRow, error: lookupError } = await fetchProfileByUserId<{
+      id: string;
+    }>(admin, user.id, "id");
 
     if (lookupError || !profileRow?.id) {
       redirect(HOME_PATH);

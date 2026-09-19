@@ -7,6 +7,23 @@ import {
 } from "@/lib/expert/expert-approval.shared";
 import { requireAuthUserId } from "@/lib/supabase-actions";
 import { createServiceRoleClient } from "@/lib/supabase/service";
+import {
+  fetchExpertProfileByProfileId,
+  firstRow,
+} from "@/lib/supabase/profile-query.server";
+
+type ExpertProfileRow = {
+  id: string;
+  display_name: string;
+  title: string;
+  tradition: string;
+  experience_years: number;
+  about_text: string;
+  philosophy_text: string;
+  is_published: boolean;
+  earnings_balance_try: number;
+  approval_status: string | null;
+};
 
 export type ExpertPanelData = {
   expertProfileId: string | null;
@@ -50,14 +67,14 @@ async function loadExpertRow(profileId: string) {
     return null;
   }
 
-  let { data: expert } = await admin
-    .from("expert_profiles")
-    .select("*")
-    .eq("profile_id", profileId)
-    .maybeSingle();
+  let { data: expert } = await fetchExpertProfileByProfileId<ExpertProfileRow>(
+    admin,
+    profileId,
+    "*"
+  );
 
   if (!expert) {
-    const { data: created } = await admin
+    const { data: createdRows, error: insertError } = await admin
       .from("expert_profiles")
       .insert({
         profile_id: profileId,
@@ -68,9 +85,13 @@ async function loadExpertRow(profileId: string) {
         is_published: false,
       })
       .select("*")
-      .single();
+      .limit(1);
 
-    expert = created;
+    if (insertError) {
+      return null;
+    }
+
+    expert = firstRow(createdRows as ExpertProfileRow[] | null);
   }
 
   return expert;

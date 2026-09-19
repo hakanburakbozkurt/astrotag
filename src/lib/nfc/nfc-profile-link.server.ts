@@ -7,6 +7,7 @@ import { logNfcEvent } from "@/lib/nfc/error-logger";
 import { NFC_CARD_TABLE } from "@/lib/nfc/nfc-card-table";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 import { generateReferralCode } from "@/lib/referral";
+import { fetchProfileByNfcUid } from "@/lib/supabase/profile-query.server";
 
 const CTX = { layer: "action" as const, handler: "resolveProfileForNfcCard" };
 
@@ -21,11 +22,11 @@ export async function findProfileIdByNfcUid(
     return null;
   }
 
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("nfc_uid", normalized)
-    .maybeSingle();
+  const { data, error } = await fetchProfileByNfcUid<{ id: string }>(
+    supabase,
+    normalized,
+    "id"
+  );
 
   if (error) {
     logNfcEvent("warn", CTX, "profiles.nfc_uid sorgusu başarısız", {

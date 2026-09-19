@@ -8,6 +8,7 @@ import {
 } from "@/lib/storage/expert-avatars.shared";
 import { requireAuthUserId } from "@/lib/supabase-actions";
 import { createServiceRoleClient } from "@/lib/supabase/service";
+import { fetchExpertProfileByProfileId } from "@/lib/supabase/profile-query.server";
 import { normalizeWhatsAppAdminNumber } from "@/lib/support/whatsapp-recovery.config";
 
 const AVATAR_BUCKET = EXPERT_AVATARS_BUCKET;
@@ -39,11 +40,18 @@ async function requireExpertProfile(profileId: string) {
     return { ok: false as const, error: "Bu işlem yalnızca uzman hesapları içindir." };
   }
 
-  const { data: expert, error } = await admin
-    .from("expert_profiles")
-    .select("id, avatar_url, about, about_text, experience_text, phone_number")
-    .eq("profile_id", profileId)
-    .maybeSingle();
+  const { data: expert, error } = await fetchExpertProfileByProfileId<{
+    id: string;
+    avatar_url: string | null;
+    about: string | null;
+    about_text: string | null;
+    experience_text: string | null;
+    phone_number: string | null;
+  }>(
+    admin,
+    profileId,
+    "id, avatar_url, about, about_text, experience_text, phone_number"
+  );
 
   if (error || !expert?.id) {
     return { ok: false as const, error: "Uzman profili bulunamadı." };

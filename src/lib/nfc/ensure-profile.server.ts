@@ -16,6 +16,7 @@ import {
 } from "@/lib/nfc/nfc-card-table";
 import { throwIfSupabaseError } from "@/lib/nfc/supabase-nfc.server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
+import { fetchProfileByUserId } from "@/lib/supabase/profile-query.server";
 
 const CTX = { layer: "action" as const, handler: "ensureProfileForAuthUser" };
 
@@ -91,11 +92,10 @@ export async function ensureProfileForAuthUser(
     }
   }
 
-  const { data: existing, error: selectError } = await admin
-    .from("profiles")
-    .select("id, nfc_uid")
-    .eq("user_id", authUserId)
-    .maybeSingle();
+  const { data: existing, error: selectError } = await fetchProfileByUserId<{
+    id: string;
+    nfc_uid: string | null;
+  }>(admin, authUserId, "id, nfc_uid");
 
   throwIfSupabaseError(selectError, CTX, "profiles.select", { authUserId });
 

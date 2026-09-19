@@ -10,6 +10,7 @@ import {
 import { createProfileForNfcCard } from "@/lib/nfc/nfc-profile-link.server";
 import { normalizeNfcUniqueId } from "@/lib/nfc/unique-id";
 import { createServiceRoleClient } from "@/lib/supabase/service";
+import { fetchProfileByNfcUid, firstRow } from "@/lib/supabase/profile-query.server";
 
 const CTX = { layer: "action" as const, handler: "ensureNfcCardAndProfile" };
 
@@ -53,14 +54,16 @@ async function insertNfcCard(
   supabase: SupabaseClient,
   slug: string
 ): Promise<NfcCardRow | null> {
-  const { data, error } = await supabase
+  const { data: insertedRows, error } = await supabase
     .from(NFC_CARD_TABLE)
     .insert({
       nfc_id: slug,
       is_active: true,
     })
     .select(NFC_CARD_AUTH_SELECT)
-    .single();
+    .limit(1);
+
+  const data = firstRow(insertedRows);
 
   if (error) {
     if (error.code === "23505") {
@@ -72,6 +75,10 @@ async function insertNfcCard(
       code: error.code,
       message: error.message,
     });
+    return null;
+  }
+
+  if (!data?.id) {
     return null;
   }
 
@@ -87,11 +94,11 @@ async function loadProfileIdByNfcUid(
   supabase: SupabaseClient,
   slug: string
 ): Promise<string | null> {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("nfc_uid", slug)
-    .maybeSingle();
+  const { data, error } = await fetchProfileByNfcUid<{ id: string }>(
+    supabase,
+    slug,
+    "id"
+  );
 
   if (error || !data?.id) {
     return null;

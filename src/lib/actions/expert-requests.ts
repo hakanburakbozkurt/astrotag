@@ -2,6 +2,7 @@
 
 import { requireAuthUserId } from "@/lib/supabase-actions";
 import { createServiceRoleClient } from "@/lib/supabase/service";
+import { fetchExpertProfileByProfileId } from "@/lib/supabase/profile-query.server";
 
 export type ExpertIncomingRequest = {
   id: string;
@@ -31,11 +32,11 @@ export async function listExpertIncomingRequestsAction(): Promise<
       return { ok: false, error: "Bu sayfa yalnızca uzman hesapları içindir." };
     }
 
-    const { data: expert } = await admin
-      .from("expert_profiles")
-      .select("id")
-      .eq("profile_id", profileId)
-      .maybeSingle();
+    const { data: expert } = await fetchExpertProfileByProfileId<{ id: string }>(
+      admin,
+      profileId,
+      "id"
+    );
 
     if (!expert?.id) {
       return { ok: true, requests: [] };

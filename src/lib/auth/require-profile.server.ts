@@ -4,6 +4,7 @@ import type { User } from "@supabase/supabase-js";
 import { NFC_CARD_TABLE } from "@/lib/nfc/nfc-card-table";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
+import { fetchProfileByUserId, firstRow } from "@/lib/supabase/profile-query.server";
 
 export type AuthProfileContext = {
   authUserId: string;
@@ -17,21 +18,29 @@ async function loadProfileForAuthUser(
   user: User
 ): Promise<AuthProfileContext | null> {
   const admin = createServiceRoleClient();
-  const { data: profile, error } = await admin
-    .from("profiles")
-    .select("id, nfc_uid, is_active, is_guest")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const { data: profile, error } = await fetchProfileByUserId<{
+    id: string;
+    nfc_uid: string | null;
+    is_active: boolean | null;
+    is_guest: boolean | null;
+  }>(admin, user.id, "id, nfc_uid, is_active, is_guest");
 
   if (error || !profile?.id || profile.is_active === false) {
     return null;
   }
 
-  const { data: card } = await admin
+  const { data: cardRows, error: cardError } = await admin
     .from(NFC_CARD_TABLE)
     .select("id")
     .eq("profile_id", profile.id)
-    .maybeSingle();
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  if (cardError) {
+    return null;
+  }
+
+  const card = firstRow(cardRows);
 
   return {
     authUserId: user.id,
