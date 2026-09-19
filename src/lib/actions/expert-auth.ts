@@ -2,6 +2,7 @@
 
 import {
   finalizeExpertEmailAuth,
+  registerExpertApplication,
   sendExpertLoginMagicLink,
   sendExpertRegisterMagicLink,
 } from "@/lib/expert/expert-auth.server";
@@ -49,6 +50,32 @@ export async function sendExpertRegisterLinkAction(input: {
       ok: true,
       message: "Kayıt bağlantısı e-posta adresinize gönderildi.",
     };
+  });
+}
+
+export type ExpertRegisterApplicationActionResult =
+  | {
+      ok: true;
+      message: string;
+      redirectTo: string;
+      requiresEmailConfirmation?: boolean;
+    }
+  | { ok: false; error: string; redirectTo?: string };
+
+export async function registerExpertApplicationAction(input: {
+  email: string;
+  password: string;
+  confirmPassword: string;
+  name: string;
+  title: string;
+  tradition: string;
+  experienceYears: number;
+  aboutText: string;
+  phoneNumber: string;
+  socialProfileUrl: string;
+}): Promise<ExpertRegisterApplicationActionResult> {
+  return withNfcAction("registerExpertApplicationAction", async () => {
+    return registerExpertApplication(input);
   });
 }
 

@@ -5,7 +5,7 @@ export default function ExpertRegisterPage() {
   return (
     <AuthMobileShell
       title="Astro Uzman Başvurusu"
-      subtitle="Adınız, e-postanız ve uzmanlık bilgilerinizle başvurun. Doğrulama bağlantısı e-postanıza gönderilir."
+      subtitle="E-posta, şifre ve uzmanlık bilgilerinizle başvurun. Hesabınız oluşturulur ve başvurunuz incelemeye alınır."
     >
       <section className="auth-glass-card w-full p-6 sm:p-8">
         <ExpertRegisterForm />

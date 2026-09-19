@@ -6,12 +6,17 @@ import { expertNfcSlugForCode } from "@/lib/expert/expert-codes.shared";
 import {
   EXPERT_APPROVAL_PENDING,
 } from "@/lib/expert/expert-approval.shared";
+import { validatePasswordPair } from "@/lib/auth/password-rules";
+import { authErrorMessage } from "@/lib/auth/nfc-auth-debug";
+import { isUserAlreadyExistsError } from "@/lib/auth/nfc-auth-errors";
 import {
+  deleteAuthUser,
   findAuthUserIdByEmail,
   getAuthUserEmail,
   isValidExpertEmail,
   normalizeExpertEmail,
 } from "@/lib/expert/expert-auth-email.server";
+import type { ExpertRegisterDraft } from "@/lib/expert/expert-pending-cookie.server";
 import {
   clearExpertPendingCookie,
   getExpertPendingCookie,
@@ -32,6 +37,63 @@ const EXPERT_PROFILES_TABLE = "expert_profiles";
 const PLACEHOLDER_BIRTH_DATE = "1970-01-01";
 
 export type ExpertAuthError = { ok: false; error: string };
+
+export type ExpertRegisterApplicationInput = ExpertRegisterDraft & {
+  email: string;
+  password: string;
+  confirmPassword: string;
+};
+
+export type ExpertRegisterApplicationResult =
+  | {
+      ok: true;
+      message: string;
+      redirectTo: string;
+      requiresEmailConfirmation?: boolean;
+    }
+  | { ok: false; error: string; redirectTo?: string };
+
+function normalizeExpertRegisterDraft(
+  input: ExpertRegisterDraft
+): ExpertRegisterDraft {
+  return {
+    name: input.name.trim(),
+    title: input.title.trim(),
+    tradition: input.tradition.trim(),
+    aboutText: input.aboutText.trim(),
+    phoneNumber: input.phoneNumber.trim(),
+    socialProfileUrl: input.socialProfileUrl.trim(),
+    experienceYears: Math.max(0, Math.floor(input.experienceYears)),
+  };
+}
+
+function validateExpertRegisterDraft(
+  input: ExpertRegisterDraft
+): ExpertAuthError | { ok: true; draft: ExpertRegisterDraft } {
+  const draft = normalizeExpertRegisterDraft(input);
+
+  if (draft.name.length < 2) {
+    return { ok: false, error: "Adınız en az 2 karakter olmalıdır." };
+  }
+
+  if (draft.title.length < 2) {
+    return { ok: false, error: "Unvan en az 2 karakter olmalıdır." };
+  }
+
+  if (draft.tradition.length < 2) {
+    return { ok: false, error: "Uzmanlık alanı seçin veya girin." };
+  }
+
+  if (draft.phoneNumber.length < 10) {
+    return { ok: false, error: "Geçerli bir telefon numarası girin." };
+  }
+
+  if (draft.socialProfileUrl.length < 4) {
+    return { ok: false, error: "Sosyal medya profil bağlantısı girin." };
+  }
+
+  return { ok: true, draft };
+}
 
 async function generateUniqueExpertCode(
   admin: ReturnType<typeof createServiceRoleClient>
@@ -182,48 +244,21 @@ export async function sendExpertLoginMagicLink(
   return { ok: true };
 }
 
-export async function sendExpertRegisterMagicLink(input: {
-  email: string;
-  name: string;
-  title: string;
-  tradition: string;
-  experienceYears: number;
-  aboutText: string;
-  phoneNumber: string;
-  socialProfileUrl: string;
-}): Promise<{ ok: true } | ExpertAuthError> {
+export async function sendExpertRegisterMagicLink(
+  input: ExpertRegisterDraft & { email: string }
+): Promise<{ ok: true } | ExpertAuthError> {
   const email = normalizeExpertEmail(input.email);
-  const name = input.name.trim();
-  const title = input.title.trim();
-  const tradition = input.tradition.trim();
-  const aboutText = input.aboutText.trim();
-  const phoneNumber = input.phoneNumber.trim();
-  const socialProfileUrl = input.socialProfileUrl.trim();
-  const experienceYears = Math.max(0, Math.floor(input.experienceYears));
 
   if (!isValidExpertEmail(email)) {
     return { ok: false, error: "Geçerli bir e-posta adresi girin." };
   }
 
-  if (name.length < 2) {
-    return { ok: false, error: "Adınız en az 2 karakter olmalıdır." };
+  const draftValidation = validateExpertRegisterDraft(input);
+  if (!draftValidation.ok) {
+    return draftValidation;
   }
 
-  if (title.length < 2) {
-    return { ok: false, error: "Unvan en az 2 karakter olmalıdır." };
-  }
-
-  if (tradition.length < 2) {
-    return { ok: false, error: "Uzmanlık alanı seçin veya girin." };
-  }
-
-  if (phoneNumber.length < 10) {
-    return { ok: false, error: "Geçerli bir telefon numarası girin." };
-  }
-
-  if (socialProfileUrl.length < 4) {
-    return { ok: false, error: "Sosyal medya profil bağlantısı girin." };
-  }
+  const { draft } = draftValidation;
 
   if (await authEmailExists(email)) {
     return {
@@ -249,25 +284,132 @@ export async function sendExpertRegisterMagicLink(input: {
   await setExpertPendingCookie({
     mode: "register",
     email,
-    name,
-    title,
-    tradition,
-    experienceYears,
-    aboutText,
-    phoneNumber,
-    socialProfileUrl,
+    ...draft,
   });
 
   return { ok: true };
 }
 
-async function createExpertProfileFromPending(
+export async function registerExpertApplication(
+  input: ExpertRegisterApplicationInput
+): Promise<ExpertRegisterApplicationResult> {
+  const email = normalizeExpertEmail(input.email);
+
+  if (!isValidExpertEmail(email)) {
+    return { ok: false, error: "Geçerli bir e-posta adresi girin." };
+  }
+
+  const passwordError = validatePasswordPair(input.password, input.confirmPassword);
+  if (passwordError) {
+    return { ok: false, error: passwordError };
+  }
+
+  const draftValidation = validateExpertRegisterDraft(input);
+  if (!draftValidation.ok) {
+    return draftValidation;
+  }
+
+  const { draft } = draftValidation;
+
+  if (await authEmailExists(email)) {
+    return {
+      ok: false,
+      error: "Bu e-posta zaten kayıtlı. Giriş sayfasını kullanın.",
+      redirectTo: EXPERT_LOGIN_PATH,
+    };
+  }
+
+  const supabase = await createServerSupabaseClient();
+  const signUp = await supabase.auth.signUp({
+    email,
+    password: input.password,
+  });
+
+  if (signUp.error) {
+    if (isUserAlreadyExistsError(signUp.error)) {
+      return {
+        ok: false,
+        error: "Bu e-posta zaten kayıtlı. Giriş sayfasını kullanın.",
+        redirectTo: EXPERT_LOGIN_PATH,
+      };
+    }
+
+    return {
+      ok: false,
+      error: authErrorMessage(signUp.error, "Uzman hesabı oluşturulamadı."),
+    };
+  }
+
+  const authUserId = signUp.data.user?.id;
+  if (!authUserId) {
+    return { ok: false, error: "Kullanıcı hesabı oluşturulamadı." };
+  }
+
+  const existingExpert = await findExpertProfileByAuthUserId(authUserId);
+  if (existingExpert?.expert_code) {
+    if (signUp.data.session) {
+      const session = await establishExpertSession(
+        existingExpert.id,
+        existingExpert.expert_code
+      );
+
+      if (!session.ok) {
+        return { ok: false, error: session.error, redirectTo: EXPERT_LOGIN_PATH };
+      }
+
+      return {
+        ok: true,
+        message: "Uzman hesabınız zaten kayıtlı. Panele yönlendiriliyorsunuz.",
+        redirectTo: "/dashboard",
+      };
+    }
+
+    return {
+      ok: true,
+      message:
+        "Uzman hesabınız zaten kayıtlı. E-postanızı doğruladıktan sonra giriş yapabilirsiniz.",
+      redirectTo: EXPERT_LOGIN_PATH,
+      requiresEmailConfirmation: true,
+    };
+  }
+
+  const created = await createExpertProfileFromDraft(authUserId, draft);
+  if (!created.ok) {
+    await deleteAuthUser(authUserId);
+    return { ok: false, error: created.error };
+  }
+
+  if (signUp.data.session) {
+    const session = await establishExpertSession(created.profileId, created.expertCode);
+    if (!session.ok) {
+      return { ok: false, error: session.error, redirectTo: EXPERT_LOGIN_PATH };
+    }
+
+    return {
+      ok: true,
+      message:
+        "Başvurunuz alındı. Admin onayından sonra vitrinde yerinizi alabilirsiniz.",
+      redirectTo: "/dashboard",
+    };
+  }
+
+  return {
+    ok: true,
+    message:
+      "Başvurunuz kaydedildi. E-postanızdaki doğrulama bağlantısını onayladıktan sonra giriş yapabilirsiniz.",
+    redirectTo: EXPERT_LOGIN_PATH,
+    requiresEmailConfirmation: true,
+  };
+}
+
+async function createExpertProfileFromDraft(
   authUserId: string,
-  pending: Extract<ExpertPendingPayload, { mode: "register" }>
+  draft: ExpertRegisterDraft
 ): Promise<
   | { ok: true; profileId: string; expertCode: string }
   | { ok: false; error: string }
 > {
+  const normalizedDraft = normalizeExpertRegisterDraft(draft);
   const admin = createServiceRoleClient();
   const expertCode = await generateUniqueExpertCode(admin);
 
@@ -281,7 +423,7 @@ async function createExpertProfileFromPending(
   const { error: profileError } = await admin.from(PROFILES_TABLE).insert({
     id: profileId,
     user_id: authUserId,
-    name: pending.name.trim(),
+    name: normalizedDraft.name,
     birth_date: PLACEHOLDER_BIRTH_DATE,
     birth_time: "00:00:00",
     birth_place: "",
@@ -306,27 +448,40 @@ async function createExpertProfileFromPending(
     .from(EXPERT_PROFILES_TABLE)
     .insert({
       profile_id: profileId,
-      display_name: pending.name.trim(),
-      title: pending.title.trim(),
-      tradition: pending.tradition.trim(),
-      experience_years: Math.max(0, pending.experienceYears ?? 0),
-      about_text: pending.aboutText?.trim() ?? "",
-      phone_number: pending.phoneNumber?.trim() ?? "",
-      social_profile_url: pending.socialProfileUrl?.trim() ?? "",
+      display_name: normalizedDraft.name,
+      title: normalizedDraft.title,
+      tradition: normalizedDraft.tradition,
+      experience_years: normalizedDraft.experienceYears,
+      about_text: normalizedDraft.aboutText,
+      phone_number: normalizedDraft.phoneNumber,
+      social_profile_url: normalizedDraft.socialProfileUrl,
       approval_status: EXPERT_APPROVAL_PENDING,
       is_published: false,
     });
 
   if (expertProfileError) {
+    await admin.from(PROFILES_TABLE).delete().eq("id", profileId);
     return { ok: false, error: "Uzman başvuru profili oluşturulamadı." };
   }
 
   const nfcCardUuid = await ensureExpertVirtualCard(admin, profileId, expertCode);
   if (!nfcCardUuid) {
+    await admin.from(EXPERT_PROFILES_TABLE).delete().eq("profile_id", profileId);
+    await admin.from(PROFILES_TABLE).delete().eq("id", profileId);
     return { ok: false, error: "Uzman oturum kartı oluşturulamadı." };
   }
 
   return { ok: true, profileId, expertCode };
+}
+
+async function createExpertProfileFromPending(
+  authUserId: string,
+  pending: Extract<ExpertPendingPayload, { mode: "register" }>
+): Promise<
+  | { ok: true; profileId: string; expertCode: string }
+  | { ok: false; error: string }
+> {
+  return createExpertProfileFromDraft(authUserId, pending);
 }
 
 function pendingEmailMatchesAuthUser(

@@ -46,6 +46,33 @@ export function isValidExpertEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 }
 
+export async function deleteAuthUser(authUserId: string): Promise<boolean> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "");
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !serviceRoleKey || !authUserId.trim()) {
+    return false;
+  }
+
+  try {
+    const response = await fetch(
+      `${supabaseUrl}/auth/v1/admin/users/${encodeURIComponent(authUserId)}`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${serviceRoleKey}`,
+          apikey: serviceRoleKey,
+        },
+        cache: "no-store",
+      }
+    );
+
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function getAuthUserEmail(authUserId: string): Promise<string | null> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "");
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
