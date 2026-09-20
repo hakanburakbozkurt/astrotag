@@ -20,16 +20,21 @@ function ExpertDetailView({
   onSelectService: (serviceId: string) => void;
   purchaseSuccess: string | null;
 }) {
+  const hasExtendedBio =
+    Boolean(expert.aboutText?.trim()) ||
+    Boolean(expert.experienceText?.trim()) ||
+    Boolean(expert.philosophyText?.trim());
+
   return (
     <motion.div
       key={expert.id}
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-5"
+      className="space-y-6"
     >
       <ExpertProfileVitrineHeader expert={expert} />
 
-      {(expert.aboutText || expert.philosophyText || expert.experienceText) && (
+      {hasExtendedBio ? (
         <section className="rounded-sm border border-zinc-800 bg-[#09090b] p-5">
           <p className="text-[10px] uppercase tracking-[0.28em] text-zinc-600">
             Hakkımda
@@ -50,29 +55,32 @@ function ExpertDetailView({
             </p>
           ) : null}
         </section>
-      )}
+      ) : null}
 
-      <section>
-        <p className="text-[10px] uppercase tracking-[0.28em] text-zinc-600">
-          Hizmet Kartları
-        </p>
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {expert.services.length === 0 ? (
-            <p className="col-span-full text-sm text-zinc-500">
-              Henüz hizmet tanımlanmamış.
-            </p>
-          ) : (
-            expert.services.map((service) => (
+      <section className="rounded-sm border border-zinc-800 bg-[#09090b] p-4 sm:p-5">
+        <div className="flex items-center gap-3">
+          <p className="text-[10px] uppercase tracking-[0.28em] text-zinc-600">
+            Hizmet Kartları
+          </p>
+          <div className="h-px flex-1 bg-zinc-800" aria-hidden="true" />
+        </div>
+
+        {expert.services.length === 0 ? (
+          <p className="mt-4 text-sm text-zinc-500">Henüz hizmet tanımlanmamış.</p>
+        ) : (
+          <div className="mt-4 grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(10.75rem,1fr))] sm:[grid-template-columns:repeat(auto-fill,minmax(11.5rem,1fr))]">
+            {expert.services.map((service) => (
               <ExpertServiceCard
                 key={service.id}
                 service={service}
                 onPurchase={() => onSelectService(service.id)}
               />
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        )}
+
         {purchaseSuccess ? (
-          <p className="mt-3 text-xs text-zinc-400">{purchaseSuccess}</p>
+          <p className="mt-4 text-xs text-zinc-400">{purchaseSuccess}</p>
         ) : null}
       </section>
 
@@ -150,20 +158,26 @@ export default function ExpertsTabContent() {
       title="Kozmik Uzmanlar"
       description="Gerçek uzman seansları — kristal ile rezervasyon."
     >
-      <ExpertsDirectory
-        selectedId={selectedId}
-        onSelectExpert={setSelectedId}
-      />
-
-      {loadingDetail ? (
-        <DataLoadingState className="mt-2" compact />
-      ) : detail ? (
-        <ExpertDetailView
-          expert={detail}
-          onSelectService={openPurchaseModal}
-          purchaseSuccess={purchaseSuccess}
+      <div className="space-y-8">
+        <ExpertsDirectory
+          selectedId={selectedId}
+          onSelectExpert={setSelectedId}
         />
-      ) : null}
+
+        {(loadingDetail || detail) && (
+          <div className="border-t border-zinc-800 pt-8">
+            {loadingDetail ? (
+              <DataLoadingState className="mt-2" compact />
+            ) : detail ? (
+              <ExpertDetailView
+                expert={detail}
+                onSelectService={openPurchaseModal}
+                purchaseSuccess={purchaseSuccess}
+              />
+            ) : null}
+          </div>
+        )}
+      </div>
 
       <ExpertServicePurchaseModal
         open={purchaseModalOpen}

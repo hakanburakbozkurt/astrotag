@@ -19,13 +19,13 @@ export default function ExpertGridCard({
       type="button"
       onClick={() => onSelect(expert.id)}
       aria-pressed={selected}
-      className={`group flex h-full flex-col rounded-[22px] border p-3.5 text-left transition ${
+      className={`flex h-full min-h-[156px] w-full flex-col rounded-sm border p-4 text-left transition ${
         selected
-          ? "border-zinc-700 bg-zinc-900/0.08 shadow-[0_0_24px_rgba(255,255,255,0.06)]"
-          : "border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.05]"
+          ? "border-zinc-600 bg-zinc-900"
+          : "border-zinc-800 bg-[#09090b] hover:border-zinc-700 hover:bg-zinc-950"
       }`}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex min-h-[4.5rem] items-start gap-3">
         <ExpertAvatar
           avatarUrl={expert.avatarUrl}
           displayName={expert.displayName}
@@ -33,21 +33,21 @@ export default function ExpertGridCard({
           ring={false}
         />
         <div className="min-w-0 flex-1">
-          <p className="line-clamp-2 text-sm font-semibold leading-snug text-white/95">
+          <p className="line-clamp-2 font-serif text-sm leading-snug text-zinc-100">
             {expert.displayName}
           </p>
-          <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-stone-300">
+          <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-zinc-500">
             {expert.title}
           </p>
         </div>
       </div>
 
-      <div className="mt-3 space-y-1.5 border-t border-white/[0.06] pt-3">
-        <p className="line-clamp-1 text-[10px] uppercase tracking-[0.18em] text-stone-300">
+      <div className="mt-auto space-y-1 border-t border-zinc-800 pt-3">
+        <p className="line-clamp-1 text-[10px] uppercase tracking-[0.18em] text-zinc-600">
           {expert.tradition}
         </p>
-        <p className="text-xs text-white/45">
-          <span className="font-mono text-white/70">{expert.experienceYears}</span>{" "}
+        <p className="text-xs text-zinc-500">
+          <span className="font-mono text-zinc-400">{expert.experienceYears}</span>{" "}
           yıl deneyim
         </p>
       </div>
