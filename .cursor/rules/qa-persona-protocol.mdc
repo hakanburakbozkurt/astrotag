@@ -1,0 +1,31 @@
+---
+description: QA & Persona Simulation — validate feed/economy changes against User vs Expert tiers before finalizing
+alwaysApply: true
+---
+
+# AstroTag QA & Persona Protocol
+
+Before finalizing **any major feature, feed change, or economic update**, mentally simulate **both tiers** (see `docs/QA_PERSONA_PROTOCOL.md`).
+
+## Two tiers (non-negotiable)
+
+| Tier | Identity | Freedom | Discipline |
+|------|----------|---------|------------|
+| **User** | `profiles` — organic members | Post, like, reply; optional `profiles.avatar_url` | Context tag required; 3 posts/day; 100 likes/day (Istanbul); moderation on all text |
+| **Expert** | `expert_profiles` — verified providers | Vitrin, announcements, service cards, crystal economy | `expert_profiles.avatar_url` required for new services & announcements; **no** commercial spam in feed |
+
+## Pre-ship checklist (feed / social)
+
+- [ ] `user_post` blocked without valid `context_tag` (`feed-context-tags.shared.ts`)
+- [ ] `moderateFeedText` runs server-side on posts, captions, replies (`feed-moderation.shared.ts`)
+- [ ] User daily caps enforced in server actions, not UI-only (`feed-rate-limit.server.ts`)
+- [ ] Expert avatar guard on service **create** & feed announcements (`expert-avatar-guard.server.ts`)
+- [ ] Sales/commerce only via approved **expert service cards** — never free-form feed CTAs
+- [ ] Red-heart like UX preserved for emotional engagement; compact noir/zinc UI not regressed
+
+## Pre-ship checklist (expert economy)
+
+- [ ] Crystal spend / commission paths unchanged unless explicitly scoped
+- [ ] RLS + service-role validation remain defense-in-depth for feed inserts
+
+When proposing architecture, state which personas pass/fail and which tier a change favors.
