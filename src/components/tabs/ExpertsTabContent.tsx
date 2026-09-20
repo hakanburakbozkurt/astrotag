@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import ExpertsDirectory from "@/components/experts/ExpertsDirectory";
+import ExpertsFeedPlaceholder from "@/components/experts/ExpertsFeedPlaceholder";
 import ExpertProfileVitrineHeader from "@/components/experts/ExpertProfileVitrineHeader";
 import ExpertServiceCard from "@/components/experts/ExpertServiceCard";
 import ExpertServicePurchaseModal from "@/components/experts/ExpertServicePurchaseModal";
@@ -30,7 +31,7 @@ function ExpertDetailView({
       key={expert.id}
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-6"
+      className="space-y-6 border-t border-zinc-800/80 pt-6"
     >
       <ExpertProfileVitrineHeader expert={expert} />
 
@@ -151,43 +152,44 @@ export default function ExpertsTabContent() {
     setPurchaseSuccess("Hizmet talebiniz alındı. Kristaller cüzdanınızdan düşüldü.");
   };
 
+  const showFeed = !selectedId && !loadingDetail;
+
   return (
     <TabPageScaffold
       embedded
-      eyebrow="Uzmanlar"
-      title="Kozmik Uzmanlar"
-      description="Gerçek uzman seansları — kristal ile rezervasyon."
+      hideHeader
+      eyebrow=""
+      title=""
     >
-      <div className="space-y-8">
+      <div className="space-y-0">
         <ExpertsDirectory
           selectedId={selectedId}
           onSelectExpert={setSelectedId}
-          showExpertGrid={!selectedId}
         />
 
         {selectedId ? (
           <button
             type="button"
             onClick={() => setSelectedId(null)}
-            className="text-[11px] uppercase tracking-wider text-zinc-500 underline decoration-zinc-800 underline-offset-2 hover:text-zinc-400"
+            className="mt-4 text-[11px] uppercase tracking-wider text-zinc-500 underline decoration-zinc-800 underline-offset-2 hover:text-zinc-400"
           >
-            ← Tüm uzmanlar listesi
+            ← Akışa dön
           </button>
         ) : null}
 
-        {(loadingDetail || detail) && (
-          <div className={selectedId ? "pt-4" : "border-t border-zinc-800 pt-8"}>
-            {loadingDetail ? (
-              <DataLoadingState className="mt-2" compact />
-            ) : detail ? (
-              <ExpertDetailView
-                expert={detail}
-                onSelectService={openPurchaseModal}
-                purchaseSuccess={purchaseSuccess}
-              />
-            ) : null}
+        {loadingDetail ? (
+          <div className="border-t border-zinc-800/80 pt-6">
+            <DataLoadingState className="mt-2" compact />
           </div>
-        )}
+        ) : detail ? (
+          <ExpertDetailView
+            expert={detail}
+            onSelectService={openPurchaseModal}
+            purchaseSuccess={purchaseSuccess}
+          />
+        ) : showFeed ? (
+          <ExpertsFeedPlaceholder />
+        ) : null}
       </div>
 
       <ExpertServicePurchaseModal
