@@ -65,7 +65,6 @@ export type ExpertPublicProfile = {
   experienceText: string;
   philosophyText: string;
   avatarUrl: string | null;
-  coverUrl: string | null;
   services: ExpertServiceRow[];
   articles: ExpertArticleRow[];
 };
@@ -181,7 +180,7 @@ export async function getExpertPublicProfile(
   const { data: expert, error } = await admin
     .from("expert_profiles")
     .select(
-      "id, profile_id, display_name, title, tradition, experience_years, about_text, about, experience_text, philosophy_text, avatar_url, cover_url"
+      "id, profile_id, display_name, title, tradition, experience_years, about_text, about, experience_text, philosophy_text, avatar_url"
     )
     .eq("id", expertProfileId)
     .eq("is_published", true)
@@ -220,7 +219,6 @@ export async function getExpertPublicProfile(
     experienceText: expert.experience_text?.trim() ?? "",
     philosophyText: expert.philosophy_text,
     avatarUrl: expert.avatar_url,
-    coverUrl: expert.cover_url,
     services: (services ?? []).map((s) => mapExpertServiceRow(s)),
     articles: (articles ?? []).map((a) => ({
       id: a.id,
