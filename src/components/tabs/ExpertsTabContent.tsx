@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import ExpertsDirectory from "@/components/experts/ExpertsDirectory";
-import ExpertsFeedPlaceholder from "@/components/experts/ExpertsFeedPlaceholder";
+import ExpertsFeed from "@/components/experts/ExpertsFeed";
 import ExpertProfileVitrineHeader from "@/components/experts/ExpertProfileVitrineHeader";
 import ExpertServiceCard from "@/components/experts/ExpertServiceCard";
 import ExpertServicePurchaseModal from "@/components/experts/ExpertServicePurchaseModal";
@@ -188,7 +188,7 @@ export default function ExpertsTabContent() {
             purchaseSuccess={purchaseSuccess}
           />
         ) : showFeed ? (
-          <ExpertsFeedPlaceholder />
+          <ExpertsFeed onSelectExpert={setSelectedId} />
         ) : null}
       </div>
 
