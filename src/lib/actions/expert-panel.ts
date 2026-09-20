@@ -51,6 +51,7 @@ export type ExpertPanelData = {
     durationMinutes: number;
     isActive: boolean;
     imageUrl: string | null;
+    serviceTypeId: string | null;
   }>;
   articles: Array<{
     id: string;
@@ -173,6 +174,7 @@ export async function getExpertPanelDataAction(): Promise<ExpertPanelData | null
       durationMinutes: s.duration_minutes,
       isActive: s.is_active,
       imageUrl: s.image_url ?? null,
+      serviceTypeId: s.service_type_id ?? null,
     })),
     articles: (articles ?? []).map((a) => ({
       id: a.id,
@@ -265,6 +267,7 @@ export async function saveExpertProfileAction(input: {
 
 export async function upsertExpertServiceAction(input: {
   id?: string;
+  serviceTypeId: string;
   name: string;
   description: string;
   crystalPrice: number;
@@ -280,8 +283,20 @@ export async function upsertExpertServiceAction(input: {
   }
 
   const admin = createServiceRoleClient();
+
+  const { data: serviceType } = await admin
+    .from("expert_service_types")
+    .select("id, is_active")
+    .eq("id", input.serviceTypeId)
+    .maybeSingle();
+
+  if (!serviceType?.is_active) {
+    return { ok: false, error: "Seçilen hizmet tipi geçersiz veya pasif." };
+  }
+
   const payload = {
     expert_profile_id: approved.expertId,
+    service_type_id: input.serviceTypeId,
     name: input.name.trim(),
     description: input.description.trim(),
     crystal_price: Math.max(1, input.crystalPrice),
