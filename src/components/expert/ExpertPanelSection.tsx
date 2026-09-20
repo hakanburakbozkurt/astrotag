@@ -13,12 +13,20 @@ import ExpertProfileEditForm from "@/components/expert/ExpertProfileEditForm";
 import ExpertServiceManager from "@/components/expert/ExpertServiceManager";
 import Link from "next/link";
 
+type ExpertPanelTab = "profile" | "services";
+
+const PANEL_TABS: { id: ExpertPanelTab; label: string }[] = [
+  { id: "profile", label: "Profil" },
+  { id: "services", label: "Hizmet Kartları" },
+];
+
 const inputClass =
-  "mt-1 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-white/90 outline-none focus:border-zinc-700";
+  "mt-1 w-full rounded-sm border border-zinc-800 bg-[#09090b] px-3 py-2.5 text-sm text-zinc-200 outline-none focus:border-zinc-600";
 
 export default function ExpertPanelSection() {
   const [data, setData] = useState<ExpertPanelData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<ExpertPanelTab>("profile");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,8 +43,8 @@ export default function ExpertPanelSection() {
 
   if (loading) {
     return (
-      <section className="rounded-[28px] border border-white/10 bg-[#0f172a]/80 p-5">
-        <p className="text-sm text-white/45">Uzman paneli yükleniyor…</p>
+      <section className="rounded-sm border border-zinc-800 bg-[#09090b] p-5">
+        <p className="text-sm text-zinc-500">Uzman paneli yükleniyor…</p>
       </section>
     );
   }
@@ -49,7 +57,7 @@ export default function ExpertPanelSection() {
     return (
       <>
         <ExpertPendingApprovalScreen displayName={data.displayName} />
-        <section className="mt-4 rounded-[28px] border border-white/10 bg-[#0f172a]/80 p-5 backdrop-blur-2xl sm:p-6">
+        <section className="mt-4 rounded-sm border border-zinc-800 bg-[#09090b] p-5 sm:p-6">
           <ExpertProfileEditForm />
         </section>
       </>
@@ -94,131 +102,168 @@ export default function ExpertPanelSection() {
     }
   };
 
+  const activeServiceCount = data.services.filter((service) => service.isActive).length;
+
   return (
-    <section className="rounded-[28px] border border-zinc-700 bg-[#0f172a]/80 p-5 backdrop-blur-2xl sm:p-6">
-      <p className="text-[10px] uppercase tracking-[0.3em] text-stone-300">
+    <section className="rounded-sm border border-zinc-800 bg-[#09090b] p-5 sm:p-6">
+      <p className="text-[10px] uppercase tracking-[0.3em] text-zinc-500">
         Uzman Paneli
       </p>
-      <p className="mt-2 text-xs text-white/45">
-        Profil, hizmet menüsü ve yazılarınızı yönetin. Yayınla → Uzmanlar
+      <p className="mt-2 text-xs text-zinc-500">
+        Profilinizi düzenleyin, hizmet kartlarınızı yönetin. Yayınla → Uzmanlar
         sekmesinde görünür.
       </p>
-      <p className="mt-2 font-mono text-xs text-stone-300">
+      <p className="mt-2 font-mono text-xs text-zinc-400">
         Hakediş: ₺{data.earningsBalanceTry.toLocaleString("tr-TR")}
       </p>
 
-      <ExpertProfileEditForm />
+      <div className="mt-5 flex w-full min-w-0 gap-2 rounded-sm border border-zinc-800 p-1">
+        {PANEL_TABS.map((tab) => {
+          const isActive = activeTab === tab.id;
+          const countLabel =
+            tab.id === "services" && data.services.length > 0
+              ? ` (${activeServiceCount}/${data.services.length})`
+              : "";
 
-      <Link
-        href="/dashboard/expert-requests"
-        className="mt-3 inline-flex text-[11px] uppercase tracking-wider text-stone-300 underline decoration-emerald-400/30 underline-offset-2"
-      >
-        Danışmanlık talepleri →
-      </Link>
-
-      <div className="mt-4 space-y-3">
-        <label className="block text-[10px] uppercase tracking-wider text-white/40">
-          Görünen Ad
-          <input
-            className={inputClass}
-            value={data.displayName}
-            onChange={(e) =>
-              setData({ ...data, displayName: e.target.value })
-            }
-          />
-        </label>
-        <label className="block text-[10px] uppercase tracking-wider text-white/40">
-          Unvan
-          <input
-            className={inputClass}
-            value={data.title}
-            onChange={(e) => setData({ ...data, title: e.target.value })}
-          />
-        </label>
-        <label className="block text-[10px] uppercase tracking-wider text-white/40">
-          Ekol (Vedic, Tarot…)
-          <input
-            className={inputClass}
-            value={data.tradition}
-            onChange={(e) => setData({ ...data, tradition: e.target.value })}
-          />
-        </label>
-        <label className="block text-[10px] uppercase tracking-wider text-white/40">
-          Deneyim (yıl)
-          <input
-            type="number"
-            min={0}
-            className={inputClass}
-            value={data.experienceYears}
-            onChange={(e) =>
-              setData({
-                ...data,
-                experienceYears: Number(e.target.value) || 0,
-              })
-            }
-          />
-        </label>
-        <label className="block text-[10px] uppercase tracking-wider text-white/40">
-          Hakkımda
-          <textarea
-            rows={3}
-            className={inputClass}
-            value={data.aboutText}
-            onChange={(e) => setData({ ...data, aboutText: e.target.value })}
-          />
-        </label>
-        <label className="block text-[10px] uppercase tracking-wider text-white/40">
-          Felsefe
-          <textarea
-            rows={3}
-            className={inputClass}
-            value={data.philosophyText}
-            onChange={(e) =>
-              setData({ ...data, philosophyText: e.target.value })
-            }
-          />
-        </label>
-        <label className="flex items-center gap-2 text-xs text-white/60">
-          <input
-            type="checkbox"
-            checked={data.isPublished}
-            onChange={(e) =>
-              setData({ ...data, isPublished: e.target.checked })
-            }
-          />
-          Vitrinde yayınla
-        </label>
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex-1 rounded-sm px-3 py-2 text-xs transition ${
+                isActive
+                  ? "bg-zinc-800 text-zinc-200"
+                  : "text-zinc-500 hover:text-zinc-400"
+              }`}
+            >
+              {tab.label}
+              {countLabel}
+            </button>
+          );
+        })}
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() => void saveProfile()}
-          className="rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-2 text-xs uppercase tracking-wider text-stone-300"
-        >
-          Profili Kaydet
-        </button>
-        <button
-          type="button"
-          onClick={() => void addArticle()}
-          className="rounded-xl border border-white/10 px-4 py-2 text-xs uppercase tracking-wider text-white/55"
-        >
-          + Yazı
-        </button>
-      </div>
+      {activeTab === "profile" ? (
+        <div className="mt-5 space-y-4">
+          <ExpertProfileEditForm />
 
-      <ExpertServiceManager
-        services={data.services}
-        onChanged={load}
-        onError={(message) => setError(message)}
-      />
+          <Link
+            href="/dashboard/expert-requests"
+            className="inline-flex text-[11px] uppercase tracking-wider text-zinc-400 underline decoration-zinc-700 underline-offset-2"
+          >
+            Danışmanlık talepleri →
+          </Link>
 
-      <p className="mt-4 text-[10px] text-white/35">
-        {data.articles.length} yazı
-      </p>
+          <div className="space-y-3">
+            <label className="block text-[10px] uppercase tracking-wider text-zinc-600">
+              Görünen Ad
+              <input
+                className={inputClass}
+                value={data.displayName}
+                onChange={(e) =>
+                  setData({ ...data, displayName: e.target.value })
+                }
+              />
+            </label>
+            <label className="block text-[10px] uppercase tracking-wider text-zinc-600">
+              Unvan
+              <input
+                className={inputClass}
+                value={data.title}
+                onChange={(e) => setData({ ...data, title: e.target.value })}
+              />
+            </label>
+            <label className="block text-[10px] uppercase tracking-wider text-zinc-600">
+              Ekol (Vedic, Tarot…)
+              <input
+                className={inputClass}
+                value={data.tradition}
+                onChange={(e) =>
+                  setData({ ...data, tradition: e.target.value })
+                }
+              />
+            </label>
+            <label className="block text-[10px] uppercase tracking-wider text-zinc-600">
+              Deneyim (yıl)
+              <input
+                type="number"
+                min={0}
+                className={inputClass}
+                value={data.experienceYears}
+                onChange={(e) =>
+                  setData({
+                    ...data,
+                    experienceYears: Number(e.target.value) || 0,
+                  })
+                }
+              />
+            </label>
+            <label className="block text-[10px] uppercase tracking-wider text-zinc-600">
+              Hakkımda
+              <textarea
+                rows={3}
+                className={inputClass}
+                value={data.aboutText}
+                onChange={(e) => setData({ ...data, aboutText: e.target.value })}
+              />
+            </label>
+            <label className="block text-[10px] uppercase tracking-wider text-zinc-600">
+              Felsefe
+              <textarea
+                rows={3}
+                className={inputClass}
+                value={data.philosophyText}
+                onChange={(e) =>
+                  setData({ ...data, philosophyText: e.target.value })
+                }
+              />
+            </label>
+            <label className="flex items-center gap-2 text-xs text-zinc-400">
+              <input
+                type="checkbox"
+                checked={data.isPublished}
+                onChange={(e) =>
+                  setData({ ...data, isPublished: e.target.checked })
+                }
+              />
+              Vitrinde yayınla
+            </label>
+          </div>
 
-      {message ? <p className="mt-3 text-xs text-stone-300">{message}</p> : null}
-      {error ? <p className="mt-3 text-xs text-stone-400">{error}</p> : null}
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => void saveProfile()}
+              className="rounded-sm border border-zinc-700 bg-zinc-900 px-4 py-2 text-xs uppercase tracking-wider text-zinc-200"
+            >
+              Profili Kaydet
+            </button>
+            <button
+              type="button"
+              onClick={() => void addArticle()}
+              className="rounded-sm border border-zinc-800 px-4 py-2 text-xs uppercase tracking-wider text-zinc-500"
+            >
+              + Yazı
+            </button>
+          </div>
+
+          <p className="text-[10px] text-zinc-600">
+            {data.articles.length} yazı · {data.services.length} hizmet kartı
+          </p>
+        </div>
+      ) : (
+        <div className="mt-5">
+          <ExpertServiceManager
+            embedded
+            services={data.services}
+            onChanged={load}
+            onError={(message) => setError(message)}
+          />
+        </div>
+      )}
+
+      {message ? <p className="mt-4 text-xs text-zinc-300">{message}</p> : null}
+      {error ? <p className="mt-4 text-xs text-zinc-400">{error}</p> : null}
     </section>
   );
 }

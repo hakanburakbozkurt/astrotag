@@ -19,6 +19,8 @@ type ExpertServiceManagerProps = {
   services: ExpertServiceItem[];
   onChanged: () => Promise<void>;
   onError: (message: string) => void;
+  /** Sekme içinde kullanıldığında üst ayırıcı kaldırılır */
+  embedded?: boolean;
 };
 
 const inputClass =
@@ -36,6 +38,7 @@ export default function ExpertServiceManager({
   services,
   onChanged,
   onError,
+  embedded = false,
 }: ExpertServiceManagerProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState(emptyDraft);
@@ -105,7 +108,7 @@ export default function ExpertServiceManager({
   };
 
   return (
-    <div className="mt-6 border-t border-zinc-800 pt-5">
+    <div className={embedded ? "mt-0" : "mt-6 border-t border-zinc-800 pt-5"}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="font-serif text-base text-zinc-100">Hizmet Kartları</p>
