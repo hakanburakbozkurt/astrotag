@@ -6,6 +6,11 @@ import {
   EXPERT_APPROVAL_PENDING,
   type ExpertApprovalStatus,
 } from "@/lib/expert/expert-approval.shared";
+import { assertExpertHasAvatarByExpertProfileId } from "@/lib/experts/expert-avatar-guard.server";
+import {
+  EXPERT_AVATAR_REQUIRED_CODE,
+  hasExpertAvatar,
+} from "@/lib/experts/expert-avatar-required.shared";
 import {
   EXPERT_AVATARS_BUCKET,
   EXPERT_AVATAR_MAX_BYTES,
@@ -29,6 +34,7 @@ type ExpertProfileRow = {
   is_published: boolean;
   earnings_balance_try: number;
   approval_status: string | null;
+  avatar_url: string | null;
 };
 
 export type ExpertPanelData = {
@@ -43,6 +49,8 @@ export type ExpertPanelData = {
   philosophyText: string;
   isPublished: boolean;
   earningsBalanceTry: number;
+  avatarUrl: string | null;
+  hasAvatar: boolean;
   services: Array<{
     id: string;
     name: string;
@@ -128,6 +136,8 @@ export async function getExpertPanelDataAction(): Promise<ExpertPanelData | null
       philosophyText: "",
       isPublished: false,
       earningsBalanceTry: 0,
+      avatarUrl: null,
+      hasAvatar: false,
       services: [],
       articles: [],
     };
@@ -166,6 +176,8 @@ export async function getExpertPanelDataAction(): Promise<ExpertPanelData | null
     philosophyText: expert.philosophy_text,
     isPublished: expert.is_published,
     earningsBalanceTry: Number(expert.earnings_balance_try ?? 0),
+    avatarUrl: expert.avatar_url,
+    hasAvatar: hasExpertAvatar(expert.avatar_url),
     services: (services ?? []).map((s) => ({
       id: s.id,
       name: s.name,
@@ -274,12 +286,21 @@ export async function upsertExpertServiceAction(input: {
   durationMinutes: number;
   isActive: boolean;
   imageUrl?: string | null;
-}): Promise<{ ok: boolean; error?: string }> {
+}): Promise<{ ok: boolean; error?: string; code?: typeof EXPERT_AVATAR_REQUIRED_CODE }> {
   const profileId = await requireAuthUserId();
   const approved = await requireApprovedExpert(profileId);
 
   if (!approved.ok) {
     return approved;
+  }
+
+  if (!input.id) {
+    const avatarGuard = await assertExpertHasAvatarByExpertProfileId(
+      approved.expertId
+    );
+    if (!avatarGuard.ok) {
+      return avatarGuard;
+    }
   }
 
   const admin = createServiceRoleClient();

@@ -1,5 +1,6 @@
 export interface UserData {
   name: string;
+  avatarUrl?: string | null;
   birthDate: string;
   birthTime: string;
   birthPlace: string;

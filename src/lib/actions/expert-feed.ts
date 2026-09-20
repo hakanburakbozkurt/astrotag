@@ -18,7 +18,12 @@ export async function listExpertFeedAction(): Promise<ExpertFeedPost[]> {
 export async function createExpertAnnouncementAction(input: {
   caption: string;
   mediaUrl?: string | null;
-}): Promise<{ ok: boolean; error?: string; postId?: string }> {
+}): Promise<{
+  ok: boolean;
+  error?: string;
+  postId?: string;
+  code?: string;
+}> {
   try {
     const profileId = await requireAuthUserId();
     const result = await createExpertAnnouncementPost({
@@ -28,7 +33,11 @@ export async function createExpertAnnouncementAction(input: {
     });
 
     if (!result.ok) {
-      return { ok: false, error: result.error };
+      return {
+        ok: false,
+        error: result.error,
+        code: "code" in result ? result.code : undefined,
+      };
     }
 
     return { ok: true, postId: result.postId };
@@ -42,7 +51,12 @@ export async function shareSessionToFeedAction(input: {
   caption?: string;
   sessionOutputData: ExpertFeedSessionOutput;
   shareConsent: boolean;
-}): Promise<{ ok: boolean; error?: string; postId?: string }> {
+}): Promise<{
+  ok: boolean;
+  error?: string;
+  postId?: string;
+  code?: string;
+}> {
   try {
     const profileId = await requireAuthUserId();
     const result = await shareExpertSessionToFeed({

@@ -97,6 +97,7 @@ export default function ExpertServicesPageClient() {
         <ExpertServiceManager
           embedded
           services={data.services}
+          hasExpertAvatar={data.hasAvatar}
           onChanged={load}
           onError={(value) => {
             setError(value);

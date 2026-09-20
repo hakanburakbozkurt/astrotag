@@ -58,6 +58,7 @@ function AppShellHeaderInner() {
       <div ref={menuRootRef} className="relative z-[100]">
         <ProfileAvatarButton
           displayName={showProfileMenu ? displayName : "G"}
+          avatarUrl={userData?.avatarUrl}
           onClick={toggleMenu}
           isOpen={menuOpen}
         />

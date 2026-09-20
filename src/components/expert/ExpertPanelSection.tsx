@@ -270,6 +270,7 @@ export default function ExpertPanelSection() {
           <ExpertServiceManager
             embedded
             services={data.services}
+            hasExpertAvatar={data.hasAvatar}
             onChanged={load}
             onError={(message) => setError(message)}
           />

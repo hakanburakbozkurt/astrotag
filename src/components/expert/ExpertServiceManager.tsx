@@ -8,6 +8,8 @@ import {
 } from "@/lib/actions/expert-panel";
 import { listActiveServiceCatalogAction } from "@/lib/actions/expert-service-catalog";
 import type { ServiceCatalogCategory } from "@/lib/experts/service-catalog.shared";
+import ExpertAvatarRequiredNotice from "@/components/expert/ExpertAvatarRequiredNotice";
+import { isExpertAvatarRequiredError } from "@/lib/experts/expert-avatar-required.shared";
 import { formatCrystalPriceLabel } from "@/lib/payments/commission.shared";
 
 type ExpertServiceItem = {
@@ -23,6 +25,7 @@ type ExpertServiceItem = {
 
 type ExpertServiceManagerProps = {
   services: ExpertServiceItem[];
+  hasExpertAvatar?: boolean;
   onChanged: () => Promise<void>;
   onError: (message: string) => void;
   embedded?: boolean;
@@ -65,6 +68,7 @@ function findTypeMeta(
 
 export default function ExpertServiceManager({
   services,
+  hasExpertAvatar = true,
   onChanged,
   onError,
   embedded = false,
@@ -76,6 +80,11 @@ export default function ExpertServiceManager({
   const [draft, setDraft] = useState<ServiceDraft | null>(null);
   const [busy, setBusy] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [avatarNoticeOpen, setAvatarNoticeOpen] = useState(false);
+
+  const blockWithoutAvatar = () => {
+    setAvatarNoticeOpen(true);
+  };
 
   const loadCatalog = useCallback(async () => {
     setCatalogLoading(true);
@@ -101,6 +110,11 @@ export default function ExpertServiceManager({
   };
 
   const startCreate = () => {
+    if (!hasExpertAvatar) {
+      blockWithoutAvatar();
+      return;
+    }
+
     const firstCategory = catalog[0];
     const firstType = firstCategory?.types[0];
 
@@ -203,6 +217,11 @@ export default function ExpertServiceManager({
       return;
     }
 
+    if (editingId === "new" && !hasExpertAvatar) {
+      blockWithoutAvatar();
+      return;
+    }
+
     setBusy(true);
     const result = await upsertExpertServiceAction({
       id: editingId === "new" ? undefined : editingId ?? undefined,
@@ -217,6 +236,9 @@ export default function ExpertServiceManager({
     setBusy(false);
 
     if (!result.ok) {
+      if (isExpertAvatarRequiredError(result.error, result.code)) {
+        setAvatarNoticeOpen(true);
+      }
       onError(result.error ?? "Kayıt başarısız.");
       return;
     }
@@ -243,6 +265,17 @@ export default function ExpertServiceManager({
 
   return (
     <div className={embedded ? "mt-0" : "mt-6 border-t border-zinc-800 pt-5"}>
+      {!hasExpertAvatar ? (
+        <div className="mb-4">
+          <ExpertAvatarRequiredNotice open inline onClose={() => undefined} />
+        </div>
+      ) : null}
+
+      <ExpertAvatarRequiredNotice
+        open={avatarNoticeOpen}
+        onClose={() => setAvatarNoticeOpen(false)}
+      />
+
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="font-serif text-base text-zinc-100">Hizmet Kartları</p>

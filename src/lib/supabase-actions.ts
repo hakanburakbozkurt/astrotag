@@ -101,7 +101,7 @@ export async function getUserProfile(): Promise<UserData | null> {
     const { data, error } = await supabase
       .from(PROFILE_TABLE)
       .select(
-        "name, birth_date, birth_time, birth_place, relationship_status, star_points, star_points_bonus, referral_code, partner_name, partner_birth_date, partner_birth_time, partner_birth_place, partner_meeting_date"
+        "name, avatar_url, birth_date, birth_time, birth_place, relationship_status, star_points, star_points_bonus, referral_code, partner_name, partner_birth_date, partner_birth_time, partner_birth_place, partner_meeting_date"
       )
       .eq("id", userId)
       .maybeSingle();
@@ -131,6 +131,7 @@ export async function getUserProfile(): Promise<UserData | null> {
 
     return {
       name,
+      avatarUrl: data.avatar_url?.trim() || null,
       birthDate: data.birth_date ?? "",
       birthTime: data.birth_time ?? "00:00:00",
       birthPlace: data.birth_place ?? "",

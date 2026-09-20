@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { Suspense } from "react";
 import ProfilPageShell from "@/components/profil/ProfilPageShell";
+import PersonalAvatarSection from "@/components/profile/PersonalAvatarSection";
 import UserBirthSection from "@/components/profil/UserBirthSection";
 import { SectionSkeleton } from "@/components/navigation/TabPageSkeleton";
 import type { UserData } from "@/types/user";
@@ -21,9 +22,12 @@ export default function ProfilBilgilerContent({ user }: ProfilBilgilerContentPro
     <ProfilPageShell
       eyebrow="Profil"
       title="Kişisel Bilgiler"
-      description="Doğum verileriniz ve partner bilgileriniz."
+      description="Profil fotoğrafı, doğum verileriniz ve partner bilgileriniz."
     >
-      <UserBirthSection user={user} />
+      <div className="space-y-6">
+        <PersonalAvatarSection displayName={user.name} />
+        <UserBirthSection user={user} />
+      </div>
       <Suspense fallback={<SectionSkeleton title="Partner bilgileri" />}>
         <ProfileInfoSection />
       </Suspense>

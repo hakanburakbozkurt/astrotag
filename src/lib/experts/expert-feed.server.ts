@@ -1,6 +1,8 @@
 import "server-only";
 
 import { EXPERT_APPROVAL_APPROVED } from "@/lib/expert/expert-approval.shared";
+import { assertExpertHasAvatarByProfileId } from "@/lib/experts/expert-avatar-guard.server";
+import { EXPERT_AVATAR_REQUIRED_CODE } from "@/lib/experts/expert-avatar-required.shared";
 import {
   parseExpertFeedSessionOutput,
   type ExpertFeedPost,
@@ -127,10 +129,18 @@ export async function createExpertAnnouncementPost(input: {
   profileId: string;
   caption: string;
   mediaUrl?: string | null;
-}): Promise<{ ok: true; postId: string } | { ok: false; error: string }> {
+}): Promise<
+  | { ok: true; postId: string }
+  | { ok: false; error: string; code?: typeof EXPERT_AVATAR_REQUIRED_CODE }
+> {
   const caption = input.caption.trim();
   if (!caption) {
     return { ok: false, error: "Gönderi metni boş olamaz." };
+  }
+
+  const avatarGuard = await assertExpertHasAvatarByProfileId(input.profileId);
+  if (!avatarGuard.ok) {
+    return avatarGuard;
   }
 
   const admin = createServiceRoleClient();
