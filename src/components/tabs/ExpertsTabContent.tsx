@@ -162,10 +162,21 @@ export default function ExpertsTabContent() {
         <ExpertsDirectory
           selectedId={selectedId}
           onSelectExpert={setSelectedId}
+          showExpertGrid={!selectedId}
         />
 
+        {selectedId ? (
+          <button
+            type="button"
+            onClick={() => setSelectedId(null)}
+            className="text-[11px] uppercase tracking-wider text-zinc-500 underline decoration-zinc-800 underline-offset-2 hover:text-zinc-400"
+          >
+            ← Tüm uzmanlar listesi
+          </button>
+        ) : null}
+
         {(loadingDetail || detail) && (
-          <div className="border-t border-zinc-800 pt-8">
+          <div className={selectedId ? "pt-4" : "border-t border-zinc-800 pt-8"}>
             {loadingDetail ? (
               <DataLoadingState className="mt-2" compact />
             ) : detail ? (

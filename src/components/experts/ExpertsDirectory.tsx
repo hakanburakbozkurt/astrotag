@@ -10,11 +10,14 @@ import { listPublishedExpertsAction } from "@/lib/actions/wallet";
 interface ExpertsDirectoryProps {
   selectedId?: string | null;
   onSelectExpert?: (expertId: string) => void;
+  /** false → profil detayı açıkken grid gizlenir */
+  showExpertGrid?: boolean;
 }
 
 export default function ExpertsDirectory({
   selectedId: controlledSelectedId,
   onSelectExpert,
+  showExpertGrid = true,
 }: ExpertsDirectoryProps) {
   const [experts, setExperts] = useState<ExpertListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,8 +44,10 @@ export default function ExpertsDirectory({
     }
     onSelectExpert?.(expertId);
 
-    const node = gridRefs.current[expertId];
-    node?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    if (showExpertGrid) {
+      const node = gridRefs.current[expertId];
+      node?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
   };
 
   if (loading) {
@@ -73,32 +78,34 @@ export default function ExpertsDirectory({
         />
       </section>
 
-      <section aria-label="Tüm uzmanlar" className="space-y-4">
-        <div className="flex items-center gap-3">
-          <p className="text-[10px] uppercase tracking-[0.28em] text-zinc-600">
-            Tüm uzmanlar
-          </p>
-          <div className="h-px flex-1 bg-zinc-800" aria-hidden="true" />
-        </div>
+      {showExpertGrid ? (
+        <section aria-label="Tüm uzmanlar" className="space-y-4">
+          <div className="flex items-center gap-3">
+            <p className="text-[10px] uppercase tracking-[0.28em] text-zinc-600">
+              Tüm uzmanlar
+            </p>
+            <div className="h-px flex-1 bg-zinc-800" aria-hidden="true" />
+          </div>
 
-        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {experts.map((expert) => (
-            <li
-              key={expert.id}
-              className="min-h-[156px]"
-              ref={(node) => {
-                gridRefs.current[expert.id] = node;
-              }}
-            >
-              <ExpertGridCard
-                expert={expert}
-                selected={selectedId === expert.id}
-                onSelect={handleSelect}
-              />
-            </li>
-          ))}
-        </ul>
-      </section>
+          <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {experts.map((expert) => (
+              <li
+                key={expert.id}
+                className="min-h-[156px]"
+                ref={(node) => {
+                  gridRefs.current[expert.id] = node;
+                }}
+              >
+                <ExpertGridCard
+                  expert={expert}
+                  selected={selectedId === expert.id}
+                  onSelect={handleSelect}
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </div>
   );
 }
