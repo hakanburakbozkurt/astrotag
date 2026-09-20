@@ -1,21 +1,26 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import ExpertFeedPostCard from "@/components/experts/ExpertFeedPostCard";
+import FeedPostComposer from "@/components/experts/FeedPostComposer";
+import SocialFeedPostCard from "@/components/experts/SocialFeedPostCard";
 import DataLoadingState from "@/components/ui/DataLoadingState";
 import { listExpertFeedAction } from "@/lib/actions/expert-feed";
-import type { ExpertFeedPost } from "@/lib/experts/feed.shared";
+import type { FeedPost } from "@/lib/experts/feed.shared";
 
 type ExpertsFeedProps = {
   onSelectExpert?: (expertId: string) => void;
 };
 
+const FEED_REFRESH_MS = 45_000;
+
 export default function ExpertsFeed({ onSelectExpert }: ExpertsFeedProps) {
-  const [posts, setPosts] = useState<ExpertFeedPost[]>([]);
+  const [posts, setPosts] = useState<FeedPost[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const loadFeed = useCallback(async () => {
-    setLoading(true);
+  const loadFeed = useCallback(async (silent = false) => {
+    if (!silent) {
+      setLoading(true);
+    }
     const rows = await listExpertFeedAction();
     setPosts(rows);
     setLoading(false);
@@ -25,46 +30,43 @@ export default function ExpertsFeed({ onSelectExpert }: ExpertsFeedProps) {
     void loadFeed();
   }, [loadFeed]);
 
-  if (loading) {
-    return (
-      <section
-        aria-label="Uzman akışı"
-        className="border-t border-zinc-800/80 pt-6"
-      >
-        <DataLoadingState className="mt-2" compact />
-      </section>
-    );
-  }
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      void loadFeed(true);
+    }, FEED_REFRESH_MS);
 
-  if (posts.length === 0) {
-    return (
-      <section
-        aria-label="Uzman akışı"
-        className="border-t border-zinc-800/80 pt-6"
-      >
-        <div className="mx-auto flex max-w-md flex-col items-center justify-center px-4 py-12 text-center">
-          <p className="font-serif text-base text-zinc-400">Akış henüz boş</p>
-          <p className="mt-2 max-w-xs text-sm leading-relaxed text-zinc-600">
-            Uzman duyuruları ve onaylı seans paylaşımları burada görünecek.
-            Bir uzman seçerek profiline geçebilirsiniz.
-          </p>
-        </div>
-      </section>
-    );
-  }
+    return () => window.clearInterval(timer);
+  }, [loadFeed]);
 
   return (
-    <section
-      aria-label="Uzman akışı"
-      className="border-t border-zinc-800/80 pt-6"
-    >
-      <ul className="mx-auto flex max-w-lg flex-col gap-6">
-        {posts.map((post) => (
-          <li key={post.id}>
-            <ExpertFeedPostCard post={post} onSelectExpert={onSelectExpert} />
-          </li>
-        ))}
-      </ul>
+    <section aria-label="Kozmik akış" className="border-t border-zinc-800/80 pt-6">
+      <div className="mx-auto flex max-w-lg flex-col gap-4">
+        <FeedPostComposer onPosted={() => void loadFeed(true)} />
+
+        {loading ? (
+          <DataLoadingState className="mt-2" compact />
+        ) : posts.length === 0 ? (
+          <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
+            <p className="font-serif text-base text-zinc-400">Akış henüz boş</p>
+            <p className="mt-2 max-w-xs text-sm leading-relaxed text-zinc-600">
+              İlk kozmik düşüncenizi paylaşın veya bir uzman seçerek vitrine
+              geçin.
+            </p>
+          </div>
+        ) : (
+          <ul className="flex flex-col gap-4">
+            {posts.map((post) => (
+              <li key={post.id}>
+                <SocialFeedPostCard
+                  post={post}
+                  onSelectExpert={onSelectExpert}
+                  onEngagementChange={() => void loadFeed(true)}
+                />
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </section>
   );
 }

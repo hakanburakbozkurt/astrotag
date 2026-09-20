@@ -1,9 +1,18 @@
-export const EXPERT_FEED_CONTENT_TYPES = [
+import {
+  feedContextTagLabel,
+  type FeedContextTag,
+} from "@/lib/feed/feed-context-tags.shared";
+
+export const FEED_CONTENT_TYPES = [
   "expert_announcement",
   "shared_session",
+  "user_post",
 ] as const;
 
-export type ExpertFeedContentType = (typeof EXPERT_FEED_CONTENT_TYPES)[number];
+export type FeedContentType = (typeof FEED_CONTENT_TYPES)[number];
+
+/** @deprecated Use FeedContentType */
+export type ExpertFeedContentType = FeedContentType;
 
 export type ExpertFeedSessionOutput = {
   sessionType?: "tarot" | "astrology" | "synastry" | "horary" | "qa" | "reading";
@@ -16,23 +25,56 @@ export type ExpertFeedSessionOutput = {
   cards?: Array<{ name: string; position?: string | null }>;
 };
 
-export type ExpertFeedPost = {
+export type FeedReply = {
   id: string;
-  expertId: string;
+  body: string;
+  createdAt: string;
+  author: {
+    profileId: string;
+    displayName: string;
+    avatarUrl: string | null;
+  };
+};
+
+export type FeedPost = {
+  id: string;
+  expertId: string | null;
   userId: string | null;
-  contentType: ExpertFeedContentType;
+  contentType: FeedContentType;
   caption: string;
   mediaUrl: string | null;
+  contextTag: FeedContextTag | null;
+  contextTagLabel: string | null;
   sessionOutputData: ExpertFeedSessionOutput | null;
   serviceRequestId: string | null;
   shareConsent: boolean;
   createdAt: string;
+  likeCount: number;
+  replyCount: number;
+  likedByViewer: boolean;
   expert: {
     displayName: string;
     title: string;
     avatarUrl: string | null;
+  } | null;
+  author: {
+    profileId: string;
+    displayName: string;
+    avatarUrl: string | null;
+    isExpert: boolean;
   };
-  userDisplayName: string | null;
+  replies: FeedReply[];
+};
+
+/** @deprecated Use FeedPost */
+export type ExpertFeedPost = FeedPost;
+
+export type FeedComposerStatus = {
+  canPost: boolean;
+  remainingPostsToday: number;
+  dailyLimit: number;
+  displayName: string;
+  avatarUrl: string | null;
 };
 
 export function parseExpertFeedSessionOutput(
@@ -105,3 +147,17 @@ export function sessionTypeLabel(
       return "Seans Çıktısı";
   }
 }
+
+export function feedPostTypeLabel(contentType: FeedContentType): string {
+  switch (contentType) {
+    case "user_post":
+      return "Düşünce";
+    case "shared_session":
+      return "Paylaşılan seans";
+    case "expert_announcement":
+    default:
+      return "Uzman duyurusu";
+  }
+}
+
+export { feedContextTagLabel };
