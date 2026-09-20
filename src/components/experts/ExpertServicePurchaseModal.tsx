@@ -7,6 +7,7 @@ import {
   getServicePurchasePreviewAction,
 } from "@/lib/actions/expert-marketplace";
 import type { ServicePurchasePreview } from "@/lib/experts/service-marketplace.shared";
+import { resolveServiceDisplayImage } from "@/lib/experts/service-display.shared";
 import { formatCrystalPriceLabel } from "@/lib/payments/commission.shared";
 
 type ExpertServicePurchaseModalProps = {
@@ -131,14 +132,20 @@ export default function ExpertServicePurchaseModal({
               <p className="mt-6 text-sm text-zinc-500">Önizleme hazırlanıyor…</p>
             ) : preview ? (
               <div className="mt-5 space-y-5">
-                {preview.service.imageUrl ? (
-                  <div className="overflow-hidden rounded-sm border border-zinc-800">
+                {resolveServiceDisplayImage(preview.service) ? (
+                  <div className="relative aspect-[9/16] max-h-72 overflow-hidden rounded-sm border border-zinc-800">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={preview.service.imageUrl}
+                      src={resolveServiceDisplayImage(preview.service)!}
                       alt=""
-                      className="aspect-[16/10] w-full object-cover"
+                      className="absolute inset-0 h-full w-full object-cover"
                     />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#09090b] via-transparent to-transparent" />
+                    {preview.service.categoryTitle ? (
+                      <p className="absolute bottom-3 left-3 text-[10px] uppercase tracking-[0.22em] text-zinc-400">
+                        {preview.service.categoryTitle}
+                      </p>
+                    ) : null}
                   </div>
                 ) : null}
                 {preview.service.description ? (

@@ -10,6 +10,7 @@ type CategoryRow = {
   slug: string;
   title: string;
   sort_order: number;
+  image_url: string | null;
   is_active: boolean;
 };
 
@@ -44,6 +45,7 @@ function mapCatalog(
       slug: category.slug,
       title: category.title,
       sortOrder: category.sort_order,
+      imageUrl: category.image_url,
       isActive: category.is_active,
       types: (typesByCategory.get(category.id) ?? [])
         .sort((a, b) => a.sort_order - b.sort_order)
@@ -74,7 +76,7 @@ export async function listAdminServiceCatalogAction(): Promise<
     await Promise.all([
       supabase
         .from("expert_service_categories")
-        .select("id, slug, title, sort_order, is_active")
+        .select("id, slug, title, sort_order, image_url, is_active")
         .order("sort_order"),
       supabase
         .from("expert_service_types")
@@ -102,6 +104,7 @@ export async function upsertServiceCategoryAction(input: {
   title: string;
   sortOrder: number;
   isActive: boolean;
+  imageUrl?: string | null;
 }): Promise<{ ok: boolean; error?: string }> {
   const admin = await requireAdminUser();
   if (!admin.ok) {
@@ -122,6 +125,7 @@ export async function upsertServiceCategoryAction(input: {
         title,
         sort_order: Math.max(0, input.sortOrder),
         is_active: input.isActive,
+        image_url: input.imageUrl?.trim() || null,
       })
       .eq("id", input.id);
 
@@ -133,6 +137,7 @@ export async function upsertServiceCategoryAction(input: {
     slug: slugifyCatalogTitle(title),
     sort_order: Math.max(0, input.sortOrder),
     is_active: input.isActive,
+    image_url: input.imageUrl?.trim() || null,
   });
   return error ? { ok: false, error: error.message } : { ok: true };
 }

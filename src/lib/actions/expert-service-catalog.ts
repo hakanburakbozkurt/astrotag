@@ -11,7 +11,7 @@ export async function listActiveServiceCatalogAction(): Promise<
   const [{ data: categories }, { data: types }] = await Promise.all([
     supabase
       .from("expert_service_categories")
-      .select("id, slug, title, sort_order, is_active")
+      .select("id, slug, title, sort_order, image_url, is_active")
       .eq("is_active", true)
       .order("sort_order"),
     supabase
@@ -45,6 +45,7 @@ export async function listActiveServiceCatalogAction(): Promise<
     slug: category.slug,
     title: category.title,
     sortOrder: category.sort_order,
+    imageUrl: category.image_url,
     isActive: category.is_active,
     types: (typesByCategory.get(category.id) ?? []).sort(
       (a, b) => a.sortOrder - b.sortOrder

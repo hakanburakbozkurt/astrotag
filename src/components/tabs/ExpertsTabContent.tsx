@@ -56,9 +56,11 @@ function ExpertDetailView({
         <p className="text-[10px] uppercase tracking-[0.28em] text-zinc-600">
           Hizmet Kartları
         </p>
-        <div className="mt-4 space-y-3">
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {expert.services.length === 0 ? (
-            <p className="text-sm text-zinc-500">Henüz hizmet tanımlanmamış.</p>
+            <p className="col-span-full text-sm text-zinc-500">
+              Henüz hizmet tanımlanmamış.
+            </p>
           ) : (
             expert.services.map((service) => (
               <ExpertServiceCard

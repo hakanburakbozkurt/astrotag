@@ -77,7 +77,61 @@ export type ExpertServiceRow = {
   crystalPrice: number;
   durationMinutes: number;
   imageUrl: string | null;
+  categoryImageUrl: string | null;
+  categoryTitle: string | null;
 };
+
+function resolveCategoryMetaFromServiceRow(row: {
+  expert_service_types?:
+    | {
+        title?: string;
+        expert_service_categories?:
+          | { image_url?: string | null; title?: string }
+          | Array<{ image_url?: string | null; title?: string }>
+          | null;
+      }
+    | Array<{
+        title?: string;
+        expert_service_categories?:
+          | { image_url?: string | null; title?: string }
+          | Array<{ image_url?: string | null; title?: string }>
+          | null;
+      }>
+    | null;
+}): { categoryImageUrl: string | null; categoryTitle: string | null } {
+  const typeMeta = row.expert_service_types;
+  const typeRow = Array.isArray(typeMeta) ? typeMeta[0] : typeMeta;
+  const catMeta = typeRow?.expert_service_categories;
+  const catRow = Array.isArray(catMeta) ? catMeta[0] : catMeta;
+
+  return {
+    categoryImageUrl: catRow?.image_url?.trim() || null,
+    categoryTitle: catRow?.title?.trim() || null,
+  };
+}
+
+function mapExpertServiceRow(row: {
+  id: string;
+  name: string;
+  description: string;
+  crystal_price: number;
+  duration_minutes: number;
+  image_url: string | null;
+  expert_service_types?: Parameters<typeof resolveCategoryMetaFromServiceRow>[0]["expert_service_types"];
+}): ExpertServiceRow {
+  const categoryMeta = resolveCategoryMetaFromServiceRow(row);
+
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    crystalPrice: row.crystal_price,
+    durationMinutes: row.duration_minutes,
+    imageUrl: row.image_url,
+    categoryImageUrl: categoryMeta.categoryImageUrl,
+    categoryTitle: categoryMeta.categoryTitle,
+  };
+}
 
 export type ExpertArticleRow = {
   id: string;
@@ -141,7 +195,9 @@ export async function getExpertPublicProfile(
   const [{ data: services }, { data: articles }] = await Promise.all([
     admin
       .from("expert_services")
-      .select("id, name, description, crystal_price, duration_minutes, image_url")
+      .select(
+        "id, name, description, crystal_price, duration_minutes, image_url, expert_service_types(title, expert_service_categories(image_url, title))"
+      )
       .eq("expert_profile_id", expertProfileId)
       .eq("is_active", true)
       .order("sort_order"),
@@ -165,14 +221,7 @@ export async function getExpertPublicProfile(
     philosophyText: expert.philosophy_text,
     avatarUrl: expert.avatar_url,
     coverUrl: expert.cover_url,
-    services: (services ?? []).map((s) => ({
-      id: s.id,
-      name: s.name,
-      description: s.description,
-      crystalPrice: s.crystal_price,
-      durationMinutes: s.duration_minutes,
-      imageUrl: s.image_url,
-    })),
+    services: (services ?? []).map((s) => mapExpertServiceRow(s)),
     articles: (articles ?? []).map((a) => ({
       id: a.id,
       title: a.title,
@@ -236,7 +285,9 @@ export async function getServicePurchasePreview(input: {
 
   const { data: service } = await admin
     .from("expert_services")
-    .select("id, name, description, crystal_price, duration_minutes, image_url, is_active")
+    .select(
+      "id, name, description, crystal_price, duration_minutes, image_url, is_active, expert_service_types(title, expert_service_categories(image_url, title))"
+    )
     .eq("id", input.serviceId)
     .eq("expert_profile_id", input.expertProfileId)
     .eq("is_active", true)
@@ -262,12 +313,7 @@ export async function getServicePurchasePreview(input: {
     expertProfileId: expert.id,
     expertDisplayName: expert.display_name,
     service: {
-      id: service.id,
-      name: service.name,
-      description: service.description,
-      crystalPrice: service.crystal_price,
-      durationMinutes: service.duration_minutes,
-      imageUrl: service.image_url ?? null,
+      ...mapExpertServiceRow(service),
     },
     crystalBalance: wallet?.crystalBalance ?? 0,
     profileContext,

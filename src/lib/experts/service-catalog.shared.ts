@@ -14,6 +14,7 @@ export type ServiceCatalogCategory = {
   slug: string;
   title: string;
   sortOrder: number;
+  imageUrl: string | null;
   isActive: boolean;
   types: ServiceCatalogType[];
 };

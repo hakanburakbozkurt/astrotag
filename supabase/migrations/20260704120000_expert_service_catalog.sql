@@ -5,6 +5,7 @@ create table if not exists public.expert_service_categories (
   slug text not null unique,
   title text not null,
   sort_order integer not null default 0,
+  image_url text,
   is_active boolean not null default true,
   created_at timestamptz not null default now()
 );
@@ -42,18 +43,19 @@ comment on table public.expert_service_types is
   'Uzman hizmet alt tipleri — varsayılan fiyat ve açıklama şablonu';
 
 -- Seed: ana kategoriler
-insert into public.expert_service_categories (slug, title, sort_order)
+insert into public.expert_service_categories (slug, title, sort_order, image_url)
 values
-  ('basic-natal', 'Temel Doğum Haritası', 1),
-  ('timing-transits', 'Zamanlama & Transitler', 2),
-  ('relationship-synastry', 'İlişki & Synastry', 3),
-  ('vedic', 'Vedik Astroloji', 4),
-  ('karmic-esoteric', 'Karmik & Ezoterik', 5),
-  ('career-finance', 'Kariyer & Finans', 6),
-  ('quick-question', 'Hızlı Soru / Mini Seans', 7)
+  ('basic-natal', 'Temel Doğum Haritası', 1, '/1.jpg'),
+  ('timing-transits', 'Zamanlama & Transitler', 2, '/2.jpg'),
+  ('relationship-synastry', 'İlişki & Synastry', 3, '/3.jpg'),
+  ('vedic', 'Vedik Astroloji', 4, '/4.jpg'),
+  ('karmic-esoteric', 'Karmik & Ezoterik', 5, '/5.jpg'),
+  ('career-finance', 'Kariyer & Finans', 6, '/6.jpg'),
+  ('quick-question', 'Hızlı Soru / Mini Seans', 7, '/7.jpg')
 on conflict (slug) do update set
   title = excluded.title,
   sort_order = excluded.sort_order,
+  image_url = excluded.image_url,
   is_active = true;
 
 -- Seed: alt hizmet tipleri

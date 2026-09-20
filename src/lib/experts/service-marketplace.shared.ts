@@ -29,6 +29,8 @@ export type ServicePurchasePreview = {
     crystalPrice: number;
     durationMinutes: number;
     imageUrl: string | null;
+    categoryImageUrl: string | null;
+    categoryTitle: string | null;
   };
   crystalBalance: number;
   profileContext: ServiceRequestContext;
