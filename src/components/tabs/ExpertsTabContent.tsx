@@ -3,24 +3,21 @@
 import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import ExpertsDirectory from "@/components/experts/ExpertsDirectory";
+import ExpertServiceCard from "@/components/experts/ExpertServiceCard";
+import ExpertServicePurchaseModal from "@/components/experts/ExpertServicePurchaseModal";
 import TabPageScaffold from "@/components/navigation/TabPageScaffold";
 import DataLoadingState from "@/components/ui/DataLoadingState";
-import {
-  getExpertPublicProfileAction,
-  purchaseExpertServiceAction,
-} from "@/lib/actions/wallet";
+import { getExpertPublicProfileAction } from "@/lib/actions/wallet";
 import type { ExpertPublicProfile } from "@/lib/experts/experts.server";
 
 function ExpertDetailView({
   expert,
-  onBook,
-  bookingError,
-  bookingBusy,
+  onSelectService,
+  purchaseSuccess,
 }: {
   expert: ExpertPublicProfile;
-  onBook: (serviceId: string) => void;
-  bookingError: string | null;
-  bookingBusy: string | null;
+  onSelectService: (serviceId: string) => void;
+  purchaseSuccess: string | null;
 }) {
   return (
     <motion.div
@@ -29,101 +26,75 @@ function ExpertDetailView({
       animate={{ opacity: 1, y: 0 }}
       className="space-y-5"
     >
-      <header className="rounded-[28px] border border-white/10 bg-[#0f172a]/80 p-5">
-        <p className="text-[10px] uppercase tracking-[0.28em] text-stone-300">
+      <header className="rounded-sm border border-zinc-800 bg-[#09090b] p-5">
+        <p className="text-[10px] uppercase tracking-[0.28em] text-zinc-600">
           {expert.tradition}
         </p>
-        <h2 className="mt-2 text-xl font-semibold text-white/95">
+        <h2 className="mt-2 font-serif text-xl text-zinc-100">
           {expert.displayName}
         </h2>
-        <p className="mt-1 text-sm text-stone-300">{expert.title}</p>
-        <p className="mt-2 text-xs text-white/45">
+        <p className="mt-1 text-sm text-zinc-500">{expert.title}</p>
+        <p className="mt-2 text-xs text-zinc-600">
           {expert.experienceYears} yıl deneyim
         </p>
       </header>
 
-      <section className="rounded-[28px] border border-white/10 bg-[#0f172a]/80 p-5">
-        <p className="text-[10px] uppercase tracking-[0.28em] text-white/40">
-          Hizmet Menüsü
+      <section>
+        <p className="text-[10px] uppercase tracking-[0.28em] text-zinc-600">
+          Hizmet Kartları
         </p>
-        <ul className="mt-4 space-y-3">
+        <div className="mt-4 space-y-3">
           {expert.services.length === 0 ? (
-            <li className="text-sm text-white/45">Henüz hizmet tanımlanmamış.</li>
+            <p className="text-sm text-zinc-500">Henüz hizmet tanımlanmamış.</p>
           ) : (
             expert.services.map((service) => (
-              <li
+              <ExpertServiceCard
                 key={service.id}
-                className="rounded-xl border border-white/10 bg-white/[0.02] p-4"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-medium text-white/90">
-                      {service.name}
-                    </p>
-                    <p className="mt-1 text-xs leading-relaxed text-white/45">
-                      {service.description}
-                    </p>
-                    <p className="mt-2 text-[10px] text-white/35">
-                      {service.durationMinutes} dk
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-mono text-sm text-stone-300">
-                      {service.crystalPrice} 🔮
-                    </p>
-                    <button
-                      type="button"
-                      disabled={bookingBusy !== null}
-                      onClick={() => onBook(service.id)}
-                      className="mt-2 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-[10px] uppercase tracking-wider text-stone-300 disabled:opacity-50"
-                    >
-                      {bookingBusy === service.id ? "…" : "Rezerve Et"}
-                    </button>
-                  </div>
-                </div>
-              </li>
+                service={service}
+                onPurchase={() => onSelectService(service.id)}
+              />
             ))
           )}
-        </ul>
-        {bookingError ? (
-          <p className="mt-3 text-xs text-stone-400">{bookingError}</p>
+        </div>
+        {purchaseSuccess ? (
+          <p className="mt-3 text-xs text-zinc-400">{purchaseSuccess}</p>
         ) : null}
       </section>
 
       {(expert.aboutText || expert.philosophyText) && (
-        <section className="rounded-[28px] border border-white/10 bg-[#0f172a]/80 p-5">
-          <p className="text-[10px] uppercase tracking-[0.28em] text-white/40">
+        <section className="rounded-sm border border-zinc-800 bg-[#09090b] p-5">
+          <p className="text-[10px] uppercase tracking-[0.28em] text-zinc-600">
             Hakkımda / Felsefe
           </p>
           {expert.aboutText ? (
-            <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-white/70">
+            <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-zinc-400">
               {expert.aboutText}
             </p>
           ) : null}
           {expert.philosophyText ? (
-            <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-white/55">
+            <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-zinc-500">
               {expert.philosophyText}
             </p>
           ) : null}
         </section>
       )}
 
-      <section className="rounded-[28px] border border-white/10 bg-[#0f172a]/80 p-5">
-        <p className="text-[10px] uppercase tracking-[0.28em] text-white/40">
+      <section className="rounded-sm border border-zinc-800 bg-[#09090b] p-5">
+        <p className="text-[10px] uppercase tracking-[0.28em] text-zinc-600">
           Yazılar
         </p>
         <ul className="mt-4 space-y-3">
           {expert.articles.length === 0 ? (
-            <li className="text-sm text-white/45">Henüz yayınlanmış yazı yok.</li>
+            <li className="text-sm text-zinc-500">Henüz yayınlanmış yazı yok.</li>
           ) : (
             expert.articles.map((article) => (
               <li
                 key={article.id}
-                className="rounded-xl border border-white/10 bg-white/[0.02] p-4"
+                className="rounded-sm border border-zinc-800 p-4"
               >
-                <p className="text-sm font-medium text-white/88">{article.title}</p>
+                <p className="font-serif text-sm text-zinc-200">{article.title}</p>
                 {article.excerpt ? (
-                  <p className="mt-2 text-xs leading-relaxed text-white/45">
+                  <p className="mt-2 text-xs leading-relaxed text-zinc-500">
                     {article.excerpt}
                   </p>
                 ) : null}
@@ -140,12 +111,13 @@ export default function ExpertsTabContent() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<ExpertPublicProfile | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
-  const [bookingBusy, setBookingBusy] = useState<string | null>(null);
-  const [bookingError, setBookingError] = useState<string | null>(null);
+  const [purchaseModalOpen, setPurchaseModalOpen] = useState(false);
+  const [pendingServiceId, setPendingServiceId] = useState<string | null>(null);
+  const [purchaseSuccess, setPurchaseSuccess] = useState<string | null>(null);
 
   const loadDetail = useCallback(async (expertId: string) => {
     setLoadingDetail(true);
-    setBookingError(null);
+    setPurchaseSuccess(null);
     const profile = await getExpertPublicProfileAction(expertId);
     setDetail(profile);
     setLoadingDetail(false);
@@ -160,23 +132,18 @@ export default function ExpertsTabContent() {
     void loadDetail(selectedId);
   }, [selectedId, loadDetail]);
 
-  const handleBook = async (serviceId: string) => {
-    if (!detail) {
-      return;
-    }
+  const openPurchaseModal = (serviceId: string) => {
+    setPendingServiceId(serviceId);
+    setPurchaseModalOpen(true);
+  };
 
-    setBookingBusy(serviceId);
-    setBookingError(null);
+  const closePurchaseModal = () => {
+    setPurchaseModalOpen(false);
+    setPendingServiceId(null);
+  };
 
-    const result = await purchaseExpertServiceAction(detail.id, serviceId);
-
-    if (!result.ok) {
-      setBookingError(result.error ?? "Rezervasyon başarısız.");
-    } else {
-      setBookingError(null);
-    }
-
-    setBookingBusy(null);
+  const handlePurchaseSuccess = () => {
+    setPurchaseSuccess("Hizmet talebiniz alındı. Kristaller cüzdanınızdan düşüldü.");
   };
 
   return (
@@ -196,11 +163,18 @@ export default function ExpertsTabContent() {
       ) : detail ? (
         <ExpertDetailView
           expert={detail}
-          onBook={(serviceId) => void handleBook(serviceId)}
-          bookingError={bookingError}
-          bookingBusy={bookingBusy}
+          onSelectService={openPurchaseModal}
+          purchaseSuccess={purchaseSuccess}
         />
       ) : null}
+
+      <ExpertServicePurchaseModal
+        open={purchaseModalOpen}
+        expertProfileId={detail?.id ?? null}
+        serviceId={pendingServiceId}
+        onClose={closePurchaseModal}
+        onSuccess={handlePurchaseSuccess}
+      />
     </TabPageScaffold>
   );
 }

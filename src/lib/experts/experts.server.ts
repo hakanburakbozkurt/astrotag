@@ -7,6 +7,14 @@ import {
 } from "@/lib/payments/commission.shared";
 import { notifyExpertOfServicePayment } from "@/lib/expert/expert-payment-notify.server";
 import { EXPERT_APPROVAL_APPROVED } from "@/lib/expert/expert-approval.shared";
+import type {
+  ServicePurchasePreview,
+  ServiceRequestContext,
+} from "@/lib/experts/service-marketplace.shared";
+import {
+  normalizeDateForInput,
+  normalizeTimeForInput,
+} from "@/lib/partner-profile";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 
 function resolveExpertAbout(row: {
@@ -172,11 +180,132 @@ export async function getExpertPublicProfile(
   };
 }
 
+async function loadServiceRequestContext(
+  userProfileId: string
+): Promise<ServiceRequestContext | null> {
+  const admin = createServiceRoleClient();
+  const { data } = await admin
+    .from("profiles")
+    .select(
+      "name, birth_date, birth_time, birth_place, relationship_status, partner_name, partner_birth_date, partner_birth_time, partner_birth_place"
+    )
+    .eq("id", userProfileId)
+    .maybeSingle();
+
+  if (!data) {
+    return null;
+  }
+
+  return {
+    name: data.name?.trim() ?? "",
+    birthDate: normalizeDateForInput(data.birth_date),
+    birthTime: normalizeTimeForInput(data.birth_time),
+    birthPlace: data.birth_place?.trim() ?? "",
+    relationshipStatus: data.relationship_status?.trim() ?? "İlişki Yok",
+    partnerName: data.partner_name?.trim() || null,
+    partnerBirthDate: normalizeDateForInput(data.partner_birth_date) || null,
+    partnerBirthTime: normalizeTimeForInput(data.partner_birth_time) || null,
+    partnerBirthPlace: data.partner_birth_place?.trim() || null,
+  };
+}
+
+export async function getServicePurchasePreview(input: {
+  userProfileId: string;
+  expertProfileId: string;
+  serviceId: string;
+  crystalUnitTry?: number;
+}): Promise<ServicePurchasePreview | null> {
+  const admin = createServiceRoleClient();
+  const unitTry = input.crystalUnitTry ?? DEFAULT_CRYSTAL_UNIT_TRY;
+
+  const { data: expert } = await admin
+    .from("expert_profiles")
+    .select("id, display_name, is_published, approval_status")
+    .eq("id", input.expertProfileId)
+    .eq("is_published", true)
+    .eq("approval_status", EXPERT_APPROVAL_APPROVED)
+    .maybeSingle();
+
+  if (!expert) {
+    return null;
+  }
+
+  const { data: service } = await admin
+    .from("expert_services")
+    .select("id, name, description, crystal_price, duration_minutes, is_active")
+    .eq("id", input.serviceId)
+    .eq("expert_profile_id", input.expertProfileId)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (!service) {
+    return null;
+  }
+
+  const [profileContext, wallet] = await Promise.all([
+    loadServiceRequestContext(input.userProfileId),
+    getWalletBalances(input.userProfileId),
+  ]);
+
+  if (!profileContext) {
+    return null;
+  }
+
+  const grossTry = crystalsToTry(service.crystal_price, unitTry);
+  const split = computeCommissionSplit(grossTry);
+
+  return {
+    expertProfileId: expert.id,
+    expertDisplayName: expert.display_name,
+    service: {
+      id: service.id,
+      name: service.name,
+      description: service.description,
+      crystalPrice: service.crystal_price,
+      durationMinutes: service.duration_minutes,
+    },
+    crystalBalance: wallet?.crystalBalance ?? 0,
+    profileContext,
+    commission: {
+      totalCrystals: service.crystal_price,
+      grossTry: split.grossTry,
+      platformCommissionTry: split.platformCommissionTry,
+      expertPayoutTry: split.expertPayoutTry,
+      commissionRate: split.commissionRate,
+    },
+  };
+}
+
+export async function confirmExpertServicePurchase(input: {
+  userProfileId: string;
+  expertProfileId: string;
+  serviceId: string;
+  clientNote?: string | null;
+  crystalUnitTry?: number;
+}): Promise<{ ok: boolean; error?: string }> {
+  const profileContext = await loadServiceRequestContext(input.userProfileId);
+
+  if (!profileContext) {
+    return { ok: false, error: "Profil bilgileri yüklenemedi." };
+  }
+
+  return recordExpertServicePurchase({
+    userProfileId: input.userProfileId,
+    expertProfileId: input.expertProfileId,
+    serviceId: input.serviceId,
+    crystalUnitTry: input.crystalUnitTry,
+    requestContext: profileContext,
+    clientNote: input.clientNote ?? null,
+  });
+}
+
 export async function recordExpertServicePurchase(input: {
   userProfileId: string;
   expertProfileId: string;
   serviceId: string;
   crystalUnitTry?: number;
+  requestContext?: ServiceRequestContext;
+  clientNote?: string | null;
 }): Promise<{ ok: boolean; error?: string }> {
   const admin = createServiceRoleClient();
   const unitTry = input.crystalUnitTry ?? DEFAULT_CRYSTAL_UNIT_TRY;
@@ -240,20 +369,43 @@ export async function recordExpertServicePurchase(input: {
     .update({ earnings_balance_try: nextEarnings })
     .eq("id", input.expertProfileId);
 
-  const { error: ledgerError } = await admin.from("expert_earnings_ledger").insert({
-    expert_profile_id: input.expertProfileId,
-    user_profile_id: input.userProfileId,
-    service_id: input.serviceId,
-    crystals_spent: service.crystal_price,
-    gross_try: split.grossTry,
-    platform_commission_try: split.platformCommissionTry,
-    expert_payout_try: split.expertPayoutTry,
-    commission_rate: split.commissionRate,
-    status: "completed",
-  });
+  const { data: ledgerRow, error: ledgerError } = await admin
+    .from("expert_earnings_ledger")
+    .insert({
+      expert_profile_id: input.expertProfileId,
+      user_profile_id: input.userProfileId,
+      service_id: input.serviceId,
+      crystals_spent: service.crystal_price,
+      gross_try: split.grossTry,
+      platform_commission_try: split.platformCommissionTry,
+      expert_payout_try: split.expertPayoutTry,
+      commission_rate: split.commissionRate,
+      status: "completed",
+    })
+    .select("id")
+    .limit(1);
 
   if (ledgerError) {
     return { ok: false, error: "Ödeme kaydı oluşturulamadı." };
+  }
+
+  const ledgerId = ledgerRow?.[0]?.id as string | undefined;
+
+  if (input.requestContext && ledgerId) {
+    const { error: requestError } = await admin
+      .from("expert_service_requests")
+      .insert({
+        ledger_id: ledgerId,
+        user_profile_id: input.userProfileId,
+        expert_profile_id: input.expertProfileId,
+        service_id: input.serviceId,
+        context_snapshot: input.requestContext,
+        client_note: input.clientNote?.trim() || null,
+      });
+
+    if (requestError) {
+      console.error("[recordExpertServicePurchase] request log failed", requestError);
+    }
   }
 
   void notifyExpertOfServicePayment(input.expertProfileId).catch((notifyError) => {

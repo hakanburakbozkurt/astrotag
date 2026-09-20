@@ -5,12 +5,12 @@ import {
   getExpertPanelDataAction,
   saveExpertProfileAction,
   upsertExpertArticleAction,
-  upsertExpertServiceAction,
   type ExpertPanelData,
 } from "@/lib/actions/expert-panel";
 import { EXPERT_APPROVAL_PENDING } from "@/lib/expert/expert-approval.shared";
 import ExpertPendingApprovalScreen from "@/components/expert/ExpertPendingApprovalScreen";
 import ExpertProfileEditForm from "@/components/expert/ExpertProfileEditForm";
+import ExpertServiceManager from "@/components/expert/ExpertServiceManager";
 import Link from "next/link";
 
 const inputClass =
@@ -74,22 +74,6 @@ export default function ExpertPanelSection() {
       await load();
     } else {
       setError(result.error ?? "Kayıt başarısız.");
-    }
-  };
-
-  const addService = async () => {
-    const result = await upsertExpertServiceAction({
-      name: "30 dk Seans",
-      description: "Birebir uzman seansı",
-      crystalPrice: 40,
-      durationMinutes: 30,
-      isActive: true,
-    });
-
-    if (result.ok) {
-      await load();
-    } else {
-      setError(result.error ?? "Hizmet eklenemedi.");
     }
   };
 
@@ -216,13 +200,6 @@ export default function ExpertPanelSection() {
         </button>
         <button
           type="button"
-          onClick={() => void addService()}
-          className="rounded-xl border border-white/10 px-4 py-2 text-xs uppercase tracking-wider text-white/55"
-        >
-          + Hizmet
-        </button>
-        <button
-          type="button"
           onClick={() => void addArticle()}
           className="rounded-xl border border-white/10 px-4 py-2 text-xs uppercase tracking-wider text-white/55"
         >
@@ -230,8 +207,14 @@ export default function ExpertPanelSection() {
         </button>
       </div>
 
+      <ExpertServiceManager
+        services={data.services}
+        onChanged={load}
+        onError={(message) => setError(message)}
+      />
+
       <p className="mt-4 text-[10px] text-white/35">
-        {data.services.length} hizmet · {data.articles.length} yazı
+        {data.articles.length} yazı
       </p>
 
       {message ? <p className="mt-3 text-xs text-stone-300">{message}</p> : null}

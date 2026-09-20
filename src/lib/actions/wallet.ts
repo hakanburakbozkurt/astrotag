@@ -1,10 +1,10 @@
 "use server";
 
 import {
+  confirmExpertServicePurchase,
   getExpertPublicProfile,
   getWalletBalances,
   listPublishedExperts,
-  recordExpertServicePurchase,
   type ExpertPublicProfile,
   type WalletBalances,
 } from "@/lib/experts/experts.server";
@@ -91,7 +91,7 @@ export async function purchaseExpertServiceAction(
 ): Promise<{ ok: boolean; error?: string }> {
   try {
     const profileId = await requireAuthUserId();
-    return recordExpertServicePurchase({
+    return confirmExpertServicePurchase({
       userProfileId: profileId,
       expertProfileId,
       serviceId,

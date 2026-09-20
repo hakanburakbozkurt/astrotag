@@ -279,6 +279,26 @@ export async function upsertExpertServiceAction(input: {
   return error ? { ok: false, error: error.message } : { ok: true };
 }
 
+export async function deleteExpertServiceAction(
+  serviceId: string
+): Promise<{ ok: boolean; error?: string }> {
+  const profileId = await requireAuthUserId();
+  const approved = await requireApprovedExpert(profileId);
+
+  if (!approved.ok) {
+    return approved;
+  }
+
+  const admin = createServiceRoleClient();
+  const { error } = await admin
+    .from("expert_services")
+    .delete()
+    .eq("id", serviceId)
+    .eq("expert_profile_id", approved.expertId);
+
+  return error ? { ok: false, error: error.message } : { ok: true };
+}
+
 export async function upsertExpertArticleAction(input: {
   id?: string;
   title: string;
