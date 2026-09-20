@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   deleteExpertServiceAction,
+  uploadExpertServiceImageAction,
   upsertExpertServiceAction,
 } from "@/lib/actions/expert-panel";
+import { formatCrystalPriceLabel } from "@/lib/payments/commission.shared";
 
 type ExpertServiceItem = {
   id: string;
@@ -13,13 +15,13 @@ type ExpertServiceItem = {
   crystalPrice: number;
   durationMinutes: number;
   isActive: boolean;
+  imageUrl: string | null;
 };
 
 type ExpertServiceManagerProps = {
   services: ExpertServiceItem[];
   onChanged: () => Promise<void>;
   onError: (message: string) => void;
-  /** Sekme içinde kullanıldığında üst ayırıcı kaldırılır */
   embedded?: boolean;
 };
 
@@ -32,6 +34,7 @@ const emptyDraft = {
   crystalPrice: 40,
   durationMinutes: 30,
   isActive: true,
+  imageUrl: null as string | null,
 };
 
 export default function ExpertServiceManager({
@@ -40,9 +43,11 @@ export default function ExpertServiceManager({
   onError,
   embedded = false,
 }: ExpertServiceManagerProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState(emptyDraft);
   const [busy, setBusy] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const startCreate = () => {
     setEditingId("new");
@@ -57,12 +62,35 @@ export default function ExpertServiceManager({
       crystalPrice: service.crystalPrice,
       durationMinutes: service.durationMinutes,
       isActive: service.isActive,
+      imageUrl: service.imageUrl,
     });
   };
 
   const cancelEdit = () => {
     setEditingId(null);
     setDraft(emptyDraft);
+  };
+
+  const handleImageChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    setUploadingImage(true);
+    const formData = new FormData();
+    formData.set("image", file);
+
+    const result = await uploadExpertServiceImageAction(formData);
+    setUploadingImage(false);
+    event.target.value = "";
+
+    if (!result.ok) {
+      onError(result.error);
+      return;
+    }
+
+    setDraft((current) => ({ ...current, imageUrl: result.imageUrl }));
   };
 
   const save = async () => {
@@ -79,6 +107,7 @@ export default function ExpertServiceManager({
       crystalPrice: draft.crystalPrice,
       durationMinutes: draft.durationMinutes,
       isActive: draft.isActive,
+      imageUrl: draft.imageUrl,
     });
     setBusy(false);
 
@@ -113,7 +142,7 @@ export default function ExpertServiceManager({
         <div>
           <p className="font-serif text-base text-zinc-100">Hizmet Kartları</p>
           <p className="mt-1 text-xs text-zinc-500">
-            Vitrinde sergilenecek seans ve danışmanlık paketleriniz.
+            Başlık, açıklama, görsel ve kristal fiyatı ile vitrin kartları oluşturun.
           </p>
         </div>
         <button
@@ -137,7 +166,7 @@ export default function ExpertServiceManager({
             />
           </label>
           <label className="block text-xs text-zinc-500">
-            Kapsam / Açıklama
+            Açıklama
             <textarea
               rows={3}
               className={inputClass}
@@ -147,7 +176,45 @@ export default function ExpertServiceManager({
               }
             />
           </label>
-          <div className="grid grid-cols-2 gap-3">
+
+          <div>
+            <p className="text-xs text-zinc-500">Görsel / İllüstrasyon</p>
+            <div className="mt-2 flex flex-wrap items-start gap-3">
+              <div className="h-24 w-36 overflow-hidden rounded-sm border border-zinc-800 bg-zinc-900">
+                {draft.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={draft.imageUrl}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center px-2 text-center text-[10px] uppercase tracking-wider text-zinc-700">
+                    Görsel yok
+                  </div>
+                )}
+              </div>
+              <div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={(event) => void handleImageChange(event)}
+                />
+                <button
+                  type="button"
+                  disabled={uploadingImage || busy}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="rounded-sm border border-zinc-800 px-3 py-1.5 text-[11px] uppercase tracking-wider text-zinc-400 disabled:opacity-50"
+                >
+                  {uploadingImage ? "Yükleniyor…" : "Görsel Yükle"}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="block text-xs text-zinc-500">
               Kristal fiyatı
               <input
@@ -162,6 +229,9 @@ export default function ExpertServiceManager({
                   })
                 }
               />
+              <span className="mt-1 block font-mono text-[11px] text-zinc-600">
+                {formatCrystalPriceLabel(draft.crystalPrice)}
+              </span>
             </label>
             <label className="block text-xs text-zinc-500">
               Süre (dk)
@@ -179,6 +249,7 @@ export default function ExpertServiceManager({
               />
             </label>
           </div>
+
           <label className="flex items-center gap-2 text-xs text-zinc-400">
             <input
               type="checkbox"
@@ -189,10 +260,11 @@ export default function ExpertServiceManager({
             />
             Vitrinde aktif
           </label>
+
           <div className="flex flex-wrap gap-2 pt-1">
             <button
               type="button"
-              disabled={busy}
+              disabled={busy || uploadingImage}
               onClick={() => void save()}
               className="rounded-sm border border-zinc-700 bg-zinc-900 px-4 py-2 text-xs uppercase tracking-wider text-zinc-200 disabled:opacity-50"
             >
@@ -217,42 +289,59 @@ export default function ExpertServiceManager({
           services.map((service) => (
             <li
               key={service.id}
-              className="rounded-sm border border-zinc-800 bg-[#09090b] p-4"
+              className="overflow-hidden rounded-sm border border-zinc-800 bg-[#09090b]"
             >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="font-serif text-sm text-zinc-100">
-                    {service.name}
-                    {!service.isActive ? (
-                      <span className="ml-2 text-[10px] uppercase tracking-wider text-zinc-600">
-                        Pasif
-                      </span>
-                    ) : null}
-                  </p>
-                  <p className="mt-1 text-xs leading-relaxed text-zinc-500">
-                    {service.description || "Açıklama eklenmemiş."}
-                  </p>
-                  <p className="mt-2 font-mono text-xs text-zinc-400">
-                    {service.crystalPrice} kristal · {service.durationMinutes} dk
-                  </p>
+              <div className="flex">
+                <div className="h-24 w-28 shrink-0 bg-zinc-900">
+                  {service.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={service.imageUrl}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center px-2 text-center text-[10px] uppercase tracking-wider text-zinc-700">
+                      Görsel yok
+                    </div>
+                  )}
                 </div>
-                <div className="flex shrink-0 flex-col gap-1.5">
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => startEdit(service)}
-                    className="rounded-sm border border-zinc-800 px-2.5 py-1 text-[10px] uppercase tracking-wider text-zinc-400"
-                  >
-                    Düzenle
-                  </button>
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => void remove(service.id)}
-                    className="rounded-sm border border-zinc-800 px-2.5 py-1 text-[10px] uppercase tracking-wider text-zinc-600"
-                  >
-                    Sil
-                  </button>
+                <div className="flex min-w-0 flex-1 items-start justify-between gap-3 p-4">
+                  <div className="min-w-0">
+                    <p className="font-serif text-sm text-zinc-100">
+                      {service.name}
+                      {!service.isActive ? (
+                        <span className="ml-2 text-[10px] uppercase tracking-wider text-zinc-600">
+                          Pasif
+                        </span>
+                      ) : null}
+                    </p>
+                    <p className="mt-1 text-xs leading-relaxed text-zinc-500">
+                      {service.description || "Açıklama eklenmemiş."}
+                    </p>
+                    <p className="mt-2 font-mono text-xs text-zinc-400">
+                      {formatCrystalPriceLabel(service.crystalPrice)} ·{" "}
+                      {service.durationMinutes} dk
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 flex-col gap-1.5">
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => startEdit(service)}
+                      className="rounded-sm border border-zinc-800 px-2.5 py-1 text-[10px] uppercase tracking-wider text-zinc-400"
+                    >
+                      Düzenle
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => void remove(service.id)}
+                      className="rounded-sm border border-zinc-800 px-2.5 py-1 text-[10px] uppercase tracking-wider text-zinc-600"
+                    >
+                      Sil
+                    </button>
+                  </div>
                 </div>
               </div>
             </li>

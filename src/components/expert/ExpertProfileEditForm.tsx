@@ -5,6 +5,7 @@ import {
   getExpertProfileEditDataAction,
   saveExpertProfileFieldsAction,
   uploadExpertAvatarAction,
+  uploadExpertCoverAction,
   type ExpertProfileEditData,
 } from "@/lib/actions/expert-profile";
 import ExpertAvatar from "@/components/experts/ExpertAvatar";
@@ -14,10 +15,12 @@ const inputClass =
 
 export default function ExpertProfileEditForm() {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
   const [data, setData] = useState<ExpertProfileEditData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -90,6 +93,33 @@ export default function ExpertProfileEditForm() {
     event.target.value = "";
   };
 
+  const handleCoverChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    setUploadingCover(true);
+    setMessage(null);
+    setError(null);
+
+    const formData = new FormData();
+    formData.set("cover", file);
+
+    const result = await uploadExpertCoverAction(formData);
+    if (result.ok) {
+      setData((current) =>
+        current ? { ...current, coverUrl: result.coverUrl } : current
+      );
+      setMessage("Kapak görseli güncellendi.");
+    } else {
+      setError(result.error);
+    }
+
+    setUploadingCover(false);
+    event.target.value = "";
+  };
+
   return (
     <div className="mt-4 space-y-4 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
       <div>
@@ -97,8 +127,47 @@ export default function ExpertProfileEditForm() {
           Profil Düzenleme
         </p>
         <p className="mt-1 text-xs text-white/45">
-          Vitrin fotoğrafı, biyografi ve WhatsApp bildirim numaranız.
+          Kapak görseli, profil fotoğrafı, biyografi ve WhatsApp bildirim numaranız.
         </p>
+      </div>
+
+      <div>
+        <p className="text-[10px] uppercase tracking-wider text-white/40">
+          Kapak Görseli
+        </p>
+        <div className="mt-2 overflow-hidden rounded-xl border border-white/10 bg-white/[0.02]">
+          <div className="aspect-[3/1] min-h-[96px] bg-[#111827]">
+            {data.coverUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={data.coverUrl}
+                alt=""
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full items-end p-3">
+                <p className="text-[10px] uppercase tracking-wider text-white/30">
+                  Kapak görseli yüklenmedi
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+        <input
+          ref={coverInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="hidden"
+          onChange={(event) => void handleCoverChange(event)}
+        />
+        <button
+          type="button"
+          disabled={uploadingCover}
+          onClick={() => coverInputRef.current?.click()}
+          className="mt-2 rounded-xl border border-white/10 px-4 py-2 text-[11px] uppercase tracking-wider text-white/60 transition hover:border-zinc-700 disabled:opacity-50"
+        >
+          {uploadingCover ? "Yükleniyor…" : "Kapak Yükle"}
+        </button>
       </div>
 
       <div className="flex flex-wrap items-center gap-4">

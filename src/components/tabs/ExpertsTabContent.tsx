@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import ExpertsDirectory from "@/components/experts/ExpertsDirectory";
+import ExpertProfileVitrineHeader from "@/components/experts/ExpertProfileVitrineHeader";
 import ExpertServiceCard from "@/components/experts/ExpertServiceCard";
 import ExpertServicePurchaseModal from "@/components/experts/ExpertServicePurchaseModal";
 import TabPageScaffold from "@/components/navigation/TabPageScaffold";
@@ -26,18 +27,30 @@ function ExpertDetailView({
       animate={{ opacity: 1, y: 0 }}
       className="space-y-5"
     >
-      <header className="rounded-sm border border-zinc-800 bg-[#09090b] p-5">
-        <p className="text-[10px] uppercase tracking-[0.28em] text-zinc-600">
-          {expert.tradition}
-        </p>
-        <h2 className="mt-2 font-serif text-xl text-zinc-100">
-          {expert.displayName}
-        </h2>
-        <p className="mt-1 text-sm text-zinc-500">{expert.title}</p>
-        <p className="mt-2 text-xs text-zinc-600">
-          {expert.experienceYears} yıl deneyim
-        </p>
-      </header>
+      <ExpertProfileVitrineHeader expert={expert} />
+
+      {(expert.aboutText || expert.philosophyText || expert.experienceText) && (
+        <section className="rounded-sm border border-zinc-800 bg-[#09090b] p-5">
+          <p className="text-[10px] uppercase tracking-[0.28em] text-zinc-600">
+            Hakkımda
+          </p>
+          {expert.aboutText ? (
+            <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-zinc-400">
+              {expert.aboutText}
+            </p>
+          ) : null}
+          {expert.experienceText ? (
+            <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-zinc-500">
+              {expert.experienceText}
+            </p>
+          ) : null}
+          {expert.philosophyText ? (
+            <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-zinc-500">
+              {expert.philosophyText}
+            </p>
+          ) : null}
+        </section>
+      )}
 
       <section>
         <p className="text-[10px] uppercase tracking-[0.28em] text-zinc-600">
@@ -60,24 +73,6 @@ function ExpertDetailView({
           <p className="mt-3 text-xs text-zinc-400">{purchaseSuccess}</p>
         ) : null}
       </section>
-
-      {(expert.aboutText || expert.philosophyText) && (
-        <section className="rounded-sm border border-zinc-800 bg-[#09090b] p-5">
-          <p className="text-[10px] uppercase tracking-[0.28em] text-zinc-600">
-            Hakkımda / Felsefe
-          </p>
-          {expert.aboutText ? (
-            <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-zinc-400">
-              {expert.aboutText}
-            </p>
-          ) : null}
-          {expert.philosophyText ? (
-            <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-zinc-500">
-              {expert.philosophyText}
-            </p>
-          ) : null}
-        </section>
-      )}
 
       <section className="rounded-sm border border-zinc-800 bg-[#09090b] p-5">
         <p className="text-[10px] uppercase tracking-[0.28em] text-zinc-600">

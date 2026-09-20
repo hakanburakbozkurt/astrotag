@@ -1,10 +1,16 @@
 "use server";
 
+import { randomUUID } from "crypto";
 import {
   EXPERT_APPROVAL_APPROVED,
   EXPERT_APPROVAL_PENDING,
   type ExpertApprovalStatus,
 } from "@/lib/expert/expert-approval.shared";
+import {
+  EXPERT_AVATARS_BUCKET,
+  EXPERT_AVATAR_MAX_BYTES,
+  isExpertAvatarMimeType,
+} from "@/lib/storage/expert-avatars.shared";
 import { requireAuthUserId } from "@/lib/supabase-actions";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import {
@@ -44,6 +50,7 @@ export type ExpertPanelData = {
     crystalPrice: number;
     durationMinutes: number;
     isActive: boolean;
+    imageUrl: string | null;
   }>;
   articles: Array<{
     id: string;
@@ -165,6 +172,7 @@ export async function getExpertPanelDataAction(): Promise<ExpertPanelData | null
       crystalPrice: s.crystal_price,
       durationMinutes: s.duration_minutes,
       isActive: s.is_active,
+      imageUrl: s.image_url ?? null,
     })),
     articles: (articles ?? []).map((a) => ({
       id: a.id,
@@ -175,6 +183,21 @@ export async function getExpertPanelDataAction(): Promise<ExpertPanelData | null
       isPublished: a.is_published,
     })),
   };
+}
+
+export async function getExpertMenuAccessAction(): Promise<{
+  showExpertServices: boolean;
+}> {
+  try {
+    const panel = await getExpertPanelDataAction();
+    return {
+      showExpertServices: Boolean(
+        panel?.isExpert && panel.approvalStatus === EXPERT_APPROVAL_APPROVED
+      ),
+    };
+  } catch {
+    return { showExpertServices: false };
+  }
 }
 
 async function requireApprovedExpert(profileId: string) {
@@ -247,6 +270,7 @@ export async function upsertExpertServiceAction(input: {
   crystalPrice: number;
   durationMinutes: number;
   isActive: boolean;
+  imageUrl?: string | null;
 }): Promise<{ ok: boolean; error?: string }> {
   const profileId = await requireAuthUserId();
   const approved = await requireApprovedExpert(profileId);
@@ -263,6 +287,7 @@ export async function upsertExpertServiceAction(input: {
     crystal_price: Math.max(1, input.crystalPrice),
     duration_minutes: Math.max(15, input.durationMinutes),
     is_active: input.isActive,
+    image_url: input.imageUrl?.trim() || null,
   };
 
   if (input.id) {
@@ -277,6 +302,62 @@ export async function upsertExpertServiceAction(input: {
 
   const { error } = await admin.from("expert_services").insert(payload);
   return error ? { ok: false, error: error.message } : { ok: true };
+}
+
+export async function uploadExpertServiceImageAction(
+  formData: FormData
+): Promise<{ ok: true; imageUrl: string } | { ok: false; error: string }> {
+  try {
+    const profileId = await requireAuthUserId();
+    const approved = await requireApprovedExpert(profileId);
+
+    if (!approved.ok) {
+      return approved;
+    }
+
+    const file = formData.get("image");
+    if (!(file instanceof File) || file.size === 0) {
+      return { ok: false, error: "Geçerli bir görsel seçin." };
+    }
+
+    if (file.size > EXPERT_AVATAR_MAX_BYTES) {
+      return { ok: false, error: "Görsel en fazla 5 MB olabilir." };
+    }
+
+    if (!isExpertAvatarMimeType(file.type)) {
+      return { ok: false, error: "Yalnızca JPEG, PNG veya WebP yükleyebilirsiniz." };
+    }
+
+    const ext =
+      file.type === "image/png"
+        ? "png"
+        : file.type === "image/webp"
+          ? "webp"
+          : "jpg";
+
+    const objectPath = `services/${approved.expertId}/${randomUUID()}.${ext}`;
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const admin = createServiceRoleClient();
+
+    const { error: uploadError } = await admin.storage
+      .from(EXPERT_AVATARS_BUCKET)
+      .upload(objectPath, buffer, {
+        contentType: file.type,
+        upsert: false,
+      });
+
+    if (uploadError) {
+      return { ok: false, error: "Görsel yüklenemedi." };
+    }
+
+    const { data: publicUrlData } = admin.storage
+      .from(EXPERT_AVATARS_BUCKET)
+      .getPublicUrl(objectPath);
+
+    return { ok: true, imageUrl: publicUrlData.publicUrl };
+  } catch {
+    return { ok: false, error: "Oturum geçersiz." };
+  }
 }
 
 export async function deleteExpertServiceAction(

@@ -7,6 +7,7 @@ import {
   getServicePurchasePreviewAction,
 } from "@/lib/actions/expert-marketplace";
 import type { ServicePurchasePreview } from "@/lib/experts/service-marketplace.shared";
+import { formatCrystalPriceLabel } from "@/lib/payments/commission.shared";
 
 type ExpertServicePurchaseModalProps = {
   open: boolean;
@@ -130,6 +131,16 @@ export default function ExpertServicePurchaseModal({
               <p className="mt-6 text-sm text-zinc-500">Önizleme hazırlanıyor…</p>
             ) : preview ? (
               <div className="mt-5 space-y-5">
+                {preview.service.imageUrl ? (
+                  <div className="overflow-hidden rounded-sm border border-zinc-800">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={preview.service.imageUrl}
+                      alt=""
+                      className="aspect-[16/10] w-full object-cover"
+                    />
+                  </div>
+                ) : null}
                 {preview.service.description ? (
                   <section>
                     <p className="text-[10px] uppercase tracking-wider text-zinc-600">
@@ -210,7 +221,7 @@ export default function ExpertServicePurchaseModal({
                     <div className="flex justify-between text-zinc-300">
                       <dt>Toplam</dt>
                       <dd className="font-mono">
-                        {preview.commission.totalCrystals} kristal
+                        {formatCrystalPriceLabel(preview.commission.totalCrystals)}
                       </dd>
                     </div>
                     <div className="flex justify-between text-zinc-500">

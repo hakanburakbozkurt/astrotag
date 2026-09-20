@@ -17,6 +17,7 @@ const MAX_AVATAR_BYTES = EXPERT_AVATAR_MAX_BYTES;
 export type ExpertProfileEditData = {
   expertProfileId: string;
   avatarUrl: string | null;
+  coverUrl: string | null;
   about: string;
   experienceText: string;
   phoneNumber: string;
@@ -43,6 +44,7 @@ async function requireExpertProfile(profileId: string) {
   const { data: expert, error } = await fetchExpertProfileByProfileId<{
     id: string;
     avatar_url: string | null;
+    cover_url: string | null;
     about: string | null;
     about_text: string | null;
     experience_text: string | null;
@@ -50,7 +52,7 @@ async function requireExpertProfile(profileId: string) {
   }>(
     admin,
     profileId,
-    "id, avatar_url, about, about_text, experience_text, phone_number"
+    "id, avatar_url, cover_url, about, about_text, experience_text, phone_number"
   );
 
   if (error || !expert?.id) {
@@ -80,6 +82,7 @@ export async function getExpertProfileEditDataAction(): Promise<
     return {
       expertProfileId: expert.id,
       avatarUrl: expert.avatar_url,
+      coverUrl: expert.cover_url,
       about,
       experienceText: expert.experience_text?.trim() ?? "",
       phoneNumber: expert.phone_number?.trim() ?? "",
@@ -201,6 +204,76 @@ export async function uploadExpertAvatarAction(
     }
 
     return { ok: true, avatarUrl };
+  } catch {
+    return { ok: false, error: "Oturum geçersiz." };
+  }
+}
+
+export async function uploadExpertCoverAction(
+  formData: FormData
+): Promise<{ ok: true; coverUrl: string } | { ok: false; error: string }> {
+  try {
+    const profileId = await requireAuthUserId();
+    const loaded = await requireExpertProfile(profileId);
+
+    if (!loaded.ok) {
+      return loaded;
+    }
+
+    const file = formData.get("cover");
+    if (!(file instanceof File) || file.size === 0) {
+      return { ok: false, error: "Geçerli bir kapak görseli seçin." };
+    }
+
+    if (file.size > MAX_AVATAR_BYTES) {
+      return { ok: false, error: "Görsel en fazla 5 MB olabilir." };
+    }
+
+    if (!isExpertAvatarMimeType(file.type)) {
+      return { ok: false, error: "Yalnızca JPEG, PNG veya WebP yükleyebilirsiniz." };
+    }
+
+    const ext =
+      file.type === "image/png"
+        ? "png"
+        : file.type === "image/webp"
+          ? "webp"
+          : "jpg";
+
+    const objectPath = `covers/${loaded.expert.id}/${randomUUID()}.${ext}`;
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const admin = createServiceRoleClient();
+
+    const { error: uploadError } = await admin.storage
+      .from(AVATAR_BUCKET)
+      .upload(objectPath, buffer, {
+        contentType: file.type,
+        upsert: false,
+      });
+
+    if (uploadError) {
+      return { ok: false, error: "Kapak görseli yüklenemedi." };
+    }
+
+    const { data: publicUrlData } = admin.storage
+      .from(AVATAR_BUCKET)
+      .getPublicUrl(objectPath);
+
+    const coverUrl = publicUrlData.publicUrl;
+
+    const { error: updateError } = await admin
+      .from("expert_profiles")
+      .update({
+        cover_url: coverUrl,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", loaded.expert.id);
+
+    if (updateError) {
+      return { ok: false, error: updateError.message };
+    }
+
+    return { ok: true, coverUrl };
   } catch {
     return { ok: false, error: "Oturum geçersiz." };
   }

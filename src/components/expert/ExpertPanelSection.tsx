@@ -117,6 +117,21 @@ export default function ExpertPanelSection() {
         Hakediş: ₺{data.earningsBalanceTry.toLocaleString("tr-TR")}
       </p>
 
+      <div className="mt-3 flex flex-wrap gap-3">
+        <Link
+          href="/dashboard/expert-services"
+          className="inline-flex rounded-sm border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-[11px] uppercase tracking-wider text-zinc-200"
+        >
+          Hizmet Ekle / Yönet
+        </Link>
+        <Link
+          href="/dashboard/expert-requests"
+          className="inline-flex text-[11px] uppercase tracking-wider text-zinc-500 underline decoration-zinc-800 underline-offset-2"
+        >
+          Danışmanlık talepleri
+        </Link>
+      </div>
+
       <div className="mt-5 flex w-full min-w-0 gap-2 rounded-sm border border-zinc-800 p-1">
         {PANEL_TABS.map((tab) => {
           const isActive = activeTab === tab.id;
@@ -146,13 +161,6 @@ export default function ExpertPanelSection() {
       {activeTab === "profile" ? (
         <div className="mt-5 space-y-4">
           <ExpertProfileEditForm />
-
-          <Link
-            href="/dashboard/expert-requests"
-            className="inline-flex text-[11px] uppercase tracking-wider text-zinc-400 underline decoration-zinc-700 underline-offset-2"
-          >
-            Danışmanlık talepleri →
-          </Link>
 
           <div className="space-y-3">
             <label className="block text-[10px] uppercase tracking-wider text-zinc-600">
@@ -253,6 +261,12 @@ export default function ExpertPanelSection() {
         </div>
       ) : (
         <div className="mt-5">
+          <Link
+            href="/dashboard/expert-services"
+            className="mb-4 inline-flex text-[11px] uppercase tracking-wider text-zinc-500 underline decoration-zinc-800 underline-offset-2"
+          >
+            Tam ekran hizmet yönetimi →
+          </Link>
           <ExpertServiceManager
             embedded
             services={data.services}

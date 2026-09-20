@@ -1,10 +1,11 @@
 "use client";
 
-export type ExpertAvatarSize = "story" | "grid";
+export type ExpertAvatarSize = "story" | "grid" | "profile";
 
 const SIZE_CLASS: Record<ExpertAvatarSize, string> = {
   story: "h-[68px] w-[68px]",
   grid: "h-16 w-16",
+  profile: "h-24 w-24 sm:h-28 sm:w-28",
 };
 
 interface ExpertAvatarProps {

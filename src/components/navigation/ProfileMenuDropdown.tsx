@@ -2,6 +2,7 @@
 
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { checkIsAdminAction } from "@/lib/actions/admin-users";
+import { getExpertMenuAccessAction } from "@/lib/actions/expert-panel";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import SignOutButton from "@/components/dashboard/SignOutButton";
@@ -22,6 +23,7 @@ function ProfileMenuDropdownInner({
   mode = "profile",
 }: ProfileMenuDropdownProps) {
   const [isAdmin, setIsAdmin] = useState(false);
+  const [showExpertServices, setShowExpertServices] = useState(false);
 
   useEffect(() => {
     if (mode !== "profile") {
@@ -31,9 +33,13 @@ function ProfileMenuDropdownInner({
     let cancelled = false;
 
     void (async () => {
-      const admin = await checkIsAdminAction();
+      const [admin, expertAccess] = await Promise.all([
+        checkIsAdminAction(),
+        getExpertMenuAccessAction(),
+      ]);
       if (!cancelled) {
         setIsAdmin(admin);
+        setShowExpertServices(expertAccess.showExpertServices);
       }
     })();
 
@@ -63,8 +69,16 @@ function ProfileMenuDropdownInner({
       return GUEST_MENU_LINKS;
     }
 
-    return PROFILE_MENU_LINKS.filter((item) => !item.adminOnly || isAdmin);
-  }, [isAdmin, mode]);
+    return PROFILE_MENU_LINKS.filter((item) => {
+      if (item.adminOnly && !isAdmin) {
+        return false;
+      }
+      if (item.expertOnly && !showExpertServices) {
+        return false;
+      }
+      return true;
+    });
+  }, [isAdmin, mode, showExpertServices]);
 
   return (
     <AnimatePresence>

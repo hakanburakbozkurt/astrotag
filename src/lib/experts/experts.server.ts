@@ -65,6 +65,7 @@ export type ExpertPublicProfile = {
   experienceText: string;
   philosophyText: string;
   avatarUrl: string | null;
+  coverUrl: string | null;
   services: ExpertServiceRow[];
   articles: ExpertArticleRow[];
 };
@@ -75,6 +76,7 @@ export type ExpertServiceRow = {
   description: string;
   crystalPrice: number;
   durationMinutes: number;
+  imageUrl: string | null;
 };
 
 export type ExpertArticleRow = {
@@ -125,7 +127,7 @@ export async function getExpertPublicProfile(
   const { data: expert, error } = await admin
     .from("expert_profiles")
     .select(
-      "id, profile_id, display_name, title, tradition, experience_years, about_text, about, experience_text, philosophy_text, avatar_url"
+      "id, profile_id, display_name, title, tradition, experience_years, about_text, about, experience_text, philosophy_text, avatar_url, cover_url"
     )
     .eq("id", expertProfileId)
     .eq("is_published", true)
@@ -139,7 +141,7 @@ export async function getExpertPublicProfile(
   const [{ data: services }, { data: articles }] = await Promise.all([
     admin
       .from("expert_services")
-      .select("id, name, description, crystal_price, duration_minutes")
+      .select("id, name, description, crystal_price, duration_minutes, image_url")
       .eq("expert_profile_id", expertProfileId)
       .eq("is_active", true)
       .order("sort_order"),
@@ -162,12 +164,14 @@ export async function getExpertPublicProfile(
     experienceText: expert.experience_text?.trim() ?? "",
     philosophyText: expert.philosophy_text,
     avatarUrl: expert.avatar_url,
+    coverUrl: expert.cover_url,
     services: (services ?? []).map((s) => ({
       id: s.id,
       name: s.name,
       description: s.description,
       crystalPrice: s.crystal_price,
       durationMinutes: s.duration_minutes,
+      imageUrl: s.image_url,
     })),
     articles: (articles ?? []).map((a) => ({
       id: a.id,
@@ -232,7 +236,7 @@ export async function getServicePurchasePreview(input: {
 
   const { data: service } = await admin
     .from("expert_services")
-    .select("id, name, description, crystal_price, duration_minutes, is_active")
+    .select("id, name, description, crystal_price, duration_minutes, image_url, is_active")
     .eq("id", input.serviceId)
     .eq("expert_profile_id", input.expertProfileId)
     .eq("is_active", true)
@@ -263,6 +267,7 @@ export async function getServicePurchasePreview(input: {
       description: service.description,
       crystalPrice: service.crystal_price,
       durationMinutes: service.duration_minutes,
+      imageUrl: service.image_url ?? null,
     },
     crystalBalance: wallet?.crystalBalance ?? 0,
     profileContext,

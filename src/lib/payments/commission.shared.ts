@@ -34,3 +34,12 @@ export function crystalsToTry(
 ): number {
   return Math.round(crystals * unitTry * 100) / 100;
 }
+
+/** Vitrin fiyat etiketi — kristal + TL karşılığı */
+export function formatCrystalPriceLabel(
+  crystals: number,
+  unitTry: number = DEFAULT_CRYSTAL_UNIT_TRY
+): string {
+  const tryAmount = crystalsToTry(crystals, unitTry);
+  return `${crystals} kristal (₺${tryAmount.toLocaleString("tr-TR")})`;
+}
