@@ -1,11 +1,21 @@
 "use client";
 
-export type ExpertAvatarSize = "story" | "grid" | "profile";
+export type ExpertAvatarSize = "story" | "storyCompact" | "feed" | "grid" | "profile";
 
 const SIZE_CLASS: Record<ExpertAvatarSize, string> = {
   story: "h-[68px] w-[68px]",
+  storyCompact: "h-11 w-11",
+  feed: "h-9 w-9",
   grid: "h-16 w-16",
   profile: "h-24 w-24 sm:h-28 sm:w-28",
+};
+
+const TEXT_CLASS: Record<ExpertAvatarSize, string> = {
+  story: "text-sm",
+  storyCompact: "text-[11px]",
+  feed: "text-[10px]",
+  grid: "text-sm",
+  profile: "text-sm",
 };
 
 interface ExpertAvatarProps {
@@ -32,7 +42,7 @@ export default function ExpertAvatar({
 
   const inner = (
     <div
-      className={`${SIZE_CLASS[size]} flex items-center justify-center overflow-hidden rounded-full bg-zinc-900 text-sm font-semibold text-zinc-300`}
+      className={`${SIZE_CLASS[size]} flex items-center justify-center overflow-hidden rounded-full bg-zinc-900 font-semibold text-zinc-300 ${TEXT_CLASS[size]}`}
     >
       {avatarUrl ? (
         // eslint-disable-next-line @next/next/no-img-element

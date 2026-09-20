@@ -12,6 +12,7 @@ import {
 } from "@/lib/feed/feed-context-tags.shared";
 import { moderateFeedText } from "@/lib/feed/feed-moderation.shared";
 import {
+  assertUserDailyLikeLimit,
   assertUserDailyPostLimit,
   countUserPostsForIstanbulDay,
 } from "@/lib/feed/feed-rate-limit.server";
@@ -582,6 +583,11 @@ export async function toggleFeedLike(input: {
   if (existing) {
     await admin.from("feed_likes").delete().eq("id", existing.id);
   } else {
+    const likeLimit = await assertUserDailyLikeLimit(input.profileId);
+    if (!likeLimit.ok) {
+      return { ok: false, error: likeLimit.error };
+    }
+
     const { error } = await admin.from("feed_likes").insert({
       post_id: input.postId,
       profile_id: input.profileId,

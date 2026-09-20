@@ -38,12 +38,12 @@ export default function ExpertsDirectory({
   };
 
   if (loading) {
-    return <DataLoadingState className="mt-2" compact />;
+    return <DataLoadingState className="mt-1" compact />;
   }
 
   if (experts.length === 0) {
     return (
-      <p className="px-1 py-6 text-center text-sm text-zinc-500">
+      <p className="px-1 py-4 text-center text-[12px] text-zinc-500">
         Henüz yayında uzman profili yok.
       </p>
     );

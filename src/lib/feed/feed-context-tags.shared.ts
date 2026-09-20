@@ -68,3 +68,7 @@ export function feedContextTagLabel(tag: FeedContextTag | string): string {
 export const FEED_MAX_CAPTION_LENGTH = 280;
 export const FEED_MAX_REPLY_LENGTH = 280;
 export const USER_DAILY_POST_LIMIT = 3;
+export const USER_DAILY_LIKE_LIMIT = 100;
+
+export const FEED_DAILY_LIKE_LIMIT_MESSAGE =
+  "Günlük beğeni sınırına (100) ulaştınız.";

@@ -39,22 +39,21 @@ export default function ExpertsFeed({ onSelectExpert }: ExpertsFeedProps) {
   }, [loadFeed]);
 
   return (
-    <section aria-label="Kozmik akış" className="border-t border-zinc-800/80 pt-6">
-      <div className="mx-auto flex max-w-lg flex-col gap-4">
+    <section aria-label="Kozmik akış" className="border-t border-zinc-800/80 pt-4">
+      <div className="mx-auto flex max-w-md flex-col gap-2.5">
         <FeedPostComposer onPosted={() => void loadFeed(true)} />
 
         {loading ? (
-          <DataLoadingState className="mt-2" compact />
+          <DataLoadingState className="mt-1" compact />
         ) : posts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
-            <p className="font-serif text-base text-zinc-400">Akış henüz boş</p>
-            <p className="mt-2 max-w-xs text-sm leading-relaxed text-zinc-600">
-              İlk kozmik düşüncenizi paylaşın veya bir uzman seçerek vitrine
-              geçin.
+          <div className="flex flex-col items-center justify-center px-3 py-8 text-center">
+            <p className="font-serif text-sm text-zinc-400">Akış henüz boş</p>
+            <p className="mt-1.5 max-w-xs text-[12px] leading-relaxed text-zinc-600">
+              İlk kozmik düşüncenizi paylaşın veya bir uzman seçerek vitrine geçin.
             </p>
           </div>
         ) : (
-          <ul className="flex flex-col gap-4">
+          <ul className="flex flex-col gap-2.5">
             {posts.map((post) => (
               <li key={post.id}>
                 <SocialFeedPostCard

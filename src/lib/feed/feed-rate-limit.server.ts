@@ -1,6 +1,10 @@
 import "server-only";
 
-import { USER_DAILY_POST_LIMIT } from "@/lib/feed/feed-context-tags.shared";
+import {
+  FEED_DAILY_LIKE_LIMIT_MESSAGE,
+  USER_DAILY_LIKE_LIMIT,
+  USER_DAILY_POST_LIMIT,
+} from "@/lib/feed/feed-context-tags.shared";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 
 const ISTANBUL_TZ = "Europe/Istanbul";
@@ -47,4 +51,35 @@ export async function assertUserDailyPostLimit(
   }
 
   return { ok: true, remaining: USER_DAILY_POST_LIMIT - used };
+}
+
+export async function countUserLikesForIstanbulDay(
+  profileId: string,
+  dateKey = getIstanbulDateKey()
+): Promise<number> {
+  const admin = createServiceRoleClient();
+  const { data, error } = await admin
+    .from("feed_likes")
+    .select("id, created_at")
+    .eq("profile_id", profileId);
+
+  if (error || !data) {
+    return 0;
+  }
+
+  return data.filter((row) => {
+    const key = getIstanbulDateKey(new Date(row.created_at));
+    return key === dateKey;
+  }).length;
+}
+
+export async function assertUserDailyLikeLimit(
+  profileId: string
+): Promise<{ ok: true; remaining: number } | { ok: false; error: string }> {
+  const used = await countUserLikesForIstanbulDay(profileId);
+  if (used >= USER_DAILY_LIKE_LIMIT) {
+    return { ok: false, error: FEED_DAILY_LIKE_LIMIT_MESSAGE };
+  }
+
+  return { ok: true, remaining: USER_DAILY_LIKE_LIMIT - used };
 }
