@@ -1,5 +1,6 @@
 "use server";
 
+import { headers } from "next/headers";
 import {
   confirmExpertServicePurchase,
   getExpertPublicProfile,
@@ -67,7 +68,11 @@ export async function initCrystalCheckoutAction(
       throw error;
     }
 
-    const result = await initCrystalCheckout(profileId, packageId);
+    const headerStore = await headers();
+    const forwardedFor = headerStore.get("x-forwarded-for");
+    const clientIp = forwardedFor?.split(",")[0]?.trim() ?? "127.0.0.1";
+
+    const result = await initCrystalCheckout(profileId, packageId, { clientIp });
 
     if (!result.ok) {
       return result;

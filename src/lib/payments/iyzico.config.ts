@@ -14,6 +14,7 @@ export function iyzicoCallbackUrl(): string {
   return `${NEXT_PUBLIC_SITE_URL}/api/payments/iyzico/callback`;
 }
 
+/** Kullanıcı İyzico ödeme sayfasından dönerken */
 export function iyzicoCheckoutReturnUrl(transactionId: string): string {
-  return `${NEXT_PUBLIC_SITE_URL}/dashboard/profile?crystalPurchase=${transactionId}`;
+  return `${NEXT_PUBLIC_SITE_URL}/api/payments/iyzico/return?tx=${encodeURIComponent(transactionId)}`;
 }
