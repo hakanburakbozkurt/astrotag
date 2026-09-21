@@ -9,7 +9,10 @@ import {
   type ExpertPublicProfile,
   type WalletBalances,
 } from "@/lib/experts/experts.server";
-import { initCrystalCheckout } from "@/lib/payments/iyzico.server";
+import {
+  initCrystalCheckout,
+  initCustomCrystalCheckout,
+} from "@/lib/payments/iyzico.server";
 import {
   CHECKOUT_REQUIRED_CONSENTS,
 } from "@/lib/legal/consent-config";
@@ -86,6 +89,53 @@ export async function initCrystalCheckoutAction(
     };
   } catch (error) {
     console.error("[initCrystalCheckoutAction]", error);
+    return { ok: false, error: "Ödeme başlatılamadı." };
+  }
+}
+
+export async function initCustomCrystalCheckoutAction(
+  crystals: number,
+  consents?: ConsentAcceptanceInput[]
+): Promise<
+  | { ok: true; checkoutUrl: string; transactionId: string; devMode?: boolean }
+  | { ok: false; error: string }
+> {
+  try {
+    const profileId = await requireAuthUserId();
+    const authUserId = await requireAuthUserUuid();
+
+    try {
+      validateConsentPayload(CHECKOUT_REQUIRED_CONSENTS, consents);
+      await recordUserConsents({
+        authUserId,
+        consents: consents ?? [],
+      });
+      await assertRequiredConsentsInDb(authUserId, CHECKOUT_REQUIRED_CONSENTS);
+    } catch (error) {
+      if (error instanceof ConsentValidationError) {
+        return { ok: false, error: error.message };
+      }
+      throw error;
+    }
+
+    const headerStore = await headers();
+    const forwardedFor = headerStore.get("x-forwarded-for");
+    const clientIp = forwardedFor?.split(",")[0]?.trim() ?? "127.0.0.1";
+
+    const result = await initCustomCrystalCheckout(profileId, crystals, { clientIp });
+
+    if (!result.ok) {
+      return result;
+    }
+
+    return {
+      ok: true,
+      checkoutUrl: result.checkoutUrl,
+      transactionId: result.transactionId,
+      devMode: result.devMode,
+    };
+  } catch (error) {
+    console.error("[initCustomCrystalCheckoutAction]", error);
     return { ok: false, error: "Ödeme başlatılamadı." };
   }
 }

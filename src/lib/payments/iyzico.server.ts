@@ -18,7 +18,22 @@ import {
   assertProductionPaymentsConfigured,
   PaymentCompletionForbiddenError,
 } from "@/lib/payments/payment-completion-auth.server";
+import {
+  quoteCrystalPurchaseTry,
+  validateCrystalPurchaseAmount,
+} from "@/lib/payments/crystal-purchase.shared";
 import { createServiceRoleClient } from "@/lib/supabase/service";
+
+type CrystalCheckoutPayload = {
+  profileId: string;
+  packageId: string | null;
+  crystals: number;
+  amountTry: number;
+  basketId: string;
+  lineItemId: string;
+  lineItemName: string;
+  clientIp?: string;
+};
 
 export type InitCrystalCheckoutResult =
   | {
@@ -71,14 +86,8 @@ async function findPendingTransactionByCheckoutToken(
   return data as PaymentTransactionRow;
 }
 
-/**
- * İyzico ödeme başlatma.
- * Sandbox anahtarları yoksa geliştirme modunda simüle edilmiş checkout URL döner.
- */
-export async function initCrystalCheckout(
-  profileId: string,
-  packageId: string,
-  options?: { clientIp?: string }
+async function beginCrystalPaymentCheckout(
+  payload: CrystalCheckoutPayload
 ): Promise<InitCrystalCheckoutResult> {
   try {
     assertProductionPaymentsConfigured();
@@ -91,33 +100,22 @@ export async function initCrystalCheckout(
   }
 
   const admin = createServiceRoleClient();
-
-  const { data: pkg, error: pkgError } = await admin
-    .from("crystal_packages")
-    .select("id, title, crystals, price_try, is_active")
-    .eq("id", packageId)
-    .maybeSingle();
-
-  if (pkgError || !pkg?.is_active) {
-    return { ok: false, error: "Kristal paketi bulunamadı." };
-  }
-
   const transactionId = randomUUID();
   const conversationId = `astrotag-${transactionId.slice(0, 8)}`;
-  const price = formatIyzicoPrice(Number(pkg.price_try));
+  const price = formatIyzicoPrice(payload.amountTry);
 
   const { error: insertError } = await admin.from("payment_transactions").insert({
     id: transactionId,
-    profile_id: profileId,
-    package_id: pkg.id,
-    amount_try: pkg.price_try,
-    crystals_granted: pkg.crystals,
+    profile_id: payload.profileId,
+    package_id: payload.packageId,
+    amount_try: payload.amountTry,
+    crystals_granted: payload.crystals,
     iyzico_conversation_id: conversationId,
     status: "pending",
   });
 
   if (insertError) {
-    console.error("[initCrystalCheckout] insert failed:", insertError.message);
+    console.error("[beginCrystalPaymentCheckout] insert failed:", insertError.message);
     return { ok: false, error: "Ödeme kaydı oluşturulamadı." };
   }
 
@@ -126,16 +124,18 @@ export async function initCrystalCheckout(
       return { ok: false, error: "Ödeme sistemi yapılandırılmamış." };
     }
 
-    const devCheckoutUrl = `/api/payments/iyzico/dev-complete?tx=${transactionId}`;
     return {
       ok: true,
       transactionId,
-      checkoutUrl: devCheckoutUrl,
+      checkoutUrl: `/api/payments/iyzico/dev-complete?tx=${transactionId}`,
       devMode: true,
     };
   }
 
-  const buyer = await loadCrystalCheckoutBuyer(profileId, options?.clientIp ?? "127.0.0.1");
+  const buyer = await loadCrystalCheckoutBuyer(
+    payload.profileId,
+    payload.clientIp ?? "127.0.0.1"
+  );
   if (!buyer) {
     return { ok: false, error: "Ödeme için profil bilgileri alınamadı." };
   }
@@ -145,51 +145,51 @@ export async function initCrystalCheckout(
   let initializeResponse;
   try {
     initializeResponse = await initializeCheckoutForm({
-    locale: "tr",
-    conversationId,
-    price,
-    paidPrice: price,
-    currency: "TRY",
-    basketId: `crystal-${pkg.id}`,
-    paymentGroup: "PRODUCT",
-    callbackUrl: iyzicoCallbackUrl(),
-    enabledInstallments: [1],
-    buyer: {
-      id: buyer.profileId,
-      name: buyer.name,
-      surname: buyer.surname,
-      gsmNumber: buyer.gsmNumber,
-      email: buyer.email,
-      identityNumber: "11111111111",
-      registrationAddress: address,
-      ip: buyer.ip,
-      city: buyer.city,
-      country: "Turkey",
-    },
-    shippingAddress: {
-      contactName: `${buyer.name} ${buyer.surname}`.trim(),
-      city: buyer.city,
-      country: "Turkey",
-      address,
-    },
-    billingAddress: {
-      contactName: `${buyer.name} ${buyer.surname}`.trim(),
-      city: buyer.city,
-      country: "Turkey",
-      address,
-    },
-    basketItems: [
-      {
-        id: pkg.id,
-        name: pkg.title,
-        category1: "Digital",
-        itemType: "VIRTUAL",
-        price,
+      locale: "tr",
+      conversationId,
+      price,
+      paidPrice: price,
+      currency: "TRY",
+      basketId: payload.basketId,
+      paymentGroup: "PRODUCT",
+      callbackUrl: iyzicoCallbackUrl(),
+      enabledInstallments: [1],
+      buyer: {
+        id: buyer.profileId,
+        name: buyer.name,
+        surname: buyer.surname,
+        gsmNumber: buyer.gsmNumber,
+        email: buyer.email,
+        identityNumber: "11111111111",
+        registrationAddress: address,
+        ip: buyer.ip,
+        city: buyer.city,
+        country: "Turkey",
       },
-    ],
+      shippingAddress: {
+        contactName: `${buyer.name} ${buyer.surname}`.trim(),
+        city: buyer.city,
+        country: "Turkey",
+        address,
+      },
+      billingAddress: {
+        contactName: `${buyer.name} ${buyer.surname}`.trim(),
+        city: buyer.city,
+        country: "Turkey",
+        address,
+      },
+      basketItems: [
+        {
+          id: payload.lineItemId,
+          name: payload.lineItemName,
+          category1: "Digital",
+          itemType: "VIRTUAL",
+          price,
+        },
+      ],
     });
   } catch (error) {
-    console.error("[initCrystalCheckout] iyzico initialize failed:", error);
+    console.error("[beginCrystalPaymentCheckout] iyzico initialize failed:", error);
     await admin
       .from("payment_transactions")
       .update({
@@ -241,6 +241,61 @@ export async function initCrystalCheckout(
     transactionId,
     checkoutUrl,
   };
+}
+
+/** Sabit paket — İyzico ödeme başlatma */
+export async function initCrystalCheckout(
+  profileId: string,
+  packageId: string,
+  options?: { clientIp?: string }
+): Promise<InitCrystalCheckoutResult> {
+  const admin = createServiceRoleClient();
+
+  const { data: pkg, error: pkgError } = await admin
+    .from("crystal_packages")
+    .select("id, title, crystals, price_try, is_active")
+    .eq("id", packageId)
+    .maybeSingle();
+
+  if (pkgError || !pkg?.is_active) {
+    return { ok: false, error: "Kristal paketi bulunamadı." };
+  }
+
+  return beginCrystalPaymentCheckout({
+    profileId,
+    packageId: pkg.id,
+    crystals: pkg.crystals,
+    amountTry: Number(pkg.price_try),
+    basketId: `crystal-${pkg.id}`,
+    lineItemId: pkg.id,
+    lineItemName: pkg.title,
+    clientIp: options?.clientIp,
+  });
+}
+
+/** Özel miktar — İyzico ödeme başlatma */
+export async function initCustomCrystalCheckout(
+  profileId: string,
+  crystals: number,
+  options?: { clientIp?: string }
+): Promise<InitCrystalCheckoutResult> {
+  const validationError = validateCrystalPurchaseAmount(crystals);
+  if (validationError) {
+    return { ok: false, error: validationError };
+  }
+
+  const amountTry = quoteCrystalPurchaseTry(crystals);
+
+  return beginCrystalPaymentCheckout({
+    profileId,
+    packageId: null,
+    crystals,
+    amountTry,
+    basketId: `crystal-custom-${crystals}`,
+    lineItemId: `custom-${crystals}`,
+    lineItemName: `${crystals} Kristal`,
+    clientIp: options?.clientIp,
+  });
 }
 
 export async function completeCrystalPurchaseFromDev(
