@@ -1,9 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useCallback, useState } from "react";
 import { Plus } from "lucide-react";
-import toast from "react-hot-toast";
 import { useQuery } from "@/hooks/useQuery";
 import { useStarEconomy } from "@/hooks/useStarEconomy";
 import { getWalletBalancesAction } from "@/lib/actions/wallet";
@@ -11,7 +9,6 @@ import { SWR_KEYS } from "@/lib/auth/data-cache";
 import CrystalCheckoutModal from "@/components/wallet/CrystalCheckoutModal";
 
 export default function CompactWallet() {
-  const searchParams = useSearchParams();
   const { totalStarPoints, isLoading: starsLoading } = useStarEconomy();
   const { data: wallet, mutate } = useQuery(SWR_KEYS.wallet, getWalletBalancesAction);
   const [purchaseOpen, setPurchaseOpen] = useState(false);
@@ -21,23 +18,6 @@ export default function CompactWallet() {
   const refreshWallet = useCallback(async () => {
     await mutate();
   }, [mutate]);
-
-  useEffect(() => {
-    const crystalSuccess = searchParams.get("crystalSuccess");
-    const crystalError = searchParams.get("crystalError");
-    const granted = searchParams.get("granted");
-
-    if (crystalSuccess === "1") {
-      void refreshWallet();
-      toast.success(
-        granted
-          ? `${granted} kristal cüzdanınıza yüklendi.`
-          : "Kristal satın alma tamamlandı."
-      );
-    } else if (crystalError === "1") {
-      toast.error("Kristal ödemesi tamamlanamadı veya doğrulanamadı.");
-    }
-  }, [refreshWallet, searchParams]);
 
   return (
     <>

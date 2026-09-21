@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { completeCrystalPurchaseFromDev } from "@/lib/payments/iyzico.server";
+import {
+  buildCrystalWalletRedirectUrl,
+  resolvePublicSiteUrl,
+} from "@/lib/payments/site-url.server";
 
 /** Geliştirme modu — İyzico anahtarı yokken ödemeyi simüle eder */
 export async function GET(request: NextRequest) {
@@ -8,23 +12,22 @@ export async function GET(request: NextRequest) {
   }
 
   const tx = request.nextUrl.searchParams.get("tx")?.trim();
+  const redirectOrigin = resolvePublicSiteUrl(request);
 
   if (!tx) {
-    return NextResponse.redirect(new URL("/dashboard/profile?crystalError=1", request.url));
+    return NextResponse.redirect(
+      buildCrystalWalletRedirectUrl({ baseUrl: redirectOrigin, success: false })
+    );
   }
 
   const result = await completeCrystalPurchaseFromDev(tx);
 
-  if (!result.ok) {
-    return NextResponse.redirect(
-      new URL("/dashboard/profile?crystalError=1", request.url)
-    );
-  }
-
   return NextResponse.redirect(
-    new URL(
-      `/dashboard/profile?crystalSuccess=1&granted=${result.crystalsGranted ?? 0}`,
-      request.url
-    )
+    buildCrystalWalletRedirectUrl({
+      baseUrl: redirectOrigin,
+      success: result.ok,
+      granted: result.crystalsGranted,
+      transactionId: tx,
+    })
   );
 }

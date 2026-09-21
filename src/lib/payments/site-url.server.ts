@@ -147,5 +147,5 @@ export function buildCrystalWalletRedirectUrl(input: {
     }
   }
 
-  return buildAppUrl(`/dashboard/profile?${params.toString()}`, input.baseUrl);
+  return buildAppUrl(`/dashboard?${params.toString()}`, input.baseUrl);
 }
