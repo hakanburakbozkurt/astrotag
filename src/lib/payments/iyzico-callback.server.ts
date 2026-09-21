@@ -4,6 +4,10 @@ import {
   completeCrystalPurchaseFromCallback,
   completeCrystalPurchaseFromIyzicoToken,
 } from "@/lib/payments/iyzico.server";
+import {
+  buildCrystalWalletRedirectUrl,
+  resolvePaymentRedirectOrigin,
+} from "@/lib/payments/site-url.server";
 
 function extractCheckoutToken(
   form: FormData,
@@ -42,19 +46,19 @@ export async function handleIyzicoPaymentCallback(request: Request): Promise<Res
   const checkoutToken = extractCheckoutToken(form, jsonBody);
   if (checkoutToken) {
     const result = await completeCrystalPurchaseFromIyzicoToken(checkoutToken);
-    const redirectBase = new URL("/dashboard/profile", request.url);
+    const redirectOrigin = await resolvePaymentRedirectOrigin(
+      request,
+      result.transactionId ?? null
+    );
 
-    if (!result.ok) {
-      redirectBase.searchParams.set("crystalError", "1");
-      if (result.transactionId) {
-        redirectBase.searchParams.set("tx", result.transactionId);
-      }
-      return Response.redirect(redirectBase, 303);
-    }
+    const redirectUrl = buildCrystalWalletRedirectUrl({
+      baseUrl: redirectOrigin,
+      success: result.ok,
+      granted: result.crystalsGranted,
+      transactionId: result.transactionId,
+    });
 
-    redirectBase.searchParams.set("crystalSuccess", "1");
-    redirectBase.searchParams.set("granted", String(result.crystalsGranted ?? 0));
-    return Response.redirect(redirectBase, 303);
+    return Response.redirect(redirectUrl, 303);
   }
 
   const transactionId =

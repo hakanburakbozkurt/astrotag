@@ -1,31 +1,42 @@
 import { NextRequest, NextResponse } from "next/server";
 import { finalizeCrystalPurchaseReturn } from "@/lib/payments/iyzico.server";
+import {
+  buildCrystalWalletRedirectUrl,
+  resolvePaymentRedirectOrigin,
+} from "@/lib/payments/site-url.server";
 
 /** Kullanıcı İyzico ödeme sayfasından dönüş — pending ise retrieve ile doğrular */
 export async function GET(request: NextRequest) {
   const tx = request.nextUrl.searchParams.get("tx")?.trim();
 
   if (!tx) {
-    return NextResponse.redirect(new URL("/dashboard/profile?crystalError=1", request.url));
+    const redirectOrigin = await resolvePaymentRedirectOrigin(request);
+    return NextResponse.redirect(
+      buildCrystalWalletRedirectUrl({ baseUrl: redirectOrigin, success: false })
+    );
   }
 
   try {
     const result = await finalizeCrystalPurchaseReturn(tx);
-
-    if (!result.ok) {
-      return NextResponse.redirect(
-        new URL(`/dashboard/profile?crystalError=1&tx=${encodeURIComponent(tx)}`, request.url)
-      );
-    }
+    const redirectOrigin = await resolvePaymentRedirectOrigin(request, tx);
 
     return NextResponse.redirect(
-      new URL(
-        `/dashboard/profile?crystalSuccess=1&granted=${result.crystalsGranted ?? 0}`,
-        request.url
-      )
+      buildCrystalWalletRedirectUrl({
+        baseUrl: redirectOrigin,
+        success: result.ok,
+        granted: result.crystalsGranted,
+        transactionId: tx,
+      })
     );
   } catch (error) {
     console.error("[iyzico/return]", error);
-    return NextResponse.redirect(new URL("/dashboard/profile?crystalError=1", request.url));
+    const redirectOrigin = await resolvePaymentRedirectOrigin(request, tx);
+    return NextResponse.redirect(
+      buildCrystalWalletRedirectUrl({
+        baseUrl: redirectOrigin,
+        success: false,
+        transactionId: tx,
+      })
+    );
   }
 }

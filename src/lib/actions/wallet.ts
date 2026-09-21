@@ -24,8 +24,20 @@ import {
   validateConsentPayload,
 } from "@/lib/legal/consent.server";
 import { requireAuthUserUuid } from "@/lib/auth/require-auth-user.server";
+import { resolvePublicSiteUrl } from "@/lib/payments/site-url.server";
 import { requireAuthUserId } from "@/lib/supabase-actions";
 import { createServiceRoleClient } from "@/lib/supabase/service";
+
+function resolveCheckoutRequestContext(headerStore: Headers): {
+  clientIp: string;
+  siteBaseUrl: string;
+} {
+  const forwardedFor = headerStore.get("x-forwarded-for");
+  const clientIp = forwardedFor?.split(",")[0]?.trim() ?? "127.0.0.1";
+  const siteBaseUrl = resolvePublicSiteUrl(headerStore);
+
+  return { clientIp, siteBaseUrl };
+}
 
 export async function getWalletBalancesAction(): Promise<WalletBalances | null> {
   try {
@@ -72,10 +84,12 @@ export async function initCrystalCheckoutAction(
     }
 
     const headerStore = await headers();
-    const forwardedFor = headerStore.get("x-forwarded-for");
-    const clientIp = forwardedFor?.split(",")[0]?.trim() ?? "127.0.0.1";
+    const { clientIp, siteBaseUrl } = resolveCheckoutRequestContext(headerStore);
 
-    const result = await initCrystalCheckout(profileId, packageId, { clientIp });
+    const result = await initCrystalCheckout(profileId, packageId, {
+      clientIp,
+      siteBaseUrl,
+    });
 
     if (!result.ok) {
       return result;
@@ -119,10 +133,12 @@ export async function initCustomCrystalCheckoutAction(
     }
 
     const headerStore = await headers();
-    const forwardedFor = headerStore.get("x-forwarded-for");
-    const clientIp = forwardedFor?.split(",")[0]?.trim() ?? "127.0.0.1";
+    const { clientIp, siteBaseUrl } = resolveCheckoutRequestContext(headerStore);
 
-    const result = await initCustomCrystalCheckout(profileId, crystals, { clientIp });
+    const result = await initCustomCrystalCheckout(profileId, crystals, {
+      clientIp,
+      siteBaseUrl,
+    });
 
     if (!result.ok) {
       return result;

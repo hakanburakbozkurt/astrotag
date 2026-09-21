@@ -6,11 +6,12 @@ import {
   initializeCheckoutForm,
   retrieveCheckoutFormResult,
 } from "@/lib/iyzico/client";
+import { isIyzicoConfigured } from "@/lib/payments/iyzico.config";
 import {
   iyzicoCallbackUrl,
   iyzicoCheckoutReturnUrl,
-  isIyzicoConfigured,
-} from "@/lib/payments/iyzico.config";
+  resolvePublicSiteUrl,
+} from "@/lib/payments/site-url.server";
 import { loadCrystalCheckoutBuyer } from "@/lib/payments/iyzico-buyer.server";
 import {
   assertDevCompleteAllowed,
@@ -33,6 +34,7 @@ type CrystalCheckoutPayload = {
   lineItemId: string;
   lineItemName: string;
   clientIp?: string;
+  siteBaseUrl?: string;
 };
 
 export type InitCrystalCheckoutResult =
@@ -100,6 +102,7 @@ async function beginCrystalPaymentCheckout(
   }
 
   const admin = createServiceRoleClient();
+  const siteBaseUrl = payload.siteBaseUrl ?? resolvePublicSiteUrl();
   const transactionId = randomUUID();
   const conversationId = `astrotag-${transactionId.slice(0, 8)}`;
   const price = formatIyzicoPrice(payload.amountTry);
@@ -152,7 +155,7 @@ async function beginCrystalPaymentCheckout(
       currency: "TRY",
       basketId: payload.basketId,
       paymentGroup: "PRODUCT",
-      callbackUrl: iyzicoCallbackUrl(),
+      callbackUrl: iyzicoCallbackUrl(siteBaseUrl),
       enabledInstallments: [1],
       buyer: {
         id: buyer.profileId,
@@ -224,17 +227,27 @@ async function beginCrystalPaymentCheckout(
 
   const checkoutUrl =
     initializeResponse.paymentPageUrl ??
-    iyzicoCheckoutReturnUrl(transactionId);
+    iyzicoCheckoutReturnUrl(transactionId, siteBaseUrl);
 
   await admin
     .from("payment_transactions")
     .update({
       raw_response: {
+        siteBaseUrl,
         checkoutToken: initializeResponse.token,
+        callbackUrl: iyzicoCallbackUrl(siteBaseUrl),
         initialize: initializeResponse,
       },
     })
     .eq("id", transactionId);
+
+  if (process.env.NODE_ENV !== "test") {
+    console.info("[beginCrystalPaymentCheckout] iyzico session", {
+      transactionId,
+      siteBaseUrl,
+      callbackUrl: iyzicoCallbackUrl(siteBaseUrl),
+    });
+  }
 
   return {
     ok: true,
@@ -247,7 +260,7 @@ async function beginCrystalPaymentCheckout(
 export async function initCrystalCheckout(
   profileId: string,
   packageId: string,
-  options?: { clientIp?: string }
+  options?: { clientIp?: string; siteBaseUrl?: string }
 ): Promise<InitCrystalCheckoutResult> {
   const admin = createServiceRoleClient();
 
@@ -270,6 +283,7 @@ export async function initCrystalCheckout(
     lineItemId: pkg.id,
     lineItemName: pkg.title,
     clientIp: options?.clientIp,
+    siteBaseUrl: options?.siteBaseUrl,
   });
 }
 
@@ -277,7 +291,7 @@ export async function initCrystalCheckout(
 export async function initCustomCrystalCheckout(
   profileId: string,
   crystals: number,
-  options?: { clientIp?: string }
+  options?: { clientIp?: string; siteBaseUrl?: string }
 ): Promise<InitCrystalCheckoutResult> {
   const validationError = validateCrystalPurchaseAmount(crystals);
   if (validationError) {
@@ -295,6 +309,7 @@ export async function initCustomCrystalCheckout(
     lineItemId: `custom-${crystals}`,
     lineItemName: `${crystals} Kristal`,
     clientIp: options?.clientIp,
+    siteBaseUrl: options?.siteBaseUrl,
   });
 }
 
