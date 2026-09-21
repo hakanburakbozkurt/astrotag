@@ -1,14 +1,19 @@
 "use server";
 
 import { findSimilarStoriesForViewer } from "@/lib/similar-stories/similar-stories.server";
-import type { ViewerSimilarStoriesBundle } from "@/lib/similar-stories/similar-stories.shared";
+import {
+  createEmptySimilarStoriesBundle,
+  createGuestSimilarStoriesTeaser,
+  type ViewerSimilarStoriesBundle,
+} from "@/lib/similar-stories/similar-stories.shared";
 import { requireAuthUserId } from "@/lib/supabase-actions";
 
-export async function getViewerSimilarStoriesAction(): Promise<ViewerSimilarStoriesBundle | null> {
+export async function getViewerSimilarStoriesAction(): Promise<ViewerSimilarStoriesBundle> {
   try {
     const profileId = await requireAuthUserId();
-    return findSimilarStoriesForViewer(profileId);
+    const bundle = await findSimilarStoriesForViewer(profileId);
+    return bundle ?? createEmptySimilarStoriesBundle();
   } catch {
-    return null;
+    return createGuestSimilarStoriesTeaser();
   }
 }

@@ -1,11 +1,15 @@
 "use client";
 
+import Link from "next/link";
 import type {
   SimilarStoryMatch,
   ViewerSimilarStoriesBundle,
 } from "@/lib/similar-stories/similar-stories.shared";
 import { feedContextTagLabel } from "@/lib/feed/feed-context-tags.shared";
-import { emotionalStateTagLabel } from "@/lib/similar-stories/similar-stories.shared";
+import {
+  SIMILAR_STORIES_GUEST_CTA_LABEL,
+  emotionalStateTagLabel,
+} from "@/lib/similar-stories/similar-stories.shared";
 
 type BelongingCardProps = {
   bundle: ViewerSimilarStoriesBundle;
@@ -66,7 +70,18 @@ export default function BelongingCard({ bundle }: BelongingCardProps) {
 
       <div className="px-3 py-2.5">
         <p className="text-[12px] leading-relaxed text-zinc-400">{bundle.empathyInsight}</p>
-        {!bundle.viewerHasCosmicProfile ? (
+        {bundle.isGuestTeaser ? (
+          <Link
+            href="/login"
+            className="mt-2.5 inline-flex items-center gap-1.5 rounded-sm border border-zinc-700 px-2.5 py-1 text-[10px] uppercase tracking-wider text-zinc-300 transition hover:border-zinc-600"
+          >
+            <span aria-hidden className="text-red-500/90">
+              ♥
+            </span>
+            {SIMILAR_STORIES_GUEST_CTA_LABEL}
+          </Link>
+        ) : null}
+        {!bundle.isGuestTeaser && !bundle.viewerHasCosmicProfile ? (
           <p className="mt-2 text-[10px] text-zinc-600">
             Doğum bilgilerinizi tamamladığınızda transit eşleşmesi derinleşir.
           </p>

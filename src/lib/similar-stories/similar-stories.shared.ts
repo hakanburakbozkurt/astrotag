@@ -29,6 +29,14 @@ export const DAILY_STATE_MAX_LENGTH = 140;
 export const SIMILAR_STORY_MIN_SCORE = 35;
 export const SIMILAR_STORY_MATCH_WINDOW_DAYS = 7;
 
+export const SIMILAR_STORIES_ZERO_MATCH_COPY =
+  "Şu an gökyüzü senin için nadir bir konfigürasyonda, bu döngünün öncülerindesin. İlk adımı sen at.";
+
+export const SIMILAR_STORIES_GUEST_TEASER_COPY =
+  "Aynı transit döngüsünü yaşayan ruhların ortak hikayelerini görmek için giriş yap.";
+
+export const SIMILAR_STORIES_GUEST_CTA_LABEL = "Giriş yap";
+
 export type FeedCosmicSnapshot = {
   capturedAt: string;
   natal: {
@@ -66,7 +74,88 @@ export type ViewerSimilarStoriesBundle = {
   matchCount: number;
   matches: SimilarStoryMatch[];
   viewerHasCosmicProfile: boolean;
+  isGuestTeaser?: boolean;
 };
+
+const ZODIAC_CONTEXT_TO_SIGN: Partial<Record<FeedContextTag, string>> = {
+  aries: "Koç",
+  taurus: "Boğa",
+  gemini: "İkizler",
+  cancer: "Yengeç",
+  leo: "Aslan",
+  virgo: "Başak",
+  libra: "Terazi",
+  scorpio: "Akrep",
+  sagittarius: "Yay",
+  capricorn: "Oğlak",
+  aquarius: "Kova",
+  pisces: "Balık",
+};
+
+const LEGACY_MOON_PHASE_SKY: Partial<Record<FeedContextTag, string>> = {
+  new_moon: "Koç",
+  full_moon: "Terazi",
+};
+
+export function buildLegacyCosmicSnapshotFallback(
+  contextTag: FeedContextTag,
+  capturedAt: string = new Date().toISOString()
+): FeedCosmicSnapshot {
+  const signFromTag = ZODIAC_CONTEXT_TO_SIGN[contextTag];
+  const anchorSign = signFromTag ?? "Terazi";
+  const skyMoonSign = LEGACY_MOON_PHASE_SKY[contextTag] ?? anchorSign;
+  const legacyKey = `legacy-context-${contextTag}`;
+
+  return {
+    capturedAt,
+    natal: {
+      sunSign: anchorSign,
+      moonSign: anchorSign,
+      risingSign: anchorSign,
+    },
+    sky: { moonSign: skyMoonSign },
+    tensionIds: [legacyKey],
+    transitAspectKeys: [legacyKey],
+    dominantTransitLabel: null,
+  };
+}
+
+export function resolveFeedCosmicSnapshot(
+  value: unknown,
+  contextTag: FeedContextTag | null
+): FeedCosmicSnapshot | null {
+  const parsed = parseFeedCosmicSnapshot(value);
+  if (parsed) {
+    return parsed;
+  }
+
+  if (!contextTag) {
+    return null;
+  }
+
+  return buildLegacyCosmicSnapshotFallback(contextTag);
+}
+
+export function createGuestSimilarStoriesTeaser(): ViewerSimilarStoriesBundle {
+  return {
+    empathyInsight: SIMILAR_STORIES_GUEST_TEASER_COPY,
+    sharedLoopLabel: "Ortak Döngü",
+    matchCount: 0,
+    matches: [],
+    viewerHasCosmicProfile: false,
+    isGuestTeaser: true,
+  };
+}
+
+export function createEmptySimilarStoriesBundle(): ViewerSimilarStoriesBundle {
+  return {
+    empathyInsight: SIMILAR_STORIES_ZERO_MATCH_COPY,
+    sharedLoopLabel: "Ortak Döngü",
+    matchCount: 0,
+    matches: [],
+    viewerHasCosmicProfile: false,
+  };
+}
 
 export function isEmotionalStateTag(value: string): value is EmotionalStateTag {
   return (EMOTIONAL_STATE_TAGS as readonly string[]).includes(value);
@@ -261,7 +350,7 @@ export function buildDeterministicEmpathyInsight(input: {
 }): string {
   const count = input.matchCount;
   if (count <= 0) {
-    return "Henüz aynı gökyüzü altında yankı bulan bir hikâye yok — ilk paylaşım sizden gelebilir.";
+    return SIMILAR_STORIES_ZERO_MATCH_COPY;
   }
 
   const skyPhrase = input.dominantTransitLabel

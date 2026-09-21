@@ -32,9 +32,5 @@ export default function SimilarStoriesModule({ refreshKey = 0 }: SimilarStoriesM
     );
   }
 
-  if (!bundle) {
-    return null;
-  }
-
-  return <BelongingCard bundle={bundle} />;
+  return bundle ? <BelongingCard bundle={bundle} /> : null;
 }

@@ -14,6 +14,7 @@ import {
   buildDeterministicEmpathyInsight,
   isEmotionalStateTag,
   parseFeedCosmicSnapshot,
+  resolveFeedCosmicSnapshot,
   scoreSimilarStoryMatch,
   type EmotionalStateTag,
   type FeedCosmicSnapshot,
@@ -39,7 +40,8 @@ type CandidateRow = {
 
 type ViewerContext = {
   profileId: string;
-  snapshot: FeedCosmicSnapshot | null;
+  matchingSnapshot: FeedCosmicSnapshot | null;
+  hasRealCosmicProfile: boolean;
   contextTag: FeedContextTag | null;
   emotionalTag: EmotionalStateTag | null;
   stateText: string;
@@ -110,15 +112,29 @@ async function loadViewerContext(profileId: string): Promise<ViewerContext | nul
   const emotionalTag =
     emotionalRaw && isEmotionalStateTag(emotionalRaw) ? emotionalRaw : null;
 
-  const viewerSnapshot =
+  const dailyContextTag =
+    dailyState?.context_tag && isFeedContextTag(dailyState.context_tag)
+      ? dailyState.context_tag
+      : null;
+  const resolvedContextTag = contextTag ?? dailyContextTag;
+
+  const realSnapshot =
     snapshot ??
     parseFeedCosmicSnapshot(latestPost?.cosmic_snapshot) ??
     parseFeedCosmicSnapshot(dailyState?.cosmic_snapshot);
 
+  const matchingSnapshot =
+    realSnapshot ??
+    resolveFeedCosmicSnapshot(
+      latestPost?.cosmic_snapshot ?? dailyState?.cosmic_snapshot,
+      resolvedContextTag
+    );
+
   return {
     profileId,
-    snapshot: viewerSnapshot,
-    contextTag,
+    matchingSnapshot,
+    hasRealCosmicProfile: Boolean(realSnapshot),
+    contextTag: resolvedContextTag,
     emotionalTag,
     stateText: dailyState?.state_text?.trim() ?? latestPost?.daily_state_text?.trim() ?? "",
     caption: latestPost?.caption?.trim() ?? "",
@@ -156,14 +172,17 @@ function rankCandidates(
   const ranked: SimilarStoryMatch[] = [];
 
   for (const row of candidates) {
-    const candidateSnapshot = parseFeedCosmicSnapshot(row.cosmic_snapshot);
+    const candidateSnapshot = resolveFeedCosmicSnapshot(
+      row.cosmic_snapshot,
+      row.context_tag as FeedContextTag
+    );
     const candidateEmotional =
       row.emotional_state_tag && isEmotionalStateTag(row.emotional_state_tag)
         ? row.emotional_state_tag
         : null;
 
     const { score, sharedSignals } = scoreSimilarStoryMatch({
-      viewerSnapshot: viewer.snapshot,
+      viewerSnapshot: viewer.matchingSnapshot,
       candidateSnapshot,
       viewerContextTag: viewer.contextTag,
       candidateContextTag: row.context_tag as FeedContextTag,
@@ -251,7 +270,7 @@ export async function findSimilarStoriesForViewer(
   const candidates = await loadCandidatePool(profileId);
   const matches = rankCandidates(viewer, candidates);
 
-  const dominantTransitLabel = viewer.snapshot?.dominantTransitLabel ?? null;
+  const dominantTransitLabel = viewer.matchingSnapshot?.dominantTransitLabel ?? null;
   const contextTagLabel = viewer.contextTag
     ? feedContextTagLabel(viewer.contextTag)
     : matches[0]
@@ -278,7 +297,7 @@ export async function findSimilarStoriesForViewer(
     sharedLoopLabel: "Ortak Döngü",
     matchCount: matches.length,
     matches,
-    viewerHasCosmicProfile: Boolean(viewer.snapshot),
+    viewerHasCosmicProfile: viewer.hasRealCosmicProfile,
   };
 }
 
@@ -317,7 +336,10 @@ export async function buildSimilarStoryHintsForPosts(
       continue;
     }
 
-    const postSnapshot = parseFeedCosmicSnapshot(post.cosmic_snapshot);
+    const postSnapshot = resolveFeedCosmicSnapshot(
+      post.cosmic_snapshot,
+      post.context_tag
+    );
     const postEmotional =
       post.emotional_state_tag && isEmotionalStateTag(post.emotional_state_tag)
         ? post.emotional_state_tag
@@ -326,14 +348,20 @@ export async function buildSimilarStoryHintsForPosts(
     let matchCount = 0;
     let bestExcerpt: string | null = null;
     let bestScore = 0;
-    let dominantLabel = postSnapshot?.dominantTransitLabel ?? viewer.snapshot?.dominantTransitLabel ?? null;
+    let dominantLabel =
+      postSnapshot?.dominantTransitLabel ??
+      viewer.matchingSnapshot?.dominantTransitLabel ??
+      null;
 
     for (const candidate of pool) {
       if (candidate.id === post.id) {
         continue;
       }
 
-      const candidateSnapshot = parseFeedCosmicSnapshot(candidate.cosmic_snapshot);
+      const candidateSnapshot = resolveFeedCosmicSnapshot(
+        candidate.cosmic_snapshot,
+        candidate.context_tag as FeedContextTag
+      );
       const candidateEmotional =
         candidate.emotional_state_tag &&
         isEmotionalStateTag(candidate.emotional_state_tag)
@@ -341,7 +369,7 @@ export async function buildSimilarStoryHintsForPosts(
           : null;
 
       const { score } = scoreSimilarStoryMatch({
-        viewerSnapshot: postSnapshot ?? viewer.snapshot,
+        viewerSnapshot: postSnapshot ?? viewer.matchingSnapshot,
         candidateSnapshot,
         viewerContextTag: post.context_tag,
         candidateContextTag: candidate.context_tag as FeedContextTag,
