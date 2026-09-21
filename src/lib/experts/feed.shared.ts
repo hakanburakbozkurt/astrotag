@@ -2,6 +2,7 @@ import {
   feedContextTagLabel,
   type FeedContextTag,
 } from "@/lib/feed/feed-context-tags.shared";
+import type { SimilarStoryHint } from "@/lib/similar-stories/similar-stories.shared";
 
 export const FEED_CONTENT_TYPES = [
   "expert_announcement",
@@ -64,6 +65,7 @@ export type FeedPost = {
     isExpert: boolean;
   };
   replies: FeedReply[];
+  similarStoryHint: SimilarStoryHint | null;
 };
 
 /** @deprecated Use FeedPost */

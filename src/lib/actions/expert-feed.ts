@@ -15,6 +15,7 @@ import type {
   ExpertFeedSessionOutput,
 } from "@/lib/experts/feed.shared";
 import type { FeedContextTag } from "@/lib/feed/feed-context-tags.shared";
+import type { EmotionalStateTag } from "@/lib/similar-stories/similar-stories.shared";
 import { requireAuthUserId } from "@/lib/supabase-actions";
 import { getProtectedNfcAccess } from "@/lib/nfc/protected-access.server";
 
@@ -44,6 +45,8 @@ export async function getFeedComposerStatusAction(): Promise<FeedComposerStatus 
 export async function createUserFeedPostAction(input: {
   caption: string;
   contextTag: FeedContextTag;
+  dailyStateText?: string;
+  emotionalStateTag?: EmotionalStateTag | null;
 }): Promise<{ ok: boolean; error?: string; postId?: string; code?: string }> {
   try {
     const profileId = await requireAuthUserId();
@@ -51,6 +54,8 @@ export async function createUserFeedPostAction(input: {
       profileId,
       caption: input.caption,
       contextTag: input.contextTag,
+      dailyStateText: input.dailyStateText,
+      emotionalStateTag: input.emotionalStateTag,
     });
 
     if (!result.ok) {

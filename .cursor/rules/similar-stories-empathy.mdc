@@ -1,0 +1,29 @@
+---
+description: AstroTag Similar Stories, AI Empathy Engine & Belonging Architecture Rules
+globs: ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx", "supabase/**/*"]
+---
+
+# AstroTag Similar Stories & AI Empathy Engine Architecture
+
+## 1. Core Objective
+Transform AstroTag from a cold calculation tool into a high-retention, empathetic community ecosystem by implementing the "Similar Stories" (Benzer Hikayeler) feature. Users must feel a deep sense of belonging ("I am not alone in this transit/struggle").
+
+## 2. Technical & Algorithmic Requirements
+When implementing the Similar Stories and matching engine, the system must integrate three distinct layers:
+1. **Cosmic Context Filter:** Filter users not just by zodiac signs, but by active astrological transits, houses, or planetary aspects (e.g., Saturn square, Pluto transit).
+2. **Manifest & State Ingestion:** Capture user state via daily short text, manifest intentions, or emotional state tags alongside their posts.
+3. **AI & Vector Matching:**
+   - Utilize Supabase vector embeddings (or text/tag matching mechanics) to find semantic and emotional proximity between users' experiences.
+   - The AI must synthesize the user's current transit with their written manifest to generate empathetic, human-like insight summaries (e.g., "Right now, 3 other souls under the exact same sky are navigating a similar purification transit...").
+
+## 3. UI/UX & Engagement Rules
+- **Belonging Cards:** Display dedicated "Shared Destiny / Common Loop" modules where users can see anonymous or semi-anonymous mirrored experiences.
+- **Noir Aesthetics & Emotional Accents:** Maintain the zinc/noir design language while using red hearts and subtle glowing connection badges for mutual support.
+- **Economic Integration:** Keep core emotional connection organic, but allow advanced expert-guided circles or deep-dive matching to tie into the Crystal-Gated economy where appropriate.
+
+## 4. Implementation Discipline
+- Snapshot cosmic context at **post insert** (`cosmic_snapshot` on `expert_feed`); never recompute historical posts on read.
+- Matching pool: recent `user_post` rows + optional `user_daily_states`; exclude viewer's own posts.
+- Moderation and rate limits from feed layer apply to all ingested text (`moderateFeedText`, daily post cap).
+- Default empathy copy is deterministic; optional KIE narration only when `KIE_API_KEY` is present — always ship a template fallback.
+- Belonging UI: `#09090b` base, `border-zinc-800`, `rounded-sm` max; red heart for connection badges; no amber/glass gradients.

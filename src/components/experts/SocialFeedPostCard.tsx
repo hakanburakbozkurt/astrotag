@@ -4,6 +4,7 @@ import { useState } from "react";
 import ExpertAvatar from "@/components/experts/ExpertAvatar";
 import ExpertFeedSessionCard from "@/components/experts/ExpertFeedSessionCard";
 import FeedLikeButton from "@/components/experts/FeedLikeButton";
+import PostBelongingStrip from "@/components/experts/PostBelongingStrip";
 import {
   createFeedReplyAction,
   toggleFeedLikeAction,
@@ -173,6 +174,10 @@ export default function SocialFeedPostCard({
           <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-zinc-300">
             {post.caption}
           </p>
+        ) : null}
+
+        {isUserPost && post.similarStoryHint ? (
+          <PostBelongingStrip hint={post.similarStoryHint} />
         ) : null}
 
         {isSharedSession && post.sessionOutputData ? (

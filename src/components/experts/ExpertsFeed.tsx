@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import FeedPostComposer from "@/components/experts/FeedPostComposer";
+import SimilarStoriesModule from "@/components/experts/SimilarStoriesModule";
 import SocialFeedPostCard from "@/components/experts/SocialFeedPostCard";
 import DataLoadingState from "@/components/ui/DataLoadingState";
 import { listExpertFeedAction } from "@/lib/actions/expert-feed";
@@ -16,6 +17,7 @@ const FEED_REFRESH_MS = 45_000;
 export default function ExpertsFeed({ onSelectExpert }: ExpertsFeedProps) {
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [storiesRefreshKey, setStoriesRefreshKey] = useState(0);
 
   const loadFeed = useCallback(async (silent = false) => {
     if (!silent) {
@@ -41,7 +43,14 @@ export default function ExpertsFeed({ onSelectExpert }: ExpertsFeedProps) {
   return (
     <section aria-label="Kozmik akış" className="border-t border-zinc-800/80 pt-4">
       <div className="mx-auto flex max-w-md flex-col gap-2.5">
-        <FeedPostComposer onPosted={() => void loadFeed(true)} />
+        <FeedPostComposer
+          onPosted={() => {
+            setStoriesRefreshKey((value) => value + 1);
+            void loadFeed(true);
+          }}
+        />
+
+        <SimilarStoriesModule refreshKey={storiesRefreshKey} />
 
         {loading ? (
           <DataLoadingState className="mt-1" compact />

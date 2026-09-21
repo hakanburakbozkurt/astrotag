@@ -26,6 +26,17 @@ import {
 } from "@/lib/experts/feed.shared";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import { fetchExpertProfileByProfileId } from "@/lib/supabase/profile-query.server";
+import { getServerUserProfile } from "@/lib/tarot/tarot-profile-server";
+import { buildFeedCosmicSnapshot } from "@/lib/similar-stories/cosmic-snapshot.server";
+import {
+  buildSimilarStoryHintsForPosts,
+  upsertUserDailyState,
+} from "@/lib/similar-stories/similar-stories.server";
+import {
+  DAILY_STATE_MAX_LENGTH,
+  isEmotionalStateTag,
+  type EmotionalStateTag,
+} from "@/lib/similar-stories/similar-stories.shared";
 
 const FEED_PAGE_SIZE = 40;
 const REPLIES_PREVIEW_LIMIT = 3;
@@ -99,7 +110,8 @@ function mapFeedRow(
     replyCount: number;
     likedByViewer: boolean;
     replies: FeedReply[];
-  }
+  },
+  similarStoryHint: FeedPost["similarStoryHint"] = null
 ): FeedPost | null {
   if (
     row.content_type !== "expert_announcement" &&
@@ -161,6 +173,7 @@ function mapFeedRow(
       isExpert: profileRow?.user_role === "expert" || Boolean(expertRow),
     },
     replies: engagement.replies,
+    similarStoryHint,
   };
 }
 
@@ -300,14 +313,27 @@ export async function listExpertFeedPosts(
   const postIds = rows.map((row) => row.id);
   const engagement = await loadEngagement(postIds, viewerProfileId);
 
+  const userPostIds = rows
+    .filter((row) => row.content_type === "user_post")
+    .map((row) => row.id);
+
+  const similarHints =
+    viewerProfileId && userPostIds.length > 0
+      ? await buildSimilarStoryHintsForPosts(viewerProfileId, userPostIds)
+      : new Map<string, FeedPost["similarStoryHint"]>();
+
   return rows
     .map((row) =>
-      mapFeedRow(row, engagement.get(row.id) ?? {
-        likeCount: 0,
-        replyCount: 0,
-        likedByViewer: false,
-        replies: [],
-      })
+      mapFeedRow(
+        row,
+        engagement.get(row.id) ?? {
+          likeCount: 0,
+          replyCount: 0,
+          likedByViewer: false,
+          replies: [],
+        },
+        similarHints.get(row.id) ?? null
+      )
     )
     .filter((post): post is FeedPost => Boolean(post));
 }
@@ -342,6 +368,8 @@ export async function createUserFeedPost(input: {
   profileId: string;
   caption: string;
   contextTag: FeedContextTag;
+  dailyStateText?: string;
+  emotionalStateTag?: EmotionalStateTag | null;
 }): Promise<
   | { ok: true; postId: string }
   | { ok: false; error: string; code?: string }
@@ -372,6 +400,29 @@ export async function createUserFeedPost(input: {
     return { ok: false, error: rateLimit.error, code: "FEED_RATE_LIMIT" };
   }
 
+  const dailyStateText = input.dailyStateText?.trim() ?? "";
+  if (dailyStateText.length > DAILY_STATE_MAX_LENGTH) {
+    return {
+      ok: false,
+      error: `Günlük hal metni en fazla ${DAILY_STATE_MAX_LENGTH} karakter olabilir.`,
+    };
+  }
+
+  if (dailyStateText) {
+    const stateModeration = moderateFeedText(dailyStateText);
+    if (!stateModeration.ok) {
+      return { ok: false, error: stateModeration.reason, code: "FEED_MODERATION" };
+    }
+  }
+
+  const emotionalStateTag =
+    input.emotionalStateTag && isEmotionalStateTag(input.emotionalStateTag)
+      ? input.emotionalStateTag
+      : null;
+
+  const profile = await getServerUserProfile(input.profileId);
+  const cosmicSnapshot = profile ? await buildFeedCosmicSnapshot(profile) : null;
+
   const admin = createServiceRoleClient();
   const { data: inserted, error } = await admin
     .from("expert_feed")
@@ -380,6 +431,9 @@ export async function createUserFeedPost(input: {
       user_profile_id: input.profileId,
       caption,
       context_tag: input.contextTag,
+      daily_state_text: dailyStateText || null,
+      emotional_state_tag: emotionalStateTag,
+      cosmic_snapshot: cosmicSnapshot,
       share_consent: false,
     })
     .select("id")
@@ -390,7 +444,20 @@ export async function createUserFeedPost(input: {
     return { ok: false, error: "Gönderi kaydedilemedi." };
   }
 
-  return { ok: true, postId: inserted[0].id };
+  const postId = inserted[0].id;
+
+  if (dailyStateText || emotionalStateTag || cosmicSnapshot) {
+    await upsertUserDailyState({
+      profileId: input.profileId,
+      stateText: dailyStateText || null,
+      emotionalStateTag,
+      contextTag: input.contextTag,
+      cosmicSnapshot,
+      feedPostId: postId,
+    });
+  }
+
+  return { ok: true, postId };
 }
 
 function moderateOptionalCaption(caption: string | undefined): { ok: true; text: string } | { ok: false; error: string } {

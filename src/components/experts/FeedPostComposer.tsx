@@ -12,6 +12,12 @@ import {
   feedContextTagLabel,
   type FeedContextTag,
 } from "@/lib/feed/feed-context-tags.shared";
+import {
+  DAILY_STATE_MAX_LENGTH,
+  EMOTIONAL_STATE_TAGS,
+  emotionalStateTagLabel,
+  type EmotionalStateTag,
+} from "@/lib/similar-stories/similar-stories.shared";
 import type { FeedComposerStatus } from "@/lib/experts/feed.shared";
 
 type FeedPostComposerProps = {
@@ -26,6 +32,8 @@ export default function FeedPostComposer({ onPosted }: FeedPostComposerProps) {
   const [loading, setLoading] = useState(true);
   const [caption, setCaption] = useState("");
   const [contextTag, setContextTag] = useState<FeedContextTag | "">("");
+  const [dailyStateText, setDailyStateText] = useState("");
+  const [emotionalStateTag, setEmotionalStateTag] = useState<EmotionalStateTag | "">("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -54,6 +62,8 @@ export default function FeedPostComposer({ onPosted }: FeedPostComposerProps) {
     const result = await createUserFeedPostAction({
       caption,
       contextTag,
+      dailyStateText: dailyStateText.trim() || undefined,
+      emotionalStateTag: emotionalStateTag || null,
     });
 
     setSubmitting(false);
@@ -65,6 +75,8 @@ export default function FeedPostComposer({ onPosted }: FeedPostComposerProps) {
 
     setCaption("");
     setContextTag("");
+    setDailyStateText("");
+    setEmotionalStateTag("");
     setMessage("Gönderiniz paylaşıldı.");
     await loadStatus();
     onPosted?.();
@@ -126,6 +138,32 @@ export default function FeedPostComposer({ onPosted }: FeedPostComposerProps) {
             placeholder="Kozmik düşüncenizi paylaşın…"
             className={`${fieldClass} resize-none`}
           />
+
+          <textarea
+            value={dailyStateText}
+            onChange={(event) => setDailyStateText(event.target.value)}
+            rows={1}
+            maxLength={DAILY_STATE_MAX_LENGTH}
+            placeholder="Bugünkü haliniz (isteğe bağlı, max 140)…"
+            className={`${fieldClass} resize-none`}
+            aria-label="Bugünkü hal"
+          />
+
+          <select
+            value={emotionalStateTag}
+            onChange={(event) =>
+              setEmotionalStateTag(event.target.value as EmotionalStateTag | "")
+            }
+            className={fieldClass}
+            aria-label="Duygusal durum"
+          >
+            <option value="">Duygusal hal (isteğe bağlı)…</option>
+            {EMOTIONAL_STATE_TAGS.map((tag) => (
+              <option key={tag} value={tag}>
+                {emotionalStateTagLabel(tag)}
+              </option>
+            ))}
+          </select>
 
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-[10px] text-zinc-600">
