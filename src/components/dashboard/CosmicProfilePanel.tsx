@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -44,29 +44,27 @@ const FIELD_INPUT_CLASS =
   "w-full rounded-sm border border-zinc-800 bg-zinc-950 px-3 py-2.5 text-sm text-stone-300 outline-none transition placeholder:text-stone-500 focus:border-zinc-600";
 
 const FIELD_TEXTAREA_CLASS =
-  "min-h-[96px] w-full resize-y rounded-sm border border-zinc-800 bg-zinc-950 px-3 py-2.5 text-sm leading-relaxed text-stone-300 outline-none transition placeholder:text-stone-500 focus:border-zinc-600";
+  "min-h-[72px] w-full resize-y rounded-sm border border-zinc-800 bg-zinc-950 px-3 py-2.5 text-sm leading-relaxed text-stone-300 outline-none transition placeholder:text-stone-500 focus:border-zinc-600";
 
-const OPTION_ACTIVE_CLASS =
-  "rounded-sm border border-zinc-600 bg-zinc-900 text-stone-300";
-
-const OPTION_INACTIVE_CLASS =
-  "rounded-sm border border-zinc-800 bg-zinc-950 text-stone-500 hover:border-zinc-700 hover:text-stone-400";
-
-function personFromUser(user: UserData, who: "self" | "partner"): CosmicProfilePersonInput {
-  if (who === "partner") {
-    return {
-      name: user.partnerName?.trim() ?? "",
-      birthDate: user.partnerBirthDate ?? "",
-      birthTime: user.partnerBirthTime ?? "",
-      birthPlace: user.partnerBirthPlace ?? "",
-    };
-  }
-
+function personFromUser(user: UserData): CosmicProfilePersonInput {
   return {
     name: user.name,
     birthDate: user.birthDate,
     birthTime: user.birthTime,
     birthPlace: user.birthPlace,
+  };
+}
+
+function emptyPerson(): CosmicProfilePersonInput {
+  return { name: "", birthDate: "", birthTime: "", birthPlace: "" };
+}
+
+function partnerFromUser(user: UserData): CosmicProfilePersonInput {
+  return {
+    name: user.partnerName?.trim() ?? "",
+    birthDate: user.partnerBirthDate ?? "",
+    birthTime: user.partnerBirthTime ?? "",
+    birthPlace: user.partnerBirthPlace ?? "",
   };
 }
 
@@ -99,9 +97,9 @@ export default function CosmicProfilePanel({
   presentation = "modal",
 }: CosmicProfilePanelProps) {
   const router = useRouter();
-  const [subject, setSubject] = useState<"self" | "partner">("self");
-  const [selfPerson, setSelfPerson] = useState(() => personFromUser(user, "self"));
-  const [partnerPerson, setPartnerPerson] = useState(() => personFromUser(user, "partner"));
+  const [consultant, setConsultant] = useState(() => personFromUser(user));
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [partnerPerson, setPartnerPerson] = useState(() => partnerFromUser(user));
   const [relationshipType, setRelationshipType] = useState(user.relationshipStatus ?? "");
   const [analysisQuestion, setAnalysisQuestion] = useState("");
   const { totalStarPoints, refresh: refreshStarEconomy } = useStarEconomy();
@@ -113,13 +111,8 @@ export default function CosmicProfilePanel({
   const [savedToJournal, setSavedToJournal] = useState(false);
   const [refundMessage, setRefundMessage] = useState<string | null>(null);
 
-  const activePerson = subject === "self" ? selfPerson : partnerPerson;
-  const canSubmit = isPersonComplete(activePerson) && totalStarPoints >= ANALYSIS_STAR_COST;
-
-  const subjectLabel = useMemo(
-    () => (subject === "self" ? "Kişi 1" : "Kişi 2"),
-    [subject]
-  );
+  const canSubmit = isPersonComplete(consultant) && totalStarPoints >= ANALYSIS_STAR_COST;
+  const partnerComplete = isPersonComplete(partnerPerson);
 
   function notifyStarPointsUpdated(next: number) {
     window.dispatchEvent(
@@ -140,12 +133,15 @@ export default function CosmicProfilePanel({
     setSavedToJournal(false);
     setRefundMessage(null);
 
+    const includePartner = showAdvanced && partnerComplete;
+
     const result = await runCosmicProfileAnalysis({
-      subject,
-      relationshipType: relationshipType || undefined,
+      subject: "self",
+      relationshipType:
+        showAdvanced && relationshipType.trim() ? relationshipType.trim() : undefined,
       question: analysisQuestion.trim() || undefined,
-      self: selfPerson,
-      partner: partnerPerson,
+      self: consultant,
+      partner: includePartner ? partnerPerson : undefined,
     });
 
     setIsSubmitting(false);
@@ -187,11 +183,19 @@ export default function CosmicProfilePanel({
     setSavedToJournal(true);
   }
 
+  function handleNewAnalysis() {
+    setAnalysis(null);
+    setFeedbackDone(false);
+    setCanSave(false);
+    setAnalysisQuestion("");
+    setConsultant(emptyPerson());
+  }
+
   const panelBody = (
     <div
       className={
         presentation === "inline"
-          ? "w-full min-w-0 space-y-6"
+          ? "w-full min-w-0 space-y-5"
           : "max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-sm border border-zinc-800 bg-zinc-900 p-6 sm:p-8"
       }
     >
@@ -202,7 +206,8 @@ export default function CosmicProfilePanel({
             Kozmik Profil
           </h2>
           <p className="mt-2 text-sm text-stone-400">
-            Kapsamlı tek analiz · {ANALYSIS_STAR_COST} yıldız
+            Natal analiz · {ANALYSIS_STAR_COST} yıldız · bakiye{" "}
+            <span className="text-stone-300">{totalStarPoints}</span>
           </p>
         </header>
       ) : (
@@ -211,7 +216,8 @@ export default function CosmicProfilePanel({
             <p className={compactEyebrowClass}>Oracle Profil</p>
             <h2 className={`${compactPageTitleClass} text-stone-100`}>Kozmik Profil</h2>
             <p className="mt-1 text-xs text-stone-500">
-              Kapsamlı tek analiz · {ANALYSIS_STAR_COST} yıldız
+              Natal analiz · {ANALYSIS_STAR_COST} yıldız · bakiye{" "}
+              <span className="text-stone-300">{totalStarPoints}</span>
             </p>
           </div>
           <button type="button" onClick={onClose} className={noirInlineButtonClass}>
@@ -220,87 +226,69 @@ export default function CosmicProfilePanel({
         </div>
       )}
 
-      <p className="mt-3 text-xs leading-relaxed text-stone-500">
-        Kullanılabilir Yıldız:{" "}
-        <span className="text-stone-300">{totalStarPoints}</span>
-      </p>
-
       {!analysis ? (
-        <form onSubmit={handleSubmit} className="mt-6 flex w-full min-w-0 flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex w-full min-w-0 flex-col gap-4">
           <CosmicProfilePersonFields
-            idPrefix="self"
-            title="Kişi 1"
-            hint="Ana profil bilgileri. Gerekirse güncelleyebilirsiniz."
-            value={selfPerson}
-            onChange={setSelfPerson}
+            idPrefix="consultant"
+            title="Doğum Bilgileri"
+            hint="Danışanın adını ve doğum verilerini girin."
+            value={consultant}
+            onChange={setConsultant}
+            autoFocusName
           />
-
-          <CosmicProfilePersonFields
-            idPrefix="partner"
-            title="Kişi 2 / Partner"
-            hint="İkinci kişi (İlişki ve synastry analizleri için opsiyonel)."
-            value={partnerPerson}
-            onChange={setPartnerPerson}
-          />
-
-          <label className="flex w-full flex-col gap-1">
-            <span className={noirLabelClass}>İlişki Türü</span>
-            <select
-              value={relationshipType}
-              onChange={(event) => setRelationshipType(event.target.value)}
-              className={FIELD_INPUT_CLASS}
-            >
-              <option value="">Seçin (opsiyonel)</option>
-              <option value="Flört">Flört</option>
-              <option value="Arkadaş">Arkadaş</option>
-              <option value="Sevgili">Sevgili</option>
-              <option value="İş Arkadaşı">İş Arkadaşı</option>
-              <option value="Aile">Aile</option>
-            </select>
-          </label>
-
-          <div className="flex w-full flex-col gap-2">
-            <span className={noirLabelClass}>Analiz Konusu</span>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setSubject("self")}
-                className={`border px-3 py-2.5 text-sm transition ${
-                  subject === "self" ? OPTION_ACTIVE_CLASS : OPTION_INACTIVE_CLASS
-                }`}
-              >
-                Kişi 1
-              </button>
-              <button
-                type="button"
-                onClick={() => setSubject("partner")}
-                className={`border px-3 py-2.5 text-sm transition ${
-                  subject === "partner" ? OPTION_ACTIVE_CLASS : OPTION_INACTIVE_CLASS
-                }`}
-              >
-                Kişi 2
-              </button>
-            </div>
-            <p className="text-xs text-stone-500">
-              Seçili analiz: <span className="text-stone-300">{subjectLabel}</span>
-              {!isPersonComplete(activePerson) ? (
-                <span className="text-stone-500"> — eksik alanları tamamlayın</span>
-              ) : null}
-            </p>
-          </div>
 
           <label htmlFor="cosmic-profile-question" className="flex w-full flex-col gap-1">
-            <span className={noirLabelClass}>Analiz Sorusu / Niyet</span>
+            <span className={noirLabelClass}>Analiz Sorusu (opsiyonel)</span>
             <textarea
               id="cosmic-profile-question"
               value={analysisQuestion}
               onChange={(event) => setAnalysisQuestion(event.target.value)}
-              rows={3}
-              placeholder="Aklınızdaki soru veya odaklanmak istediğiniz konu..."
+              rows={2}
+              placeholder="Odaklanmak istediğiniz konu veya soru…"
               disabled={isSubmitting}
               className={FIELD_TEXTAREA_CLASS}
             />
           </label>
+
+          <div className="border-t border-zinc-800 pt-1">
+            <button
+              type="button"
+              onClick={() => setShowAdvanced((current) => !current)}
+              className="text-xs text-stone-500 underline-offset-2 transition hover:text-stone-400 hover:underline"
+            >
+              {showAdvanced
+                ? "İkinci kişi ve ilişki alanlarını gizle"
+                : "İkinci kişi ve ilişki (opsiyonel)"}
+            </button>
+
+            {showAdvanced ? (
+              <div className="mt-3 flex flex-col gap-4">
+                <CosmicProfilePersonFields
+                  idPrefix="partner"
+                  title="İkinci Kişi"
+                  hint="Synastry bağlamı için; tüm alanlar doldurulursa analize dahil edilir."
+                  value={partnerPerson}
+                  onChange={setPartnerPerson}
+                />
+
+                <label className="flex w-full flex-col gap-1">
+                  <span className={noirLabelClass}>İlişki Türü</span>
+                  <select
+                    value={relationshipType}
+                    onChange={(event) => setRelationshipType(event.target.value)}
+                    className={FIELD_INPUT_CLASS}
+                  >
+                    <option value="">Seçin (opsiyonel)</option>
+                    <option value="Flört">Flört</option>
+                    <option value="Arkadaş">Arkadaş</option>
+                    <option value="Sevgili">Sevgili</option>
+                    <option value="İş Arkadaşı">İş Arkadaşı</option>
+                    <option value="Aile">Aile</option>
+                  </select>
+                </label>
+              </div>
+            ) : null}
+          </div>
 
           {error ? (
             <p className="rounded-sm border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-stone-500">
@@ -321,10 +309,14 @@ export default function CosmicProfilePanel({
             disabled={isSubmitting || !canSubmit}
             className={noirPrimaryButtonClass}
           >
-            {isSubmitting
-              ? "Kozmik imza hesaplanıyor…"
-              : `Analizi Başlat (−${ANALYSIS_STAR_COST} Yıldız)`}
+            {isSubmitting ? "Analiz hesaplanıyor…" : `Analizi Başlat (−${ANALYSIS_STAR_COST} Yıldız)`}
           </button>
+
+          {!isPersonComplete(consultant) ? (
+            <p className="text-center text-xs text-stone-500">
+              Analiz için ad, doğum tarihi, saati ve yeri zorunludur.
+            </p>
+          ) : null}
 
           {totalStarPoints < ANALYSIS_STAR_COST ? (
             <p className="text-center text-xs text-stone-500">
@@ -336,7 +328,7 @@ export default function CosmicProfilePanel({
           ) : null}
         </form>
       ) : (
-        <div className="mt-6 space-y-4">
+        <div className="space-y-4">
           <div className="rounded-sm border border-zinc-800 bg-zinc-950 px-4 py-3">
             <p className="text-xs leading-relaxed text-stone-500">{PRIVACY_NOTICE}</p>
           </div>
@@ -429,16 +421,7 @@ export default function CosmicProfilePanel({
           ) : null}
 
           {feedbackDone && canSave ? (
-            <button
-              type="button"
-              onClick={() => {
-                setAnalysis(null);
-                setFeedbackDone(false);
-                setCanSave(false);
-                setAnalysisQuestion("");
-              }}
-              className={noirSecondaryButtonClass}
-            >
+            <button type="button" onClick={handleNewAnalysis} className={noirSecondaryButtonClass}>
               Yeni Analiz
             </button>
           ) : null}

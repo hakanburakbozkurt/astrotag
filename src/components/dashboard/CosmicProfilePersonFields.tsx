@@ -12,6 +12,7 @@ interface CosmicProfilePersonFieldsProps {
   value: CosmicProfilePersonInput;
   onChange: (next: CosmicProfilePersonInput) => void;
   idPrefix: string;
+  autoFocusName?: boolean;
 }
 
 export default function CosmicProfilePersonFields({
@@ -20,6 +21,7 @@ export default function CosmicProfilePersonFields({
   value,
   onChange,
   idPrefix,
+  autoFocusName = false,
 }: CosmicProfilePersonFieldsProps) {
   return (
     <div className="rounded-sm border border-zinc-800 bg-zinc-950 p-3 sm:p-4">
@@ -37,6 +39,7 @@ export default function CosmicProfilePersonFields({
             value={value.name}
             onChange={(event) => onChange({ ...value, name: event.target.value })}
             autoComplete="name"
+            autoFocus={autoFocusName}
             className={FIELD_INPUT_CLASS}
           />
         </label>
