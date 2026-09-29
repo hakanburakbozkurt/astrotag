@@ -32,8 +32,8 @@ import {
   logStarsLedgerEntry,
 } from "@/lib/stars/stars-ledger.server";
 import {
-  consumeStarPoints,
-  creditStarPointsBonus,
+  consumeStarPointsForProfile,
+  creditStarPointsBonusForProfile,
   requireAuthUserId,
 } from "@/lib/supabase-actions";
 import { SupabaseActionError } from "@/lib/supabase-action-error";
@@ -111,12 +111,12 @@ function mergeCosmicProfileInput(
   return merged;
 }
 
-export async function runCosmicProfileAnalysis(
+export async function runCosmicProfileAnalysisForProfile(
+  profileId: string,
   input: CosmicProfileAnalysisInput
 ): Promise<RunCosmicProfileResult> {
   try {
     const subject = input.subject ?? "self";
-    const profileId = await requireAuthUserId();
     const ownerProfile = await getServerUserProfile(profileId);
 
     if (!ownerProfile) {
@@ -132,7 +132,7 @@ export async function runCosmicProfileAnalysis(
     await resolveBirthPlace(birthPlace);
 
     const sessionId = randomUUID();
-    const remainingStars = await consumeStarPoints(tier.stars);
+    const remainingStars = await consumeStarPointsForProfile(profileId, tier.stars);
 
     await logStarsLedgerEntry({
       profileId,
@@ -157,7 +157,7 @@ export async function runCosmicProfileAnalysis(
     );
 
     if (!reading) {
-      await creditStarPointsBonus(tier.stars);
+      await creditStarPointsBonusForProfile(profileId, tier.stars);
       await logStarsLedgerEntry({
         profileId,
         transactionType: "REFUND_ANALYSIS",
@@ -186,6 +186,26 @@ export async function runCosmicProfileAnalysis(
     }
 
     if (error instanceof Error && error.name === "GeocodeValidationError") {
+      return { success: false, error: error.message };
+    }
+
+    console.error("RUN_COSMIC_PROFILE_ERROR:", error);
+    return { success: false, error: ORACLE_COSMIC_DATA_ERROR };
+  }
+}
+
+/** Web dashboard — cookie oturumu */
+export async function runCosmicProfileAnalysis(
+  input: CosmicProfileAnalysisInput
+): Promise<RunCosmicProfileResult> {
+  try {
+    const profileId = await requireAuthUserId();
+    return runCosmicProfileAnalysisForProfile(profileId, input);
+  } catch (error) {
+    if (error instanceof SupabaseActionError) {
+      if (error.message.includes("yıldız gerekir")) {
+        return { success: false, error: error.message, redirectTo: STAR_PACKAGES_PATH };
+      }
       return { success: false, error: error.message };
     }
 
@@ -249,7 +269,10 @@ export async function submitCosmicProfileFeedback(input: {
   }
 
   try {
-    remainingStars = await creditStarPointsBonus(COSMIC_PROFILE_REFUND_STARS);
+    remainingStars = await creditStarPointsBonusForProfile(
+      profileId,
+      COSMIC_PROFILE_REFUND_STARS
+    );
 
     await logStarsLedgerEntry({
       profileId,

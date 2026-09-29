@@ -14,9 +14,38 @@ import {
   loadManifestoState,
   prepareDailyCosmicModal,
 } from "@/services/manifestoService";
-import { requireVerifiedUserProfileForAi } from "@/lib/ai/verified-profile.server";
+import {
+  loadVerifiedUserProfileForAi,
+  requireVerifiedUserProfileForAi,
+} from "@/lib/ai/verified-profile.server";
 import { requireAuthUserId } from "@/lib/supabase-actions";
 import { SupabaseActionError } from "@/lib/supabase-action-error";
+
+export async function loadManifestoStateForProfile(
+  profileId: string,
+  input: Pick<GenerateManifestoInput, "category" | "techniqueType">
+): Promise<UserManifestoRecord | null> {
+  return loadManifestoState(profileId, input);
+}
+
+export async function generateDailyManifestoForProfile(
+  profileId: string,
+  input: GenerateManifestoInput
+): Promise<GenerateManifestoResult> {
+  try {
+    const profile = await loadVerifiedUserProfileForAi(profileId);
+    return getOrGenerateDailyManifesto(profileId, profile, input);
+  } catch (error) {
+    const message =
+      error instanceof SupabaseActionError
+        ? error.message
+        : error instanceof Error
+          ? error.message
+          : "Oturum geçersiz.";
+
+    return { ok: false, error: message, debugCode: "AUTH_FAILED" };
+  }
+}
 
 export async function loadManifestoStateAction(
   input: Pick<GenerateManifestoInput, "category" | "techniqueType">
@@ -28,7 +57,7 @@ export async function loadManifestoStateAction(
       category: input.category,
       techniqueType: input.techniqueType,
     });
-    return loadManifestoState(profileId, input);
+    return loadManifestoStateForProfile(profileId, input);
   } catch (error) {
     console.error("[manifestoAction] loadManifestoState auth/read failed:", {
       category: input.category,
@@ -43,7 +72,7 @@ export async function generateDailyManifestoAction(
   input: GenerateManifestoInput
 ): Promise<GenerateManifestoResult> {
   try {
-    const { profileId, profile } = await requireVerifiedUserProfileForAi("self");
+    const { profileId } = await requireVerifiedUserProfileForAi("self");
     console.info("[manifestoAction] generateDailyManifesto", {
       profileId,
       category: input.category,
@@ -51,7 +80,7 @@ export async function generateDailyManifestoAction(
       hasIntention: Boolean(input.intention.trim()),
     });
 
-    const result = await getOrGenerateDailyManifesto(profileId, profile, input);
+    const result = await generateDailyManifestoForProfile(profileId, input);
 
     if (!result.ok) {
       console.error("[manifestoAction] generateDailyManifesto failed:", {

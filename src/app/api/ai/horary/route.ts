@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { runHoraryReading } from "@/lib/actions/horary-reading";
+import { runHoraryReadingForProfile } from "@/lib/actions/horary-reading";
 import { HORARY_ERROR_MESSAGE } from "@/lib/ai/horary";
 import { withNfcApiRoute } from "@/lib/nfc/with-nfc-api-route";
 
@@ -7,7 +7,7 @@ import { withNfcApiRoute } from "@/lib/nfc/with-nfc-api-route";
  * @deprecated Tercih edilen giriş: `runHoraryReading` server action.
  * Bu route yalnızca geriye dönük uyumluluk içindir; client `userData` kabul etmez.
  */
-export const POST = withNfcApiRoute("api/ai/horary", async (request) => {
+export const POST = withNfcApiRoute("api/ai/horary", async (request, access) => {
   const body = await request.json();
   const question = body?.question as string | undefined;
 
@@ -21,7 +21,7 @@ export const POST = withNfcApiRoute("api/ai/horary", async (request) => {
     );
   }
 
-  const result = await runHoraryReading(question.trim());
+  const result = await runHoraryReadingForProfile(access.profileId, question.trim());
 
   if (!result.success) {
     const status = result.error.includes("yıldız") ? 402 : 403;

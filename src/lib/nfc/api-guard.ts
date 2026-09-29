@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { logNfcError } from "@/lib/nfc/error-logger";
 import {
   getProtectedNfcAccess,
+  getProtectedNfcAccessFromRequest,
   type ProtectedNfcContext,
 } from "@/lib/nfc/protected-access.server";
 import { nfcPairingPathForUniqueId } from "@/lib/nfc/card-paths";
@@ -13,9 +14,13 @@ export type ApiNfcGuardResult =
   | { ok: true; access: ProtectedNfcContext }
   | { ok: false; response: NextResponse };
 
-export async function guardApiNfcAccess(): Promise<ApiNfcGuardResult> {
+export async function guardApiNfcAccess(
+  request?: NextRequest
+): Promise<ApiNfcGuardResult> {
   try {
-    const access = await getProtectedNfcAccess();
+    const access = request
+      ? await getProtectedNfcAccessFromRequest(request)
+      : await getProtectedNfcAccess();
 
     if (!access) {
       return {

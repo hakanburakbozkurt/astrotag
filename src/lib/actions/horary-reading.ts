@@ -2,13 +2,16 @@
 
 import { redirect } from "next/navigation";
 import { requestHoraryReading } from "@/lib/ai/horary";
-import { requireVerifiedUserProfileForAi } from "@/lib/ai/verified-profile.server";
+import {
+  loadVerifiedUserProfileForAi,
+  requireVerifiedUserProfileForAi,
+} from "@/lib/ai/verified-profile.server";
 import { PROFILE_SETUP_PATH } from "@/lib/nfc/constants";
 import { ORACLE_COSMIC_DATA_ERROR } from "@/lib/oracle/oracle-errors";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import {
-  consumeStarPoints,
-  creditStarPointsBonus,
+  consumeStarPointsForProfile,
+  creditStarPointsBonusForProfile,
   getHoraryQuestion,
   updateHoraryAnswer,
 } from "@/lib/supabase-actions";
@@ -40,7 +43,7 @@ function mapSupabaseError(
   throw new SupabaseActionError(error?.message ?? fallback);
 }
 
-async function ensureProfileComplete(profileId: string): Promise<void> {
+async function isProfileComplete(profileId: string): Promise<boolean> {
   const supabaseAdmin = createServiceRoleClient();
   const { data, error } = await supabaseAdmin
     .from(PROFILE_TABLE)
@@ -48,7 +51,15 @@ async function ensureProfileComplete(profileId: string): Promise<void> {
     .eq("id", profileId)
     .maybeSingle();
 
-  if (error || data?.is_profile_complete !== true) {
+  if (error) {
+    return false;
+  }
+
+  return data?.is_profile_complete === true;
+}
+
+async function ensureProfileComplete(profileId: string): Promise<void> {
+  if (!(await isProfileComplete(profileId))) {
     redirect(PROFILE_SETUP_PATH);
   }
 }
@@ -96,21 +107,31 @@ async function insertHoraryQuestionRow(
 }
 
 /**
- * Horary — doğrulanmış profil, yıldız harcama, DB kaydı, KIE pipeline (atomik iade).
+ * Horary — profil kimliği ile (mobil API Bearer / server action).
  */
-export async function runHoraryReading(question: string): Promise<RunHoraryReadingResult> {
+export async function runHoraryReadingForProfile(
+  profileId: string,
+  question: string
+): Promise<RunHoraryReadingResult> {
   const trimmed = question.trim();
   if (!trimmed) {
     return { success: false, error: "Lütfen bir soru yazın." };
   }
 
   try {
-    const { profileId, profile } = await requireVerifiedUserProfileForAi("self");
-    await ensureProfileComplete(profileId);
+    const profile = await loadVerifiedUserProfileForAi(profileId);
+
+    if (!(await isProfileComplete(profileId))) {
+      return {
+        success: false,
+        error: "Profil tamamlanmalı.",
+        redirectTo: PROFILE_SETUP_PATH,
+      };
+    }
 
     let remainingStars: number;
     try {
-      remainingStars = await consumeStarPoints(STAR_POINTS_COST_PER_ACTION);
+      remainingStars = await consumeStarPointsForProfile(profileId, STAR_POINTS_COST_PER_ACTION);
     } catch (error) {
       const message =
         error instanceof SupabaseActionError
@@ -125,7 +146,7 @@ export async function runHoraryReading(question: string): Promise<RunHoraryReadi
     try {
       record = await insertHoraryQuestionRow(profileId, trimmed);
     } catch (error) {
-      await creditStarPointsBonus(STAR_POINTS_COST_PER_ACTION);
+      await creditStarPointsBonusForProfile(profileId, STAR_POINTS_COST_PER_ACTION);
       const message =
         error instanceof SupabaseActionError
           ? error.message
@@ -156,10 +177,37 @@ export async function runHoraryReading(question: string): Promise<RunHoraryReadi
         remainingStars,
       };
     } catch (error) {
-      await creditStarPointsBonus(STAR_POINTS_COST_PER_ACTION);
+      await creditStarPointsBonusForProfile(profileId, STAR_POINTS_COST_PER_ACTION);
       console.error("[runHoraryReading] pipeline failed:", error);
       return { success: false, error: ORACLE_COSMIC_DATA_ERROR };
     }
+  } catch (error) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "digest" in error &&
+      String((error as { digest?: string }).digest ?? "").includes("NEXT_REDIRECT")
+    ) {
+      return { success: false, error: "Profil tamamlanmalı.", redirectTo: PROFILE_SETUP_PATH };
+    }
+
+    if (error instanceof SupabaseActionError) {
+      return { success: false, error: error.message };
+    }
+
+    console.error("[runHoraryReading] unexpected error:", error);
+    return { success: false, error: ORACLE_COSMIC_DATA_ERROR };
+  }
+}
+
+/**
+ * Horary — cookie oturumu (web dashboard).
+ */
+export async function runHoraryReading(question: string): Promise<RunHoraryReadingResult> {
+  try {
+    const { profileId } = await requireVerifiedUserProfileForAi("self");
+    await ensureProfileComplete(profileId);
+    return runHoraryReadingForProfile(profileId, question);
   } catch (error) {
     if (
       typeof error === "object" &&

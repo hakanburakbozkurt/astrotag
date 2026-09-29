@@ -497,17 +497,17 @@ export async function chargeStarPoints(): Promise<{
 /** @deprecated Use chargeStarPoints */
 export const chargeCosmicEnergy = chargeStarPoints;
 
-export async function consumeStarPoints(
+export async function consumeStarPointsForProfile(
+  profileId: string,
   amount: number = STAR_POINTS_COST_PER_ACTION
 ): Promise<number> {
   try {
-    const userId = await requireAuthUserId();
     const supabase = getServiceClient();
 
     const { data, error: readError } = await supabase
       .from(PROFILE_TABLE)
       .select("star_points, star_points_bonus")
-      .eq("id", userId)
+      .eq("id", profileId)
       .maybeSingle();
 
     if (readError || !data) {
@@ -536,7 +536,7 @@ export async function consumeStarPoints(
         star_points: next.starPoints,
         star_points_bonus: next.starPointsBonus,
       })
-      .eq("id", userId);
+      .eq("id", profileId);
 
     if (error) {
       mapSupabaseError(error, "Yıldız puanı harcanamadı.");
@@ -552,19 +552,28 @@ export async function consumeStarPoints(
   }
 }
 
-export async function creditStarPointsBonus(amount: number): Promise<number> {
+export async function consumeStarPoints(
+  amount: number = STAR_POINTS_COST_PER_ACTION
+): Promise<number> {
+  const userId = await requireAuthUserId();
+  return consumeStarPointsForProfile(userId, amount);
+}
+
+export async function creditStarPointsBonusForProfile(
+  profileId: string,
+  amount: number
+): Promise<number> {
   try {
     if (amount <= 0) {
       throw new SupabaseActionError("Geçersiz yıldız iadesi miktarı.");
     }
 
-    const userId = await requireAuthUserId();
     const supabase = getServiceClient();
 
     const { data, error: readError } = await supabase
       .from(PROFILE_TABLE)
       .select("star_points, star_points_bonus")
-      .eq("id", userId)
+      .eq("id", profileId)
       .maybeSingle();
 
     if (readError || !data) {
@@ -577,7 +586,7 @@ export async function creditStarPointsBonus(amount: number): Promise<number> {
     const { error } = await supabase
       .from(PROFILE_TABLE)
       .update({ star_points_bonus: starPointsBonus })
-      .eq("id", userId);
+      .eq("id", profileId);
 
     if (error) {
       mapSupabaseError(error, "Yıldız iadesi uygulanamadı.");
@@ -591,6 +600,11 @@ export async function creditStarPointsBonus(amount: number): Promise<number> {
 
     throw new SupabaseActionError("Yıldız iadesi sırasında bir hata oluştu.");
   }
+}
+
+export async function creditStarPointsBonus(amount: number): Promise<number> {
+  const userId = await requireAuthUserId();
+  return creditStarPointsBonusForProfile(userId, amount);
 }
 
 /** @deprecated Use consumeStarPoints */

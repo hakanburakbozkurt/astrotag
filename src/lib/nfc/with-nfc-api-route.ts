@@ -37,7 +37,7 @@ export function withNfcApiRoute(handlerName: string, handler: NfcApiHandler) {
     };
 
     try {
-      const guard = await guardApiNfcAccess();
+      const guard = await guardApiNfcAccess(request);
       if (!guard.ok) {
         return guard.response;
       }

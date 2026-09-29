@@ -1,7 +1,9 @@
 import "server-only";
 
-import type { User } from "@supabase/supabase-js";
+import type { SupabaseClient, User } from "@supabase/supabase-js";
+import type { NextRequest } from "next/server";
 import { NFC_CARD_TABLE } from "@/lib/nfc/nfc-card-table";
+import { createApiRouteSupabaseClient } from "@/lib/supabase/api-route-client";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import { fetchProfileByUserId, firstRow } from "@/lib/supabase/profile-query.server";
@@ -51,8 +53,9 @@ async function loadProfileForAuthUser(
   };
 }
 
-export async function getAuthProfileContext(): Promise<AuthProfileContext | null> {
-  const supabase = await createServerSupabaseClient();
+async function getAuthProfileContextWithClient(
+  supabase: SupabaseClient
+): Promise<AuthProfileContext | null> {
   const {
     data: { user },
     error,
@@ -63,6 +66,18 @@ export async function getAuthProfileContext(): Promise<AuthProfileContext | null
   }
 
   return loadProfileForAuthUser(user);
+}
+
+export async function getAuthProfileContext(): Promise<AuthProfileContext | null> {
+  const supabase = await createServerSupabaseClient();
+  return getAuthProfileContextWithClient(supabase);
+}
+
+export async function getAuthProfileContextFromRequest(
+  request: NextRequest
+): Promise<AuthProfileContext | null> {
+  const supabase = await createApiRouteSupabaseClient(request);
+  return getAuthProfileContextWithClient(supabase);
 }
 
 export async function requireAuthProfileContext(): Promise<AuthProfileContext> {

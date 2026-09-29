@@ -12,8 +12,8 @@ import {
 import { STAR_POINTS_COST_PER_ACTION } from "@/lib/constants/cosmic";
 import { withNfcApiRoute } from "@/lib/nfc/with-nfc-api-route";
 import {
-  consumeStarPoints,
-  creditStarPointsBonus,
+  consumeStarPointsForProfile,
+  creditStarPointsBonusForProfile,
 } from "@/lib/supabase-actions";
 import { SupabaseActionError } from "@/lib/supabase-action-error";
 import { ORACLE_COSMIC_DATA_ERROR } from "@/lib/oracle/oracle-errors";
@@ -46,7 +46,10 @@ export const POST = withNfcApiRoute(
 
     let remainingStars: number;
     try {
-      remainingStars = await consumeStarPoints(STAR_POINTS_COST_PER_ACTION);
+      remainingStars = await consumeStarPointsForProfile(
+        access.profileId,
+        STAR_POINTS_COST_PER_ACTION
+      );
     } catch (error) {
       const message =
         error instanceof SupabaseActionError
@@ -82,7 +85,10 @@ export const POST = withNfcApiRoute(
         remainingStars,
       });
     } catch (error) {
-      await creditStarPointsBonus(STAR_POINTS_COST_PER_ACTION);
+      await creditStarPointsBonusForProfile(
+        access.profileId,
+        STAR_POINTS_COST_PER_ACTION
+      );
       console.error("[natal-interpretation] pipeline failed:", error);
       return NextResponse.json(
         { error: ORACLE_COSMIC_DATA_ERROR, interpretation: "" },
